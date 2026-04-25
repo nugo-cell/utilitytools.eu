@@ -62,6 +62,14 @@
     .pc-info b{color:var(--text)}
     .pc-info .lock{color:var(--success);font-weight:700}
     .pc-start-buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+    .pc-devices{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;
+      margin-top:12px;padding:12px;border:1px dashed var(--border);border-radius:10px;
+      background:linear-gradient(135deg,rgba(124,92,255,.05),rgba(0,212,170,.05));
+    }
+    .pc-devices label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+    .pc-devices select{width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--panel-2);color:var(--text);font-size:13px}
+    .pc-devices select:focus{outline:0;border-color:var(--accent)}
     .pc-toast{
       position:fixed;left:50%;bottom:30px;transform:translateX(-50%);
       background:var(--panel);border:1px solid var(--accent);color:var(--text);
@@ -127,7 +135,23 @@
         <button id="micBtn"   type="button" class="btn-secondary">🎙 Mute mic</button>
         <button id="camBtn"   type="button" class="btn-secondary">📹 Stop camera</button>
         <button id="screenBtn" type="button" class="btn-secondary">🖥 Share screen</button>
+        <button id="devicesBtn" type="button" class="btn-secondary">⚙ Devices</button>
         <button id="hangBtn"  type="button" class="btn-danger">📞 Hang up</button>
+      </div>
+
+      <div class="pc-devices" id="devicesPanel" hidden>
+        <div>
+          <label for="camSel">📹 Camera</label>
+          <select id="camSel"></select>
+        </div>
+        <div>
+          <label for="micSel">🎙 Microphone</label>
+          <select id="micSel"></select>
+        </div>
+        <div>
+          <label for="spkSel">🔊 Speaker (output)</label>
+          <select id="spkSel"></select>
+        </div>
       </div>
 
       <div class="pc-info">
@@ -150,8 +174,11 @@
     let isInitiator = false, makingOffer = false, ignoreOffer = false, polite = true;
     let roomId = null;
     let screenStream = null;     // active getDisplayMedia stream while sharing
-    let cameraTrack = null;      // saved camera track so we can restore on stop
+    let cameraTrack = null;      // current camera track on the sender (when not sharing)
     let videoSender = null;      // RTCRtpSender for the video track
+    let audioSender = null;      // RTCRtpSender for the audio track
+    let currentCamId = null, currentMicId = null, currentSpkId = null;
+    const DEV_KEY = 'utilitytools.p2p.devices';
 
     const ICE_SERVERS = [
       { urls: 'stun:stun.l.google.com:19302' },
@@ -206,10 +233,22 @@
       callPanel.hidden = false;
       setStatus('Requesting camera & microphone access…');
 
+      // Restore previously chosen devices, if any.
+      try {
+        const saved = JSON.parse(localStorage.getItem(DEV_KEY) || '{}');
+        currentCamId = saved.cam || null;
+        currentMicId = saved.mic || null;
+        currentSpkId = saved.spk || null;
+      } catch(_) {}
+
       try {
         localStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+          video: currentCamId
+            ? { deviceId: { exact: currentCamId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+            : { width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: currentMicId
+            ? { deviceId: { exact: currentMicId }, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+            : { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
         });
       } catch (e) {
         setStatus('Could not access camera/mic: ' + e.message, 'err');
@@ -217,6 +256,11 @@
       }
       localVid.srcObject = localStream;
       localTile.classList.add('live');
+      cameraTrack = localStream.getVideoTracks()[0] || null;
+
+      // Now that permission is granted, device labels are populated.
+      await populateDevices();
+      navigator.mediaDevices.addEventListener('devicechange', populateDevices);
 
       connectSignaling(id);
     }
@@ -297,6 +341,7 @@
       for (const t of localStream.getTracks()) {
         const sender = pc.addTrack(t, localStream);
         if (t.kind === 'video') { videoSender = sender; cameraTrack = t; }
+        else if (t.kind === 'audio') { audioSender = sender; }
       }
 
       pc.ontrack = (ev) => {
@@ -355,10 +400,12 @@
       if (!pc || !videoSender) { alert('Connect first.'); return; }
       if (screenStream) { stopScreenShare(); return; }
       try {
+        // NOTE: we deliberately do NOT request audio here. Capturing system audio
+        // together with the mic causes echo/feedback on most setups, and on some
+        // browsers the OS dims the screen during capture if any audio is requested.
         screenStream = await navigator.mediaDevices.getDisplayMedia({
           video: { frameRate: { ideal: 15, max: 30 } },
-          // Also share computer audio when the OS/browser allows it (Chrome/Edge on Win/ChromeOS).
-          audio: true
+          audio: false
         });
       } catch (e) {
         if (e && e.name === 'NotAllowedError') return; // user cancelled the picker
@@ -370,13 +417,16 @@
 
       // Replace the camera track on the existing sender — no renegotiation needed.
       try { await videoSender.replaceTrack(screenTrack); }
-      catch (e) { alert('Could not switch tracks: ' + e.message); screenTrack.stop(); screenStream = null; return; }
+      catch (e) {
+        alert('Could not switch tracks: ' + e.message);
+        screenStream.getTracks().forEach(t => t.stop()); screenStream = null; return;
+      }
 
-      // Show the screen capture in our local preview as well.
-      localVid.srcObject = screenStream;
+      // IMPORTANT: keep the LOCAL preview on the camera. If we put the screen
+      // capture into our own <video>, picking the call tab as source creates an
+      // infinite mirror loop that looks like "the screen went black".
       localTile.classList.add('sharing');
 
-      // Tell the other peer to show a "Sharing screen" badge.
       if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'screen', on: true }));
 
       // When the user clicks the browser's native "Stop sharing" bar, react.
@@ -389,16 +439,114 @@
       if (!screenStream) return;
       try { screenStream.getTracks().forEach(t => t.stop()); } catch(_) {}
       screenStream = null;
-      // Restore the camera track on the sender.
-      if (videoSender && cameraTrack) {
-        try { await videoSender.replaceTrack(cameraTrack); } catch(_) {}
+
+      // Make sure we have a live camera track to restore. If the previous one
+      // ended (some browsers stop it when GPU/screen capture takes over), grab
+      // a fresh one with the currently selected camera device.
+      if (videoSender) {
+        try {
+          if (!cameraTrack || cameraTrack.readyState === 'ended') {
+            const fresh = await navigator.mediaDevices.getUserMedia({
+              video: currentCamId
+                ? { deviceId: { exact: currentCamId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+                : { width: { ideal: 1280 }, height: { ideal: 720 } },
+              audio: false
+            });
+            const ft = fresh.getVideoTracks()[0];
+            if (ft) {
+              cameraTrack = ft;
+              if (localStream) {
+                // swap into localStream so the preview keeps working
+                const old = localStream.getVideoTracks()[0];
+                if (old) { try { localStream.removeTrack(old); old.stop(); } catch(_) {} }
+                localStream.addTrack(ft);
+                localVid.srcObject = localStream;
+              }
+            }
+          }
+          if (cameraTrack) await videoSender.replaceTrack(cameraTrack);
+        } catch (e) { console.warn('restore camera failed', e); }
       }
-      // Restore local preview to the camera stream.
-      if (localStream) localVid.srcObject = localStream;
+
       localTile.classList.remove('sharing');
       if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'screen', on: false }));
       screenBtn.textContent = '🖥 Share screen';
     }
+
+    // ---------- Device selection ----------
+    const devicesBtn = $('devicesBtn'), devicesPanel = $('devicesPanel');
+    const camSel = $('camSel'), micSel = $('micSel'), spkSel = $('spkSel');
+    devicesBtn.onclick = () => { devicesPanel.hidden = !devicesPanel.hidden; if (!devicesPanel.hidden) populateDevices(); };
+
+    async function populateDevices() {
+      let devs = [];
+      try { devs = await navigator.mediaDevices.enumerateDevices(); } catch(_) { return; }
+      const fill = (sel, kind, current) => {
+        const list = devs.filter(d => d.kind === kind);
+        sel.innerHTML = list.map((d, i) =>
+          `<option value="${d.deviceId}">${d.label || (kind + ' ' + (i+1))}</option>`
+        ).join('') || `<option value="">(none available)</option>`;
+        if (current && list.some(d => d.deviceId === current)) sel.value = current;
+      };
+      fill(camSel, 'videoinput', currentCamId);
+      fill(micSel, 'audioinput', currentMicId);
+      fill(spkSel, 'audiooutput', currentSpkId);
+      // Hide speaker selector if browser does not support setSinkId.
+      if (typeof remoteVid.setSinkId !== 'function') {
+        spkSel.parentElement.style.display = 'none';
+      }
+    }
+    function saveDevices() {
+      try { localStorage.setItem(DEV_KEY, JSON.stringify({ cam: currentCamId, mic: currentMicId, spk: currentSpkId })); } catch(_) {}
+    }
+
+    camSel.onchange = async () => {
+      const id = camSel.value; if (!id) return;
+      currentCamId = id; saveDevices();
+      try {
+        const ns = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: id }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
+        });
+        const newTrack = ns.getVideoTracks()[0];
+        if (!newTrack) return;
+        // If currently sharing screen, only update the saved cameraTrack — we'll restore on stop.
+        if (localStream) {
+          const old = localStream.getVideoTracks()[0];
+          if (old) { try { localStream.removeTrack(old); old.stop(); } catch(_) {} }
+          localStream.addTrack(newTrack);
+        }
+        cameraTrack = newTrack;
+        if (!screenStream && videoSender) await videoSender.replaceTrack(newTrack);
+        localVid.srcObject = localStream;
+        toast('📹 Camera switched');
+      } catch (e) { alert('Could not switch camera: ' + e.message); }
+    };
+    micSel.onchange = async () => {
+      const id = micSel.value; if (!id) return;
+      currentMicId = id; saveDevices();
+      try {
+        const ns = await navigator.mediaDevices.getUserMedia({
+          audio: { deviceId: { exact: id }, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+          video: false
+        });
+        const newTrack = ns.getAudioTracks()[0];
+        if (!newTrack) return;
+        if (localStream) {
+          const old = localStream.getAudioTracks()[0];
+          if (old) { try { localStream.removeTrack(old); old.stop(); } catch(_) {} }
+          localStream.addTrack(newTrack);
+        }
+        if (audioSender) await audioSender.replaceTrack(newTrack);
+        toast('🎙 Microphone switched');
+      } catch (e) { alert('Could not switch mic: ' + e.message); }
+    };
+    spkSel.onchange = async () => {
+      const id = spkSel.value; if (!id) return;
+      currentSpkId = id; saveDevices();
+      try { await remoteVid.setSinkId(id); toast('🔊 Speaker switched'); }
+      catch (e) { alert('Could not switch speaker: ' + e.message); }
+    };
     hangBtn.onclick = () => {
       cleanup();
       setStatus('Call ended.', 'err');
@@ -415,6 +563,7 @@
       remoteTile.classList.remove('live', 'sharing'); localTile.classList.remove('live', 'muted', 'sharing');
       remoteEmpty.style.display = '';
       videoSender = null; cameraTrack = null;
+      audioSender = null;
       screenBtn.textContent = '🖥 Share screen';
     }
 
