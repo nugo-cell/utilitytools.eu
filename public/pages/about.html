@@ -40,11 +40,15 @@
       <p>Concretely:</p>
       <ul>
         <li><strong>No analytics.</strong> No Google Analytics, no Plausible, no pixel beacons, no third-party JavaScript watching you.</li>
-        <li><strong>No cookies.</strong> The site sets none. The only browser storage we use is <code>localStorage</code> on the same machine — for tools like the CV maker that autosave your work locally.</li>
+        <li><strong>No own cookies.</strong> The site itself sets none. The only browser storage we use is <code>localStorage</code> on the same machine — for tools like the CV maker that autosave your work locally, and to remember your favorited tools or theme.</li>
         <li><strong>No accounts.</strong> Nothing to sign up for, nothing to forget the password to.</li>
-        <li><strong>No ads.</strong> No retargeting, no ad networks, no consent banners.</li>
+        <li><strong>No database.</strong> The server has no database — nothing about you is stored anywhere.</li>
         <li><strong>No data uploads.</strong> The server only ships HTML/CSS/JS files and a small public list of tools. It never receives your inputs.</li>
+        <li><strong>Ads — Google AdSense only.</strong> To keep the site free and pay for hosting we run Google AdSense and <em>nothing else</em>. No retargeting pixels, no analytics SDKs, no other ad networks. Full disclosure on the <a href="/privacy">privacy page</a>.</li>
       </ul>
+
+      <h2>Where it's hosted</h2>
+      <p>The site runs on a single small <strong>DigitalOcean</strong> droplet in the <strong>Frankfurt (FRA1)</strong> data center — inside the EU, under EU jurisdiction. There is no database attached, no third-party backend, and no analytics service. The server's only job is to ship static files (HTML, CSS, JavaScript) over HTTPS. Standard short-lived web-server access logs are kept by the hosting provider for security and rotated quickly.</p>
 
       <h2>An EU alternative</h2>
       <p>Most "free online tools" sites are based in the US, run on US-owned analytics, and quietly funnel your data through dozens of partners. We are based in the European Union and built specifically to be a clean, GDPR-friendly alternative — small, fast, and respectful by default. If a tool you'd find useful is missing, we're always open to suggestions.</p>
@@ -56,7 +60,7 @@
       <p>All 30+ tools are free, with no usage limits, no premium tier, and no sneaky upsells. The whole site works offline after the first visit, because each page is a self-contained file your browser can cache.</p>
 
       <h2>Technical details</h2>
-      <p>The site is built with Node.js, Express, and plain HTML/CSS/JavaScript. No heavy frameworks, no build step, no third-party trackers — just the web platform doing what it was designed to do. A small handful of tools (QR code, DOCX-to-PDF, Markdown preview) load one open-source library from a public CDN; nothing about your input is uploaded.</p>
+      <p>The site is built with Node.js, Express, and plain HTML/CSS/JavaScript. No heavy frameworks, no build step, no third-party trackers — just the web platform doing what it was designed to do. It is hosted on DigitalOcean in <strong>Frankfurt, Germany 🇩🇪</strong>, with no database. A small handful of tools (QR code, DOCX-to-PDF, Markdown preview) load one open-source library from a public CDN; nothing about your input is uploaded. The only third-party script on the site is <strong>Google AdSense</strong>, which we use solely to fund the project.</p>
 
       <p style="margin-top: 28px"><a href="/" class="brand" style="font-size:18px">→ Browse all tools</a></p>
     </article>

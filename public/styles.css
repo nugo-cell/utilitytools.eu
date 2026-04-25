@@ -21,7 +21,45 @@
   --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   --grad: linear-gradient(135deg, #7c5cff 0%, #ff5e9c 55%, #00d4aa 100%);
   --grad-soft: linear-gradient(135deg, rgba(124,92,255,0.18) 0%, rgba(255,94,156,0.14) 55%, rgba(0,212,170,0.16) 100%);
+  --btn-text: #0b0f17;            /* text color on accent buttons / active tags */
+  --fav-btn-bg: rgba(20,24,40,0.6);
+  --img-stage-bg: #0e1322;
+  --img-stage-tile: #1a1f33;
+  --shadow-soft: 0 10px 30px rgba(0,0,0,0.4);
 }
+
+/* ---------------- Light theme overrides ---------------- */
+html[data-theme="light"] {
+  --bg: #f4f6fb;
+  --bg-2: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #f1f3f9;
+  --border: #e2e6ef;
+  --border-strong: #c8cfdd;
+  --text: #14172b;
+  --muted: #5a6584;
+  --accent: #6a45ff;
+  --accent-2: #4a25e0;
+  --grad-soft: linear-gradient(135deg, rgba(124,92,255,0.10) 0%, rgba(255,94,156,0.08) 55%, rgba(0,212,170,0.10) 100%);
+  --btn-text: #ffffff;
+  --fav-btn-bg: rgba(255,255,255,0.85);
+  --img-stage-bg: #f7f8fc;
+  --img-stage-tile: #e6e9f2;
+  --shadow-soft: 0 10px 30px rgba(20,24,60,0.10);
+  color-scheme: light;
+}
+html[data-theme="light"] body {
+  background:
+    radial-gradient(circle at 12% -10%, rgba(124,92,255,0.10), transparent 45%),
+    radial-gradient(circle at 92% 5%,  rgba(0,212,170,0.08),  transparent 45%),
+    radial-gradient(circle at 50% 110%, rgba(255,94,156,0.08), transparent 50%),
+    var(--bg);
+}
+/* Search-icon SVG color (uses --muted hex inline) */
+html[data-theme="light"] .search-bar input {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a6584' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");
+}
+/* CV preview should always look like a printed white sheet — fine in both themes. */
 
 * { box-sizing: border-box; }
 
@@ -176,7 +214,7 @@ footer.site-footer {
 .tag:hover { color: var(--text); border-color: var(--accent-2); }
 .tag.active {
   background: var(--accent);
-  color: #0b0f17;
+  color: var(--btn-text);
   border-color: var(--accent);
   font-weight: 600;
 }
@@ -368,7 +406,7 @@ textarea:focus, input:focus, select:focus { border-color: var(--accent); }
 
 button {
   background: var(--accent);
-  color: #0b0f17;
+  color: var(--btn-text);
   border: none;
   border-radius: 8px;
   padding: 10px 14px;
@@ -616,7 +654,7 @@ body.tool-page .container {
   width: 34px; height: 34px;
   padding: 0;
   border-radius: 50%;
-  background: rgba(20,24,40,0.6);
+  background: var(--fav-btn-bg);
   border: 1px solid var(--border);
   color: var(--muted);
   font-size: 18px;
@@ -664,13 +702,13 @@ body.tool-page .container {
   align-items: center;
   justify-content: center;
   background:
-    linear-gradient(45deg, #1a1f33 25%, transparent 25%),
-    linear-gradient(-45deg, #1a1f33 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #1a1f33 75%),
-    linear-gradient(-45deg, transparent 75%, #1a1f33 75%);
+    linear-gradient(45deg, var(--img-stage-tile) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--img-stage-tile) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--img-stage-tile) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--img-stage-tile) 75%);
   background-size: 20px 20px;
   background-position: 0 0, 0 10px, 10px -10px, -10px 0;
-  background-color: #0e1322;
+  background-color: var(--img-stage-bg);
   border: 1px solid var(--border);
   border-radius: 8px;
   min-height: 280px;
@@ -708,7 +746,7 @@ body.tool-page .container {
   border-radius: 6px;
 }
 .img-toolbar .group button:hover { background: var(--panel); color: var(--text); }
-.img-toolbar .group button.active { background: var(--accent); color: #0b0f17; }
+.img-toolbar .group button.active { background: var(--accent); color: var(--btn-text); }
 
 .range-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .range-row > label { margin: 0; min-width: 90px; }
@@ -722,4 +760,31 @@ input[type=color] { width: 48px; height: 36px; padding: 2px; border-radius: 6px;
 .kvp div:last-child { border-bottom: 0; }
 .kvp b { color: var(--muted); font-weight: 500; min-width: 130px; }
 .kvp span { color: var(--text); word-break: break-all; }
+
+/* ---------------- Theme toggle button (in topnav) ---------------- */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px; height: 34px;
+  margin-left: 12px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s, color 0.15s;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--accent); transform: rotate(15deg); }
+.theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media print { .theme-toggle { display: none !important; } }
+
+/* In light mode the gold favorite color needs a slightly darker shade for contrast on white */
+html[data-theme="light"] .fav-btn.on    { color: #c98900; border-color: #c98900; background: rgba(255,193,7,0.18); text-shadow: none; }
+html[data-theme="light"] .fav-btn:hover { color: #c98900; border-color: #c98900; box-shadow: 0 0 12px rgba(201,137,0,0.25); }
+html[data-theme="light"] .tag.fav-tag { color: #b07700; border-color: rgba(201,137,0,0.45); }
+html[data-theme="light"] .tag.fav-tag.active { color: #1a1300; }
 

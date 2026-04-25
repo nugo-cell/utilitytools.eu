@@ -5,6 +5,47 @@
 // without hurting SEO. Static <head> meta still lives in each page's HTML.
 
 (function () {
+  // ---------------- Theme (light / dark) ----------------
+  // Apply stored theme as early as possible to minimize flash. The homepage
+  // (index.html) has its own inline early-init; here we cover all other pages.
+  var THEME_KEY = 'utilitytools.theme';
+  function getStoredTheme() {
+    try { return localStorage.getItem(THEME_KEY); } catch (_) { return null; }
+  }
+  function applyTheme(t) {
+    if (t === 'dark') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', 'light');
+    var btn = document.querySelector('.theme-toggle');
+    if (btn) {
+      var isLight = t !== 'dark';
+      btn.textContent = isLight ? '🌙' : '☀';
+      btn.setAttribute('aria-label', isLight ? 'Switch to dark mode' : 'Switch to light mode');
+      btn.setAttribute('title', isLight ? 'Switch to dark mode' : 'Switch to light mode');
+      btn.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+    }
+  }
+  applyTheme(getStoredTheme() === 'dark' ? 'dark' : 'light');
+
+  function injectThemeToggle() {
+    if (document.querySelector('.theme-toggle')) return;
+    var nav = document.querySelector('.topnav nav') || document.querySelector('.topnav');
+    if (!nav) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'theme-toggle';
+    nav.appendChild(btn);
+    btn.addEventListener('click', function () {
+      var next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      try { localStorage.setItem(THEME_KEY, next); } catch (_) {}
+      applyTheme(next);
+    });
+    applyTheme(getStoredTheme() === 'dark' ? 'dark' : 'light');
+  }
+  // Sync across tabs
+  window.addEventListener('storage', function (e) {
+    if (e.key === THEME_KEY) applyTheme(e.newValue === 'dark' ? 'dark' : 'light');
+  });
+
   // ---------------- Google AdSense loader ----------------
   // Inject the AdSense script tag once, on every page that loads site.js.
   // (index.html has it inline in <head>.)
@@ -84,6 +125,9 @@
     document.querySelectorAll('.ad-slot').forEach(fillAdSlot);
   }
 
+  // Inject the theme toggle now (topnav is in the DOM on every page).
+  injectThemeToggle();
+
   // ---------------- 2) Footer ----------------
   if (document.querySelector('footer.site-footer')) return;
 
@@ -124,9 +168,12 @@
     </div>
     <div class="footer-bottom">
       <span>&copy; ${new Date().getFullYear()} UtilityTools.eu &middot; Made in the EU 🇪🇺</span>
-      <span>No cookies. No tracking. No nonsense.</span>
+      <span>Hosted on DigitalOcean · Frankfurt 🇩🇪 · No database · No tracking · Ads by Google AdSense</span>
     </div>`;
   document.body.appendChild(footer);
+
+  // Re-call after footer in case theme toggle wasn't reachable earlier (no-op if already injected).
+  injectThemeToggle();
 })();
 
 

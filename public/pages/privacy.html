@@ -28,8 +28,9 @@
       <h2>The short version</h2>
       <ul>
         <li>The tools themselves run <strong>entirely in your browser</strong>. Nothing you type, paste, encrypt or generate is uploaded to us.</li>
-        <li>We do <strong>not</strong> use our own analytics, our own tracking pixels, or build user profiles.</li>
-        <li>We <strong>do</strong> show ads served by <strong>Google AdSense</strong> to keep the site free. Google may use cookies to do this — details below.</li>
+        <li>We do <strong>not</strong> use our own analytics, our own tracking pixels, or build user profiles. There is <strong>no database</strong> on our server.</li>
+        <li>The site is hosted on <strong>DigitalOcean</strong> in <strong>Frankfurt, Germany 🇩🇪</strong> — inside the EU.</li>
+        <li>We <strong>do</strong> show ads served by <strong>Google AdSense</strong> to keep the site free. Google may use cookies to do this — details below. AdSense is the <em>only</em> third-party script we run.</li>
         <li>We do not sell, rent or share any data ourselves. We never see your inputs.</li>
       </ul>
 
@@ -39,8 +40,17 @@
       <h2>What data the tools collect</h2>
       <p>None. Every utility on this site — JSON formatter, password generator, file encryption, CV maker, image tools, PDF editor, and the rest — is implemented in client-side JavaScript and the Web Crypto / Canvas / File APIs. The data you put into a tool stays on your device. We have no server endpoint that receives your inputs.</p>
 
-      <h2>Server access logs</h2>
-      <p>Like every web server, our hosting provider may temporarily record standard access logs (IP address, timestamp, requested URL, browser user-agent) for the sole purpose of security and availability. These logs are not linked to any account, are not shared, and are rotated on a short schedule.</p>
+      <h2>Hosting & server access logs</h2>
+      <p>The site is hosted on <strong>DigitalOcean</strong> in their <strong>Frankfurt (FRA1)</strong> data center, inside the European Union. There is <strong>no database</strong>, no analytics backend, and no third-party server-side service involved — the server's only job is to ship static HTML, CSS and JavaScript files over HTTPS.</p>
+      <p>Like every web server, our hosting provider may temporarily record standard access logs (IP address, timestamp, requested URL, browser user-agent) for the sole purpose of security and availability. These logs are not linked to any account, are not shared, and are rotated on a short schedule. We do not use them for analytics or profiling.</p>
+
+      <h2>Third-party scripts on this site</h2>
+      <p>To keep the site honest, here is the <em>complete</em> list of third-party services running on UtilityTools.eu:</p>
+      <ul>
+        <li><strong>Google AdSense</strong> — to display the ads that fund the project. Details below.</li>
+        <li>Public CDNs (jsDelivr / unpkg) for a handful of open-source libraries needed by specific tools (e.g. JSZip, pdf-lib, marked). They only see a request for a public file.</li>
+      </ul>
+      <p>That's it. No Google Analytics, no Plausible, no Facebook Pixel, no Hotjar, no Sentry, no error-trackers, no A/B-test SDKs, nothing else.</p>
 
       <h2>Local storage</h2>
       <p>Some tools use the browser's <code>localStorage</code> to remember <em>your</em> preferences locally — for example, your favorited tools on the homepage, or a CV draft so you don't lose it on refresh. This data never leaves your device and you can clear it any time from your browser settings.</p>
@@ -64,7 +74,7 @@
       <p>If you are in the European Economic Area, the United Kingdom, or Switzerland, advertising cookies require your consent. When the legally-required consent banner appears, you can accept, reject, or customise non-essential cookies. Essential preferences (favorites, theme) are stored in <code>localStorage</code> and do not require consent.</p>
 
       <h2>Third-party libraries / CDNs</h2>
-      <p>A few tools load open-source JavaScript libraries from public content-delivery networks (for example, JSZip for ZIP creation or pdf-lib for PDF editing). The CDN provider may see the standard request information (IP, user-agent) when the script is fetched. We do not send personal data to these CDNs — they only see a request for a public file.</p>
+      <p>A few tools load open-source JavaScript libraries from public content-delivery networks (for example, JSZip for ZIP creation or pdf-lib for PDF editing). The CDN provider may see the standard request information (IP, user-agent) when the script is fetched. We do not send personal data to these CDNs — they only see a request for a public file. The libraries themselves run in your browser and do not call home.</p>
 
       <h2>Children's privacy</h2>
       <p>This Service is intended for general audiences and is not directed at children under 13 (or under 16 in the EU, where applicable). We do not knowingly collect personal information from children.</p>

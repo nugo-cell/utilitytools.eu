@@ -15,6 +15,17 @@
   <meta property="og:url" content="https://utilitytools.eu/">
   <meta name="twitter:card" content="summary">
   <link rel="stylesheet" href="/styles.css">
+  <!-- Early theme init (before stylesheet paints) — minimizes flash. Default = light. -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('utilitytools.theme');
+        if (t !== 'dark') document.documentElement.setAttribute('data-theme', 'light');
+      } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
   <!-- Google AdSense -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5700080992080321"
           crossorigin="anonymous"></script>
@@ -78,6 +89,7 @@
       <a href="/blog">Blog</a>
       <a href="/about">About</a>
       <a href="mailto:contact@benandliva.com?subject=UtilityTools.eu%20%E2%80%94%20Feature%20request%20%2F%20bug%20report" title="Send feature requests or report bugs">Contact</a>
+      <button type="button" class="theme-toggle" id="themeToggle" aria-label="Switch theme" title="Switch theme">☀</button>
     </nav>
   </header>
 
@@ -107,7 +119,7 @@
       <div class="trust-icon">🛡️</div>
       <div class="trust-content">
         <h3>Guaranteed safe — no virus, no malware, no shady code.</h3>
-        <p>This site is built by an independent EU developer — a hardworking dad of two — trying to earn through traffic and ads. Every tool runs entirely in your browser: nothing is uploaded, nothing is tracked, no accounts required. <strong>If you'd like to support the project, please share these tools with someone who'd find them useful. ❤️</strong></p>
+        <p>This site is built by an independent EU developer — a hardworking dad of two — trying to earn through traffic and ads. Every tool runs entirely in your browser: nothing is uploaded, nothing is tracked, no accounts required. <strong>Hosted on DigitalOcean in Frankfurt 🇩🇪 — no database, no analytics, only Google AdSense to keep the lights on.</strong> If you'd like to support the project, please share these tools with someone who'd find them useful. ❤️</p>
         <div class="trust-actions">
           <button class="share-btn" id="shareBtn" type="button">📤 Share UtilityTools</button>
           <a class="contact-btn" href="mailto:contact@benandliva.com?subject=UtilityTools.eu%20%E2%80%94%20Feature%20request%20%2F%20bug%20report&amp;body=Hi%2C%0A%0A">✉ Contact us — feature requests &amp; bugs</a>
@@ -186,12 +198,38 @@
     </div>
     <div class="footer-bottom">
       <span>&copy; <span id="year"></span> UtilityTools.eu &middot; Made in the EU 🇪🇺</span>
-      <span>No cookies. No tracking. No nonsense.</span>
+      <span>Hosted on DigitalOcean · Frankfurt 🇩🇪 · No database · No tracking · Ads by Google AdSense</span>
     </div>
   </footer>
 
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
+
+    // ---------------- Theme toggle ----------------
+    (function () {
+      var KEY = 'utilitytools.theme';
+      var btn = document.getElementById('themeToggle');
+      function apply(t) {
+        if (t === 'dark') document.documentElement.removeAttribute('data-theme');
+        else document.documentElement.setAttribute('data-theme', 'light');
+        var isLight = t !== 'dark';
+        btn.textContent = isLight ? '🌙' : '☀';
+        btn.setAttribute('aria-label', isLight ? 'Switch to dark mode' : 'Switch to light mode');
+        btn.setAttribute('title',      isLight ? 'Switch to dark mode' : 'Switch to light mode');
+        btn.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+      }
+      var stored = null;
+      try { stored = localStorage.getItem(KEY); } catch (_) {}
+      apply(stored === 'dark' ? 'dark' : 'light');
+      btn.addEventListener('click', function () {
+        var next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        try { localStorage.setItem(KEY, next); } catch (_) {}
+        apply(next);
+      });
+      window.addEventListener('storage', function (e) {
+        if (e.key === KEY) apply(e.newValue === 'dark' ? 'dark' : 'light');
+      });
+    })();
 
     let TOOLS = [];
     let ALL_TAGS = [];
