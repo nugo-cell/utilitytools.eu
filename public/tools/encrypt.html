@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Encryption Tool — AES-256-GCM, Browser-Only · Utility Tools</title>
+  <meta name="description" content="Free file encryption tool. Encrypt any file with a randomly generated AES-256 key — the file can only be opened with that key. 100% in your browser, nothing uploaded.">
+  <meta name="keywords" content="file encryption, encrypt file online, AES-256, decrypt file, browser encryption, free file encryption tool, secure file lock">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/encrypt">
+  <meta property="og:title" content="File Encryption Tool — AES-256-GCM">
+  <meta property="og:description" content="Encrypt any file with a generated key. Decrypt only with that key. Browser-only — nothing leaves your device.">
+  <meta property="og:url" content="/encrypt">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+    .tabs button{
+      padding:10px 18px;border-radius:10px;background:var(--panel-2);
+      border:1px solid var(--border);color:var(--text);cursor:pointer;
+      font-weight:600;font-size:14px;transition:.15s;
+    }
+    .tabs button:hover{border-color:var(--accent)}
+    .tabs button.active{
+      border-color:var(--accent);
+      background:linear-gradient(135deg, rgba(124,92,255,0.18), rgba(124,92,255,0.06));
+      color:#fff;
+    }
+    .tab-pane{display:none}
+    .tab-pane.active{display:block}
+
+    .drop{
+      display:block;background:var(--panel-2);border:2px dashed var(--border);
+      border-radius:10px;padding:30px 20px;text-align:center;cursor:pointer;
+      color:var(--muted);transition:.15s;
+    }
+    .drop:hover, .drop.drag{border-color:var(--accent);color:var(--text);background:rgba(124,92,255,0.05)}
+    .drop b{color:var(--text)}
+    .drop input{display:none}
+    .file-info{margin-top:8px;font-size:13px;color:var(--muted);font-family:var(--mono)}
+
+    .key-box{
+      width:100%;background:var(--panel-2);border:1px solid var(--border);
+      border-radius:8px;padding:12px 14px;color:var(--text);
+      font-family:var(--mono);font-size:13px;line-height:1.6;
+      word-break:break-all;min-height:50px;outline:none;resize:vertical;
+    }
+    .key-box:focus{border-color:var(--accent)}
+
+    .status{margin-top:10px;padding:10px 14px;border-radius:8px;font-size:14px;display:none}
+    .status.show{display:block}
+    .status.ok{background:rgba(34,195,154,0.10);border:1px solid rgba(34,195,154,0.4);color:#7ee2c0}
+    .status.err{background:rgba(255,107,107,0.10);border:1px solid rgba(255,107,107,0.4);color:#ff9b9b}
+    .status.info{background:rgba(124,92,255,0.10);border:1px solid rgba(124,92,255,0.4);color:#c7b9ff}
+
+    .results{
+      margin-top:14px;padding:16px;border-radius:10px;
+      background:linear-gradient(135deg, rgba(34,195,154,0.10), rgba(124,92,255,0.06));
+      border:1px solid rgba(34,195,154,0.4);
+    }
+    .results h3{margin:0 0 10px;font-size:16px}
+    .dl-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+
+    .warn-box{
+      background:rgba(255,181,71,0.08);border:1px solid rgba(255,181,71,0.4);
+      border-radius:8px;padding:14px 16px;margin-bottom:16px;font-size:14px;line-height:1.55;
+    }
+    .warn-box b{color:var(--warn)}
+    .warn-box ul{margin:6px 0 0;padding-left:20px}
+
+    .faq-item{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
+    .faq-item h3{margin:0 0 6px;font-size:15px}
+    .faq-item p{margin:0;color:var(--muted);font-size:14px}
+
+    .help{font-size:13px;color:var(--muted);margin-top:10px;padding:10px 12px;border-left:3px solid var(--accent);background:rgba(124,92,255,0.06);border-radius:0 6px 6px 0}
+  </style>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+    {"@type":"Question","name":"How strong is the encryption?","acceptedAnswer":{"@type":"Answer","text":"AES-256 in GCM mode with a randomly generated 256-bit key and a fresh 96-bit IV per file. AES-256-GCM is approved by NIST and used by HTTPS, IPsec and most modern security protocols."}},
+    {"@type":"Question","name":"Is the file uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. Encryption and decryption happen entirely in your browser using the built-in Web Crypto API. The file, the key, and the encrypted output never leave your device."}},
+    {"@type":"Question","name":"What happens if I lose the key?","acceptedAnswer":{"@type":"Answer","text":"The file is unrecoverable. AES-256 has no backdoor and brute-forcing a 256-bit key is computationally infeasible. Always save the key file the moment it is generated."}},
+    {"@type":"Question","name":"Can I encrypt very large files?","acceptedAnswer":{"@type":"Answer","text":"Files are processed in memory, so the practical limit depends on your browser and device. Most modern browsers handle files up to a few hundred megabytes. For multi-gigabyte files, use a desktop encryption tool instead."}}
+  ]}
+  </script>
+</head>
+<body>
+  <header class="topnav"><a href="/" class="brand">Utility<span>Tools</span></a><nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav></header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>File Encryption Tool</h1>
+      <p>Lock any file with <strong>AES-256-GCM</strong>. We generate a random key, encrypt the file, and give you both — the encrypted file can only be opened by the matching key. Everything runs in your browser.</p>
+    </div>
+
+    <div class="warn-box">
+      <b>⚠ Read before you encrypt:</b>
+      <ul>
+        <li><strong>Save the key file the moment it is generated.</strong> Without it, the encrypted file is lost forever.</li>
+        <li>This tool is for personal use — protecting tax documents, exported chat logs, photo backups, etc.</li>
+        <li>For nation-state-level threats, plausible deniability, or legal-grade chain of custody, use a vetted desktop tool (VeraCrypt, age, GnuPG).</li>
+      </ul>
+    </div>
+
+    <section class="panel">
+      <div class="tabs" role="tablist">
+        <button class="active" data-tab="enc" type="button">🔒 Encrypt</button>
+        <button data-tab="dec" type="button">🔓 Decrypt</button>
+      </div>
+
+      <!-- ENCRYPT TAB -->
+      <div class="tab-pane active" id="tab-enc">
+        <label>1. Pick the file to encrypt</label>
+        <label class="drop" id="encDrop">
+          <input type="file" id="encFile">
+          <div><b>Click or drop</b> any file — document, image, archive, anything.</div>
+        </label>
+        <div class="file-info" id="encInfo"></div>
+
+        <div class="row" style="margin-top:14px">
+          <button id="encGo" type="button">🔒 Encrypt &amp; generate key</button>
+        </div>
+
+        <div class="status" id="encStatus"></div>
+
+        <div class="results" id="encResults" style="display:none">
+          <h3>✅ Encrypted</h3>
+          <p style="margin:0;font-size:14px;color:var(--muted)">Save <strong>both</strong> files. The <code>.enc</code> file is the locked data — useless without the key. The <code>.key</code> file is the password — anyone who has it can decrypt the matching <code>.enc</code> file.</p>
+          <label style="margin-top:14px">Encryption key (Base64) — save this somewhere safe</label>
+          <textarea id="encKey" class="key-box" readonly rows="3"></textarea>
+          <div class="dl-row">
+            <button id="encDownloadFile" type="button">⬇ Download encrypted file (.enc)</button>
+            <button id="encDownloadKey" type="button" class="secondary">⬇ Download key file (.key)</button>
+            <button id="encCopyKey" type="button" class="secondary">📋 Copy key</button>
+          </div>
+        </div>
+
+        <div class="help">The encrypted file embeds the original filename and a unique 96-bit IV. When you decrypt later, the original name and extension are restored automatically.</div>
+      </div>
+
+      <!-- DECRYPT TAB -->
+      <div class="tab-pane" id="tab-dec">
+        <label>1. Pick the encrypted file (.enc)</label>
+        <label class="drop" id="decDrop">
+          <input type="file" id="decFile" accept=".enc,application/octet-stream">
+          <div><b>Click or drop</b> a <code>.enc</code> file you encrypted earlier.</div>
+        </label>
+        <div class="file-info" id="decInfo"></div>
+
+        <label style="margin-top:14px">2. Paste the key (or load the <code>.key</code> file)</label>
+        <textarea id="decKey" class="key-box" rows="3" placeholder="Paste the Base64 key here…"></textarea>
+        <div class="row" style="margin-top:8px">
+          <label class="secondary" style="display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:var(--panel-2);cursor:pointer">
+            📂 Load .key file
+            <input type="file" id="decKeyFile" accept=".key,.txt,text/plain" style="display:none">
+          </label>
+        </div>
+
+        <div class="row" style="margin-top:14px">
+          <button id="decGo" type="button">🔓 Decrypt</button>
+        </div>
+
+        <div class="status" id="decStatus"></div>
+
+        <div class="results" id="decResults" style="display:none">
+          <h3>✅ Decrypted</h3>
+          <p style="margin:0;font-size:14px;color:var(--muted)">Original filename: <strong id="decName"></strong></p>
+          <div class="dl-row">
+            <button id="decDownload" type="button">⬇ Download decrypted file</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">How it works</h2>
+      <ol style="color:var(--muted);font-size:14px;line-height:1.8;margin:0;padding-left:22px">
+        <li>The browser's built-in <code>crypto.subtle</code> generates a fresh, cryptographically random <strong>256-bit AES key</strong>.</li>
+        <li>A unique <strong>96-bit IV</strong> (initialization vector) is generated for this file alone — never reused.</li>
+        <li>Your file is encrypted with <strong>AES-GCM</strong>, which also produces an authentication tag that detects any tampering.</li>
+        <li>The output blob layout: <code>[2-byte name length] [original filename] [12-byte IV] [ciphertext + GCM tag]</code>.</li>
+        <li>The key is exported as raw bytes and shown to you in <strong>Base64</strong> for easy copy-paste or saving as a small text file.</li>
+        <li>To decrypt, the same key + the same <code>.enc</code> file → original file restored, with its original name.</li>
+      </ol>
+    </section>
+
+    <section class="panel" id="faq">
+      <h2 style="margin:0 0 12px;font-size:20px">FAQ</h2>
+      <div class="faq-item"><h3>How strong is the encryption?</h3><p>AES-256 in GCM mode — the same algorithm used by HTTPS, modern VPNs and full-disk encryption. With a properly random 256-bit key, brute-force attacks are computationally infeasible.</p></div>
+      <div class="faq-item"><h3>Is the file uploaded anywhere?</h3><p>No. Encryption and decryption happen entirely in your browser using the W3C Web Crypto API. The file and key never leave your device.</p></div>
+      <div class="faq-item"><h3>What happens if I lose the key?</h3><p>The file is permanently unrecoverable. AES-256 has no backdoor. Always save the <code>.key</code> file the moment it's generated — preferably in two places.</p></div>
+      <div class="faq-item"><h3>Can two encrypted files share a key?</h3><p>If you re-encrypt the same source file you'll get a different key and a fresh IV every time. There is no key reuse — each encryption is independent.</p></div>
+      <div class="faq-item"><h3>What's the size limit?</h3><p>Files are processed in memory, so the practical limit depends on your browser. Most handle a few hundred megabytes; for very large files, use a desktop tool.</p></div>
+      <div class="faq-item"><h3>Will the file extension be preserved?</h3><p>Yes. The original filename (including extension) is stored inside the encrypted blob and restored automatically when you decrypt.</p></div>
+    </section>
+
+    <p style="text-align:center;font-size:13px;color:var(--muted);margin:24px 0 0">
+      🔒 100% client-side encryption. The file, the key and everything in-between never leave your browser.
+    </p>
+  </main>
+
+  <script>
+  const $ = id => document.getElementById(id);
+
+  // ---------- Tab switcher ----------
+  document.querySelectorAll('.tabs button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.tabs button').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      $('tab-'+b.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ---------- Status helper ----------
+  function setStatus(el, msg, kind){
+    el.className = 'status show ' + (kind||'info');
+    el.textContent = msg;
+  }
+  function clearStatus(el){ el.className = 'status'; el.textContent = ''; }
+
+  // ---------- Drag-and-drop helpers ----------
+  function wireDrop(drop, fileInput, onFile, info){
+    ['dragover','dragenter'].forEach(ev =>
+      drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('drag'); }));
+    ['dragleave','drop'].forEach(ev =>
+      drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('drag'); }));
+    drop.addEventListener('drop', e => {
+      const f = e.dataTransfer.files[0]; if (!f) return;
+      const dt = new DataTransfer(); dt.items.add(f); fileInput.files = dt.files;
+      onFile(f);
+    });
+    fileInput.addEventListener('change', e => {
+      const f = e.target.files[0]; if (f) onFile(f);
+    });
+  }
+
+  function fmtSize(n){
+    if (n < 1024) return n + ' B';
+    if (n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
+    if (n < 1024*1024*1024) return (n/1024/1024).toFixed(2) + ' MB';
+    return (n/1024/1024/1024).toFixed(2) + ' GB';
+  }
+
+  // ---------- Base64 helpers ----------
+  function bytesToB64(bytes){
+    let s = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk){
+      s += String.fromCharCode.apply(null, bytes.subarray(i, i+chunk));
+    }
+    return btoa(s);
+  }
+  function b64ToBytes(b64){
+    const cleaned = b64.trim().replace(/\s+/g,'');
+    const bin = atob(cleaned);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+
+  // =====================================================
+  // ENCRYPT
+  // =====================================================
+  let encSrcFile = null;
+  let encResultBlob = null, encResultKeyB64 = '';
+
+  wireDrop($('encDrop'), $('encFile'), f => {
+    encSrcFile = f;
+    $('encInfo').textContent = `📄 ${f.name} · ${fmtSize(f.size)}`;
+    clearStatus($('encStatus'));
+    $('encResults').style.display = 'none';
+  });
+
+  $('encGo').addEventListener('click', async () => {
+    if (!encSrcFile){ setStatus($('encStatus'), 'Please pick a file first.', 'err'); return; }
+    if (!window.crypto || !window.crypto.subtle){ setStatus($('encStatus'), 'Your browser does not support Web Crypto.', 'err'); return; }
+
+    setStatus($('encStatus'), '⏳ Reading file…', 'info');
+    try {
+      const buf = await encSrcFile.arrayBuffer();
+
+      setStatus($('encStatus'), '⏳ Generating 256-bit AES key…', 'info');
+      const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt','decrypt']);
+      const rawKey = new Uint8Array(await crypto.subtle.exportKey('raw', key));
+
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+
+      setStatus($('encStatus'), '⏳ Encrypting (AES-256-GCM)…', 'info');
+      const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, buf));
+
+      // Build blob: [2-byte BE name length][filename utf8][12-byte IV][ciphertext+tag]
+      const nameBytes = new TextEncoder().encode(encSrcFile.name);
+      if (nameBytes.length > 0xFFFF){ setStatus($('encStatus'), 'Filename too long.', 'err'); return; }
+      const out = new Uint8Array(2 + nameBytes.length + 12 + ct.length);
+      out[0] = (nameBytes.length >> 8) & 0xFF;
+      out[1] = nameBytes.length & 0xFF;
+      out.set(nameBytes, 2);
+      out.set(iv, 2 + nameBytes.length);
+      out.set(ct, 2 + nameBytes.length + 12);
+
+      encResultBlob = new Blob([out], { type: 'application/octet-stream' });
+      encResultKeyB64 = bytesToB64(rawKey);
+
+      $('encKey').value = encResultKeyB64;
+      $('encResults').style.display = 'block';
+      setStatus($('encStatus'), `✅ Encrypted ${fmtSize(encSrcFile.size)} → ${fmtSize(encResultBlob.size)}. Save both files now.`, 'ok');
+    } catch (e){
+      console.error(e);
+      setStatus($('encStatus'), '❌ Encryption failed: ' + e.message, 'err');
+    }
+  });
+
+  function downloadBlob(blob, name){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  $('encDownloadFile').addEventListener('click', () => {
+    if (!encResultBlob || !encSrcFile) return;
+    downloadBlob(encResultBlob, encSrcFile.name + '.enc');
+  });
+  $('encDownloadKey').addEventListener('click', () => {
+    if (!encResultKeyB64 || !encSrcFile) return;
+    downloadBlob(new Blob([encResultKeyB64], { type: 'text/plain' }), encSrcFile.name + '.key');
+  });
+  $('encCopyKey').addEventListener('click', async (e) => {
+    if (!encResultKeyB64) return;
+    try {
+      await navigator.clipboard.writeText(encResultKeyB64);
+      const o = e.target.textContent; e.target.textContent = '✓ Copied';
+      setTimeout(() => e.target.textContent = o, 1200);
+    } catch (_) {
+      $('encKey').select(); document.execCommand('copy');
+    }
+  });
+
+  // =====================================================
+  // DECRYPT
+  // =====================================================
+  let decSrcFile = null;
+  let decResultBlob = null, decResultName = '';
+
+  wireDrop($('decDrop'), $('decFile'), f => {
+    decSrcFile = f;
+    $('decInfo').textContent = `📄 ${f.name} · ${fmtSize(f.size)}`;
+    clearStatus($('decStatus'));
+    $('decResults').style.display = 'none';
+  });
+
+  $('decKeyFile').addEventListener('change', async e => {
+    const f = e.target.files[0]; if (!f) return;
+    const txt = await f.text();
+    $('decKey').value = txt.trim();
+  });
+
+  $('decGo').addEventListener('click', async () => {
+    if (!decSrcFile){ setStatus($('decStatus'), 'Please pick the encrypted file first.', 'err'); return; }
+    const keyText = $('decKey').value.trim();
+    if (!keyText){ setStatus($('decStatus'), 'Please paste or load the key.', 'err'); return; }
+
+    setStatus($('decStatus'), '⏳ Reading file…', 'info');
+    try {
+      const data = new Uint8Array(await decSrcFile.arrayBuffer());
+      if (data.length < 14){ throw new Error('File is too small to be a valid encrypted blob.'); }
+
+      const nameLen = (data[0] << 8) | data[1];
+      if (nameLen + 14 > data.length){ throw new Error('Encrypted file is corrupted (bad header).'); }
+      const name = new TextDecoder().decode(data.slice(2, 2 + nameLen));
+      const iv = data.slice(2 + nameLen, 2 + nameLen + 12);
+      const ct = data.slice(2 + nameLen + 12);
+
+      setStatus($('decStatus'), '⏳ Importing key…', 'info');
+      let rawKey;
+      try { rawKey = b64ToBytes(keyText); }
+      catch { throw new Error('Key is not valid Base64.'); }
+      if (rawKey.length !== 32){ throw new Error('Key must be 32 bytes (256 bits). Got ' + rawKey.length + ' bytes.'); }
+      const key = await crypto.subtle.importKey('raw', rawKey, { name: 'AES-GCM' }, false, ['decrypt']);
+
+      setStatus($('decStatus'), '⏳ Decrypting…', 'info');
+      let plain;
+      try {
+        plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+      } catch {
+        throw new Error('Decryption failed — the key is wrong or the file was modified.');
+      }
+
+      decResultBlob = new Blob([plain], { type: 'application/octet-stream' });
+      decResultName = name || 'decrypted-file';
+      $('decName').textContent = decResultName;
+      $('decResults').style.display = 'block';
+      setStatus($('decStatus'), `✅ Decrypted successfully (${fmtSize(decResultBlob.size)}).`, 'ok');
+    } catch (e){
+      console.error(e);
+      setStatus($('decStatus'), '❌ ' + e.message, 'err');
+    }
+  });
+
+  $('decDownload').addEventListener('click', () => {
+    if (!decResultBlob) return;
+    downloadBlob(decResultBlob, decResultName);
+  });
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

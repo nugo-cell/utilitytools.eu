@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>UtilityTools.eu — Free EU Online Tools, Privacy-First, Runs in Your Browser</title>
-  <meta name="description" content="UtilityTools.eu is a free European alternative for everyday online utilities — JSON formatter, password generator, CV maker, BMI, Pomodoro and 30+ more. No tracking, no signup. Everything runs in your browser.">
-  <meta name="keywords" content="EU online tools, european utilities, privacy first tools, no tracking, GDPR friendly, free online tools, json formatter, password generator, CV maker, browser tools, no signup">
+  <meta name="description" content="UtilityTools.eu is a free European alternative for everyday online utilities — JSON formatter, password generator, file encryption, CV maker, image tools, PDF editor and 60+ more. No tracking, no signup. Everything runs in your browser.">
+  <meta name="keywords" content="EU online tools, european utilities, privacy first tools, no tracking, GDPR friendly, free online tools, json formatter, password generator, file encryption, CV maker, image tools, browser tools, no signup">
   <link rel="canonical" href="https://utilitytools.eu/">
   <meta name="robots" content="index,follow">
   <meta name="theme-color" content="#7c5cff">
@@ -15,6 +15,43 @@
   <meta property="og:url" content="https://utilitytools.eu/">
   <meta name="twitter:card" content="summary">
   <link rel="stylesheet" href="/styles.css">
+  <style>
+    /* Trust / share / contact banner */
+    .trust-banner{
+      display:flex;gap:18px;align-items:flex-start;
+      background:linear-gradient(135deg, rgba(34,195,154,0.10), rgba(124,92,255,0.08));
+      border:1px solid rgba(34,195,154,0.35);
+      border-radius:var(--radius); padding:18px 22px; margin:18px 0 8px;
+    }
+    .trust-icon{font-size:34px;line-height:1;flex-shrink:0;margin-top:2px}
+    .trust-content{flex:1;min-width:0}
+    .trust-content h3{margin:0 0 6px;font-size:17px;color:var(--text)}
+    .trust-content p{margin:0 0 12px;font-size:14px;color:var(--muted);line-height:1.55}
+    .trust-content p strong{color:var(--text)}
+    .trust-actions{display:flex;flex-wrap:wrap;gap:10px}
+    .share-btn,.contact-btn{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:9px 16px;border-radius:8px;font-size:14px;font-weight:600;
+      text-decoration:none;cursor:pointer;border:1px solid transparent;transition:.15s;
+    }
+    .share-btn{background:var(--grad);color:#fff;border:0}
+    .share-btn:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(124,92,255,0.35)}
+    .contact-btn{background:var(--panel-2);color:var(--text);border-color:var(--border)}
+    .contact-btn:hover{border-color:var(--accent);text-decoration:none}
+    .toast{
+      position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+      background:var(--panel);border:1px solid var(--accent);color:var(--text);
+      padding:10px 18px;border-radius:8px;font-size:14px;z-index:1000;
+      box-shadow:0 10px 30px rgba(0,0,0,0.4);
+      opacity:0;transition:opacity .2s, transform .2s;pointer-events:none;
+    }
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+    @media (max-width:560px){
+      .trust-banner{flex-direction:column;gap:10px}
+      .trust-actions{flex-direction:column}
+      .share-btn,.contact-btn{justify-content:center}
+    }
+  </style>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -36,6 +73,7 @@
       <a href="/" class="active">Tools</a>
       <a href="/blog">Blog</a>
       <a href="/about">About</a>
+      <a href="mailto:contact@benandliva.com?subject=UtilityTools.eu%20%E2%80%94%20Feature%20request%20%2F%20bug%20report" title="Send feature requests or report bugs">Contact</a>
     </nav>
   </header>
 
@@ -46,13 +84,25 @@
     </aside>
     <section class="hero">
       <h1>The free <span class="grad">European</span> toolbox<br>for your everyday browser tasks.</h1>
-      <p>30+ privacy-first utilities for developers, writers, students and home — JSON, passwords, CVs, budgets, Pomodoro and more. No accounts, no trackers, no data ever leaves your device.</p>
+      <p>60+ privacy-first utilities for developers, writers, students and home — JSON, passwords, file encryption, CVs, image tools, PDFs, Pomodoro and more. No accounts, no trackers, no data ever leaves your device.</p>
       <div class="badges">
         <span class="eu-badge eu">Made in the EU</span>
         <span class="eu-badge"><span class="dot"></span> Zero tracking</span>
         <span class="eu-badge"><span class="dot"></span> 100% in your browser</span>
         <span class="eu-badge"><span class="dot"></span> No signup</span>
         <span class="eu-badge"><span class="dot"></span> GDPR-friendly by design</span>
+      </div>
+    </section>
+
+    <section class="trust-banner" aria-label="Safety and contact">
+      <div class="trust-icon">🛡️</div>
+      <div class="trust-content">
+        <h3>Guaranteed safe — no virus, no malware, no shady code.</h3>
+        <p>This site is built by an independent EU developer — a hardworking dad of two — trying to earn through traffic and ads. Every tool runs entirely in your browser: nothing is uploaded, nothing is tracked, no accounts required. <strong>If you'd like to support the project, please share these tools with someone who'd find them useful. ❤️</strong></p>
+        <div class="trust-actions">
+          <button class="share-btn" id="shareBtn" type="button">📤 Share UtilityTools</button>
+          <a class="contact-btn" href="mailto:contact@benandliva.com?subject=UtilityTools.eu%20%E2%80%94%20Feature%20request%20%2F%20bug%20report&amp;body=Hi%2C%0A%0A">✉ Contact us — feature requests &amp; bugs</a>
+        </div>
       </div>
     </section>
 
@@ -109,6 +159,7 @@
         <a href="/">All tools</a>
         <a href="/blog">Blog</a>
         <a href="/about">About</a>
+        <a href="mailto:contact@benandliva.com?subject=UtilityTools.eu%20%E2%80%94%20Feature%20request%20%2F%20bug%20report">Contact</a>
       </div>
       <div class="partners-col">
         <h4>Friends from the EU 🇪🇺</h4>
@@ -137,8 +188,37 @@
     let ALL_TAGS = [];
     let activeTag = null;
     let query = '';
-    let favs = new Set(JSON.parse(localStorage.getItem('utilitytools.favs') || '[]'));
-    function saveFavs() { localStorage.setItem('utilitytools.favs', JSON.stringify([...favs])); }
+
+    // Tools we recommend on first visit — most-used, broad-appeal utilities.
+    const DEFAULT_FAVS = [
+      'password', 'json-formatter', 'qr', 'color',
+      'pdf-editor', 'cv', 'base64', 'text-counter',
+      'markdown', 'regex', 'img-compress', 'typing-test',
+      'encrypt'
+    ];
+    const FAV_KEY = 'utilitytools.favs';
+    const FAV_SEEDED_KEY = 'utilitytools.favs.seeded';
+    const SEED_VERSION = '3'; // bump whenever DEFAULT_FAVS changes
+
+    // Seed/top-up defaults whenever the visitor has not yet seen the current
+    // SEED_VERSION. We always *add* (union) — never remove — so a user who
+    // has actively unfavorited something keeps their choice on subsequent
+    // visits within the same version.
+    (function seedFavorites(){
+      const seenSeed = localStorage.getItem(FAV_SEEDED_KEY);
+      if (seenSeed === SEED_VERSION) return;
+      let existing = [];
+      try { existing = JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); }
+      catch(_) { existing = []; }
+      if (!Array.isArray(existing)) existing = [];
+      const merged = new Set(existing);
+      DEFAULT_FAVS.forEach(s => merged.add(s));
+      localStorage.setItem(FAV_KEY, JSON.stringify([...merged]));
+      localStorage.setItem(FAV_SEEDED_KEY, SEED_VERSION);
+    })();
+
+    let favs = new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]'));
+    function saveFavs() { localStorage.setItem(FAV_KEY, JSON.stringify([...favs])); }
 
     const grid = document.getElementById('toolGrid');
     const empty = document.getElementById('emptyState');
@@ -222,6 +302,33 @@
       .catch(err => {
         grid.innerHTML = '<p style="color:var(--danger)">Failed to load tools: ' + err.message + '</p>';
       });
+
+    // ===== Share button =====
+    function showToast(msg) {
+      let t = document.querySelector('.toast');
+      if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); }
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._h);
+      t._h = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+    document.getElementById('shareBtn').addEventListener('click', async () => {
+      const data = {
+        title: 'UtilityTools.eu — Free EU online tools',
+        text: '50+ privacy-first browser tools — JSON, passwords, CVs, PDFs, image tools and more. No tracking, no signup.',
+        url: 'https://utilitytools.eu/'
+      };
+      try {
+        if (navigator.share) {
+          await navigator.share(data);
+        } else if (navigator.clipboard) {
+          await navigator.clipboard.writeText(data.url);
+          showToast('Link copied — thank you for sharing! ❤️');
+        } else {
+          window.prompt('Copy and share this link:', data.url);
+        }
+      } catch (_) { /* user cancelled — no-op */ }
+    });
   </script>
 </body>
 </html>

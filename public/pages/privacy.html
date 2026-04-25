@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Privacy Policy — Utility Tools</title>
-  <meta name="description" content="Privacy policy for Utility Tools. No tracking cookies, no analytics, no data collection. Everything runs in your browser.">
+  <title>Privacy Policy — UtilityTools.eu</title>
+  <meta name="description" content="Privacy policy for UtilityTools.eu. Tools run in your browser. We use Google AdSense for advertising — full disclosure inside.">
   <meta name="robots" content="index,follow">
   <link rel="canonical" href="/privacy">
   <link rel="stylesheet" href="/styles.css">
@@ -12,7 +12,12 @@
 <body>
   <header class="topnav">
     <a href="/" class="brand">Utility<span>Tools</span></a>
-    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+    <nav>
+      <a href="/">Tools</a>
+      <a href="/blog">Blog</a>
+      <a href="/about">About</a>
+      <a href="mailto:contact@benandliva.com?subject=UtilityTools.eu%20%E2%80%94%20Privacy%20question">Contact</a>
+    </nav>
   </header>
 
   <main class="container-narrow">
@@ -20,30 +25,59 @@
       <h1>Privacy Policy</h1>
       <p class="meta">Last updated: <span id="today"></span></p>
 
-      <h2>Our core privacy principle</h2>
-      <p>We believe utility tools should respect your privacy. Every tool on this site runs entirely inside your browser. When you format JSON, generate a password, build a CV, or convert a document, the data <strong>never leaves your device</strong>.</p>
+      <h2>The short version</h2>
+      <ul>
+        <li>The tools themselves run <strong>entirely in your browser</strong>. Nothing you type, paste, encrypt or generate is uploaded to us.</li>
+        <li>We do <strong>not</strong> use our own analytics, our own tracking pixels, or build user profiles.</li>
+        <li>We <strong>do</strong> show ads served by <strong>Google AdSense</strong> to keep the site free. Google may use cookies to do this — details below.</li>
+        <li>We do not sell, rent or share any data ourselves. We never see your inputs.</li>
+      </ul>
 
-      <h2>What data we collect</h2>
-      <p>By default, this Service does not use tracking cookies, third-party analytics, ad networks, fingerprinting, or any form of user identification. We do not build user profiles.</p>
-      <p>Basic server access logs may be collected by the hosting provider (e.g., IP addresses, timestamps, browser type) for the sole purpose of security and availability. These logs are not linked to any user account and are rotated on a short schedule.</p>
+      <h2>Who we are</h2>
+      <p>UtilityTools.eu is built and operated by a single independent EU developer — a hardworking dad of two — in his spare time. You can reach the operator at <a href="mailto:contact@benandliva.com">contact@benandliva.com</a>.</p>
+
+      <h2>What data the tools collect</h2>
+      <p>None. Every utility on this site — JSON formatter, password generator, file encryption, CV maker, image tools, PDF editor, and the rest — is implemented in client-side JavaScript and the Web Crypto / Canvas / File APIs. The data you put into a tool stays on your device. We have no server endpoint that receives your inputs.</p>
+
+      <h2>Server access logs</h2>
+      <p>Like every web server, our hosting provider may temporarily record standard access logs (IP address, timestamp, requested URL, browser user-agent) for the sole purpose of security and availability. These logs are not linked to any account, are not shared, and are rotated on a short schedule.</p>
 
       <h2>Local storage</h2>
-      <p>Some tools may use the browser's <code>localStorage</code> to remember your preferences (e.g., your most recent CV draft). This data stays on your device and can be cleared at any time by clearing your browser storage.</p>
+      <p>Some tools use the browser's <code>localStorage</code> to remember <em>your</em> preferences locally — for example, your favorited tools on the homepage, or a CV draft so you don't lose it on refresh. This data never leaves your device and you can clear it any time from your browser settings.</p>
 
-      <h2>Third-party libraries</h2>
-      <p>Certain tools load JavaScript libraries from public content delivery networks (CDNs). The CDN provider may log your IP address when you fetch the script. We do not share any personal information with these CDNs; they only see a request for a public file.</p>
+      <h2>Advertising — Google AdSense</h2>
+      <p>To keep this site free we run advertisements through <strong>Google AdSense</strong>, Google's ad-serving network. When ads are loaded, the following may happen:</p>
+      <ul>
+        <li>Google and its partners may set or read cookies (or similar identifiers) on your device to measure ad performance and serve relevant ads.</li>
+        <li>Google may use the <a href="https://policies.google.com/technologies/partner-sites" rel="noopener" target="_blank">DoubleClick / AdSense cookie</a> to show personalised ads based on your prior visits to this and other sites.</li>
+        <li>Your IP address, user-agent and approximate location may be processed by Google as a <em>data controller</em> for the purpose of delivering ads.</li>
+      </ul>
+      <p>You can opt out of personalised advertising at any time via Google's controls:</p>
+      <ul>
+        <li><a href="https://adssettings.google.com/" rel="noopener" target="_blank">Google Ads Settings</a> — turn off personalised ads.</li>
+        <li><a href="https://www.youronlinechoices.eu/" rel="noopener" target="_blank">YourOnlineChoices.eu</a> — opt out across many EU networks at once.</li>
+        <li>Browser-level "Do Not Track" or built-in tracking-protection features.</li>
+      </ul>
+      <p>Full details about how Google uses information from sites that use its services: <a href="https://policies.google.com/technologies/partner-sites" rel="noopener" target="_blank">policies.google.com/technologies/partner-sites</a>.</p>
 
-      <h2>Cookies</h2>
-      <p>This Service does not set cookies for tracking, advertising, or analytics purposes. If cookies are introduced later (for example, to remember a theme preference), they will be strictly necessary and described here.</p>
+      <h2>Cookie consent (EU / GDPR)</h2>
+      <p>If you are in the European Economic Area, the United Kingdom, or Switzerland, advertising cookies require your consent. When the legally-required consent banner appears, you can accept, reject, or customise non-essential cookies. Essential preferences (favorites, theme) are stored in <code>localStorage</code> and do not require consent.</p>
 
-      <h2>Your data, your control</h2>
-      <p>Because we do not collect personal data, there is no personal data to request, export, or delete. If you feel otherwise, please contact us and we will investigate.</p>
+      <h2>Third-party libraries / CDNs</h2>
+      <p>A few tools load open-source JavaScript libraries from public content-delivery networks (for example, JSZip for ZIP creation or pdf-lib for PDF editing). The CDN provider may see the standard request information (IP, user-agent) when the script is fetched. We do not send personal data to these CDNs — they only see a request for a public file.</p>
 
       <h2>Children's privacy</h2>
-      <p>This Service is intended for general audiences and does not knowingly collect personal information from children.</p>
+      <p>This Service is intended for general audiences and is not directed at children under 13 (or under 16 in the EU, where applicable). We do not knowingly collect personal information from children.</p>
+
+      <h2>Your rights (GDPR)</h2>
+      <p>Because we ourselves do not collect personal data through the tools, there is normally no personal data of yours that we hold. If you have questions about Google AdSense data, please contact Google directly via the links above; for anything related to this site, write to <a href="mailto:contact@benandliva.com">contact@benandliva.com</a> and we will respond within 30 days.</p>
 
       <h2>Changes</h2>
-      <p>We may update this policy from time to time. The "Last updated" date above reflects the most recent change.</p>
+      <p>We may update this policy. Material changes will be reflected by the "Last updated" date above; substantive changes (for example, adding a new ad or analytics provider) will also be announced on the homepage.</p>
+
+      <p style="color:var(--muted);font-size:13px;margin-top:30px">
+        Questions? <a href="mailto:contact@benandliva.com?subject=UtilityTools.eu%20%E2%80%94%20Privacy%20question">contact@benandliva.com</a>
+      </p>
     </article>
   </main>
 
