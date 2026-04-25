@@ -51,6 +51,7 @@ const TOOLS = [
   { slug: 'hash',      name: 'Hash Generator',          file: 'tools/hash.html',           icon: '#',    tags: ['developer','security'],       desc: 'Compute SHA-1, SHA-256, SHA-384, SHA-512.' },
   { slug: 'regex',     name: 'Regex Tester',            file: 'tools/regex.html',          icon: '/./',  tags: ['developer','text'],           desc: 'Test regular expressions against sample text.' },
   { slug: 'timestamp', name: 'Unix Timestamp',          file: 'tools/timestamp.html',      icon: 'T',    tags: ['developer','time'],           desc: 'Convert between Unix time and dates.' },
+  { slug: 'timezones', name: 'World Clock & Time Zones',file: 'tools/timezones.html',      icon: '🌍',  tags: ['time','productivity','home'], desc: 'Set a time in city A and instantly see it in cities worldwide. DST-aware meeting planner.' },
   { slug: 'json-csv',  name: 'JSON / CSV',              file: 'tools/json-csv.html',       icon: 'CSV',  tags: ['developer','converter'],      desc: 'Convert between JSON and CSV format.' },
   { slug: 'count',     name: 'Text Counter',            file: 'tools/text-counter.html',   icon: 'Sum',  tags: ['text','writing'],             desc: 'Count characters, words, lines, bytes, and read-time.' },
   { slug: 'case',      name: 'Case Converter',          file: 'tools/case.html',           icon: 'Aa',   tags: ['text','writing'],             desc: 'Convert between upper, lower, title, snake, camel, kebab.' },

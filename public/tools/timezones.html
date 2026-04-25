@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>World Clock &amp; Time Zone Converter — Free Online · Utility Tools</title>
+  <meta name="description" content="Pick a city and time, instantly see the matching local time across cities worldwide. DST-aware, 24/12 hour, browser-only — no tracking.">
+  <meta name="keywords" content="world clock, time zone converter, meeting planner, timezone difference, city time, DST, UTC offset">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/timezones">
+  <meta property="og:title" content="World Clock &amp; Time Zone Converter">
+  <meta property="og:url" content="/timezones">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tz-controls{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;align-items:end}
+    @media (max-width:760px){.tz-controls{grid-template-columns:1fr 1fr}}
+    .tz-controls label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+    .tz-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:18px}
+    .tz-card{
+      position:relative;background:var(--panel-2);border:1px solid var(--border);
+      border-radius:12px;padding:14px 16px;transition:.15s;
+    }
+    .tz-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+    .tz-card.source{border-color:var(--accent);box-shadow:0 0 0 2px rgba(124,92,255,.18)}
+    .tz-city{font-weight:700;color:var(--text);font-size:15px;display:flex;align-items:center;gap:6px}
+    .tz-flag{font-size:18px}
+    .tz-time{font-size:26px;font-weight:800;letter-spacing:.5px;margin:6px 0 2px;color:var(--text);font-variant-numeric:tabular-nums}
+    .tz-meta{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+    .tz-diff{font-weight:600}
+    .tz-diff.same{color:var(--muted)}
+    .tz-diff.ahead{color:#22c39a}
+    .tz-diff.behind{color:#ff9a3c}
+    .tz-day{font-size:11px;text-transform:uppercase;letter-spacing:.6px;opacity:.7}
+    .tz-remove{
+      position:absolute;top:6px;right:6px;background:transparent;border:0;color:var(--muted);
+      cursor:pointer;font-size:16px;line-height:1;padding:4px 6px;border-radius:6px;
+    }
+    .tz-remove:hover{background:rgba(255,80,80,.15);color:#ff5050}
+    .tz-add-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+    .tz-add-row select{flex:1;min-width:200px}
+    .tz-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .tz-actions .btn-secondary{background:var(--panel-2);color:var(--text);border:1px solid var(--border)}
+    .tz-hint{font-size:12px;color:var(--muted);margin-top:6px}
+    .tz-source-badge{
+      display:inline-block;background:var(--grad);color:#fff;font-size:10px;font-weight:700;
+      letter-spacing:.5px;padding:2px 6px;border-radius:4px;margin-left:6px;text-transform:uppercase;
+    }
+  </style>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>World Clock &amp; Time Zone Converter</h1>
+      <p>Pick a city and a time — instantly see the matching local time in cities around the world. Perfect for scheduling meetings across countries. DST-aware, runs 100% in your browser.</p>
+    </div>
+
+    <div class="panel">
+      <div class="tz-controls">
+        <div>
+          <label for="srcCity">Source city</label>
+          <select id="srcCity"></select>
+        </div>
+        <div>
+          <label for="srcDate">Date</label>
+          <input type="date" id="srcDate">
+        </div>
+        <div>
+          <label for="srcTime">Time</label>
+          <input type="time" id="srcTime" step="60">
+        </div>
+        <div>
+          <button id="nowBtn" type="button">Now</button>
+        </div>
+      </div>
+      <div class="tz-actions">
+        <label class="checkbox"><input type="checkbox" id="fmt24" checked> 24-hour format</label>
+        <button id="copyBtn" type="button" class="btn-secondary">Copy summary</button>
+        <button id="resetBtn" type="button" class="btn-secondary">Reset cities</button>
+      </div>
+      <p class="tz-hint">Tip: Click any card to make that city the source. Drag the time/date to compare meeting slots across continents.</p>
+    </div>
+
+    <div class="tz-list" id="tzList"></div>
+
+    <div class="panel">
+      <h3 style="margin-top:0">Add another city</h3>
+      <div class="tz-add-row">
+        <select id="addCity"></select>
+        <button id="addBtn" type="button">＋ Add city</button>
+      </div>
+      <p class="tz-hint">Your selected cities are saved in your browser — nothing is sent to a server.</p>
+    </div>
+  </main>
+
+  <script>
+    // -------- City list (IANA zone + flag emoji) --------
+    const CITIES = [
+      { name: 'London',         zone: 'Europe/London',        flag: '🇬🇧' },
+      { name: 'Berlin',         zone: 'Europe/Berlin',        flag: '🇩🇪' },
+      { name: 'Paris',          zone: 'Europe/Paris',         flag: '🇫🇷' },
+      { name: 'Madrid',         zone: 'Europe/Madrid',        flag: '🇪🇸' },
+      { name: 'Rome',           zone: 'Europe/Rome',          flag: '🇮🇹' },
+      { name: 'Amsterdam',      zone: 'Europe/Amsterdam',     flag: '🇳🇱' },
+      { name: 'Brussels',       zone: 'Europe/Brussels',      flag: '🇧🇪' },
+      { name: 'Vienna',         zone: 'Europe/Vienna',        flag: '🇦🇹' },
+      { name: 'Zurich',         zone: 'Europe/Zurich',        flag: '🇨🇭' },
+      { name: 'Copenhagen',     zone: 'Europe/Copenhagen',    flag: '🇩🇰' },
+      { name: 'Stockholm',      zone: 'Europe/Stockholm',     flag: '🇸🇪' },
+      { name: 'Oslo',           zone: 'Europe/Oslo',          flag: '🇳🇴' },
+      { name: 'Helsinki',       zone: 'Europe/Helsinki',      flag: '🇫🇮' },
+      { name: 'Warsaw',         zone: 'Europe/Warsaw',        flag: '🇵🇱' },
+      { name: 'Prague',         zone: 'Europe/Prague',        flag: '🇨🇿' },
+      { name: 'Budapest',       zone: 'Europe/Budapest',      flag: '🇭🇺' },
+      { name: 'Athens',         zone: 'Europe/Athens',        flag: '🇬🇷' },
+      { name: 'Lisbon',         zone: 'Europe/Lisbon',        flag: '🇵🇹' },
+      { name: 'Dublin',         zone: 'Europe/Dublin',        flag: '🇮🇪' },
+      { name: 'Reykjavik',      zone: 'Atlantic/Reykjavik',   flag: '🇮🇸' },
+      { name: 'Istanbul',       zone: 'Europe/Istanbul',      flag: '🇹🇷' },
+      { name: 'Moscow',         zone: 'Europe/Moscow',        flag: '🇷🇺' },
+      { name: 'Kyiv',           zone: 'Europe/Kyiv',          flag: '🇺🇦' },
+      { name: 'Tbilisi',        zone: 'Asia/Tbilisi',         flag: '🇬🇪' },
+      { name: 'Dubai',          zone: 'Asia/Dubai',           flag: '🇦🇪' },
+      { name: 'Tel Aviv',       zone: 'Asia/Jerusalem',       flag: '🇮🇱' },
+      { name: 'Riyadh',         zone: 'Asia/Riyadh',          flag: '🇸🇦' },
+      { name: 'Tehran',         zone: 'Asia/Tehran',          flag: '🇮🇷' },
+      { name: 'Karachi',        zone: 'Asia/Karachi',         flag: '🇵🇰' },
+      { name: 'Mumbai',         zone: 'Asia/Kolkata',         flag: '🇮🇳' },
+      { name: 'Dhaka',          zone: 'Asia/Dhaka',           flag: '🇧🇩' },
+      { name: 'Bangkok',        zone: 'Asia/Bangkok',         flag: '🇹🇭' },
+      { name: 'Singapore',      zone: 'Asia/Singapore',       flag: '🇸🇬' },
+      { name: 'Hong Kong',      zone: 'Asia/Hong_Kong',       flag: '🇭🇰' },
+      { name: 'Beijing',        zone: 'Asia/Shanghai',        flag: '🇨🇳' },
+      { name: 'Tokyo',          zone: 'Asia/Tokyo',           flag: '🇯🇵' },
+      { name: 'Seoul',          zone: 'Asia/Seoul',           flag: '🇰🇷' },
+      { name: 'Manila',         zone: 'Asia/Manila',          flag: '🇵🇭' },
+      { name: 'Jakarta',        zone: 'Asia/Jakarta',         flag: '🇮🇩' },
+      { name: 'Sydney',         zone: 'Australia/Sydney',     flag: '🇦🇺' },
+      { name: 'Melbourne',      zone: 'Australia/Melbourne',  flag: '🇦🇺' },
+      { name: 'Perth',          zone: 'Australia/Perth',      flag: '🇦🇺' },
+      { name: 'Auckland',       zone: 'Pacific/Auckland',     flag: '🇳🇿' },
+      { name: 'Honolulu',       zone: 'Pacific/Honolulu',     flag: '🇺🇸' },
+      { name: 'Anchorage',      zone: 'America/Anchorage',    flag: '🇺🇸' },
+      { name: 'Los Angeles',    zone: 'America/Los_Angeles',  flag: '🇺🇸' },
+      { name: 'Denver',         zone: 'America/Denver',       flag: '🇺🇸' },
+      { name: 'Chicago',        zone: 'America/Chicago',      flag: '🇺🇸' },
+      { name: 'New York',       zone: 'America/New_York',     flag: '🇺🇸' },
+      { name: 'Toronto',        zone: 'America/Toronto',      flag: '🇨🇦' },
+      { name: 'Vancouver',      zone: 'America/Vancouver',    flag: '🇨🇦' },
+      { name: 'Mexico City',    zone: 'America/Mexico_City',  flag: '🇲🇽' },
+      { name: 'Bogotá',         zone: 'America/Bogota',       flag: '🇨🇴' },
+      { name: 'Lima',           zone: 'America/Lima',         flag: '🇵🇪' },
+      { name: 'Santiago',       zone: 'America/Santiago',     flag: '🇨🇱' },
+      { name: 'Buenos Aires',   zone: 'America/Argentina/Buenos_Aires', flag: '🇦🇷' },
+      { name: 'São Paulo',      zone: 'America/Sao_Paulo',    flag: '🇧🇷' },
+      { name: 'Cairo',          zone: 'Africa/Cairo',         flag: '🇪🇬' },
+      { name: 'Lagos',          zone: 'Africa/Lagos',         flag: '🇳🇬' },
+      { name: 'Nairobi',        zone: 'Africa/Nairobi',       flag: '🇰🇪' },
+      { name: 'Johannesburg',   zone: 'Africa/Johannesburg',  flag: '🇿🇦' },
+      { name: 'Casablanca',     zone: 'Africa/Casablanca',    flag: '🇲🇦' },
+      { name: 'UTC',            zone: 'UTC',                  flag: '🌐' }
+    ].sort((a,b)=>a.name.localeCompare(b.name));
+
+    const KEY_CITIES = 'utilitytools.timezones.cities';
+    const KEY_SRC    = 'utilitytools.timezones.src';
+    const KEY_FMT    = 'utilitytools.timezones.fmt24';
+
+    const DEFAULTS = ['Europe/Berlin','Europe/London','America/New_York','America/Los_Angeles','Asia/Tokyo','Australia/Sydney'];
+
+    function detectLocalZone(){
+      try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; }
+      catch(_) { return 'UTC'; }
+    }
+    function findCityByZone(z){ return CITIES.find(c=>c.zone===z); }
+
+    // ---------- State ----------
+    const localZone = detectLocalZone();
+    let selectedZones;
+    try {
+      selectedZones = JSON.parse(localStorage.getItem(KEY_CITIES) || 'null');
+      if (!Array.isArray(selectedZones) || !selectedZones.length) selectedZones = null;
+    } catch(_) { selectedZones = null; }
+    if (!selectedZones) {
+      selectedZones = [...new Set([localZone, ...DEFAULTS])].slice(0, 6);
+    }
+
+    let sourceZone = localStorage.getItem(KEY_SRC) || (findCityByZone(localZone) ? localZone : selectedZones[0]);
+    if (!findCityByZone(sourceZone)) sourceZone = selectedZones[0];
+    if (!selectedZones.includes(sourceZone)) selectedZones.unshift(sourceZone);
+
+    let fmt24 = localStorage.getItem(KEY_FMT) !== '0';
+
+    // ---------- DOM ----------
+    const elSrc  = document.getElementById('srcCity');
+    const elAdd  = document.getElementById('addCity');
+    const elDate = document.getElementById('srcDate');
+    const elTime = document.getElementById('srcTime');
+    const elFmt  = document.getElementById('fmt24');
+    const elList = document.getElementById('tzList');
+
+    elFmt.checked = fmt24;
+
+    function fillCitySelect(sel, exclude){
+      sel.innerHTML = CITIES
+        .filter(c => !exclude || !exclude.has(c.zone))
+        .map(c => `<option value="${c.zone}">${c.flag} ${c.name} (${c.zone})</option>`).join('');
+    }
+    function refreshSelectors(){
+      fillCitySelect(elSrc);
+      elSrc.value = sourceZone;
+      fillCitySelect(elAdd, new Set(selectedZones));
+    }
+
+    // ---------- Time zone math ----------
+    // Get the wall-clock parts (Y/M/D h:m) of a given UTC instant rendered in `zone`.
+    function partsInZone(utcMs, zone){
+      const fmt = new Intl.DateTimeFormat('en-GB', {
+        timeZone: zone, hourCycle: 'h23',
+        year:'numeric', month:'2-digit', day:'2-digit',
+        hour:'2-digit', minute:'2-digit', second:'2-digit'
+      });
+      const o = {};
+      for (const p of fmt.formatToParts(new Date(utcMs))) {
+        if (p.type !== 'literal') o[p.type] = p.value;
+      }
+      return {
+        y: +o.year, m: +o.month, d: +o.day,
+        H: +o.hour, M: +o.minute, S: +o.second
+      };
+    }
+    // Given wall-clock Y/M/D/H/M in `zone`, return the UTC ms representing that instant.
+    // We solve f(t) = parts(t, zone) - target = 0 by computing the zone's offset twice
+    // (handles DST transitions correctly for non-ambiguous times).
+    function zonedTimeToUtc(y,mo,d,h,mi, zone){
+      const guess = Date.UTC(y, mo-1, d, h, mi, 0);
+      const p1 = partsInZone(guess, zone);
+      const asUtc1 = Date.UTC(p1.y, p1.m-1, p1.d, p1.H, p1.M, p1.S);
+      const off1 = asUtc1 - guess;     // zone offset at the guess
+      const t2 = guess - off1;
+      const p2 = partsInZone(t2, zone);
+      const asUtc2 = Date.UTC(p2.y, p2.m-1, p2.d, p2.H, p2.M, p2.S);
+      const off2 = asUtc2 - t2;
+      return guess - off2;
+    }
+    // UTC offset (in minutes) for a zone at a given UTC instant. East of UTC = positive.
+    function zoneOffsetMinutes(utcMs, zone){
+      const p = partsInZone(utcMs, zone);
+      const asUtc = Date.UTC(p.y, p.m-1, p.d, p.H, p.M, p.S);
+      return Math.round((asUtc - utcMs) / 60000);
+    }
+    function shortName(utcMs, zone){
+      try {
+        const p = new Intl.DateTimeFormat('en-US', {
+          timeZone: zone, timeZoneName: 'short', hour: 'numeric'
+        }).formatToParts(new Date(utcMs)).find(x => x.type === 'timeZoneName');
+        return p ? p.value : '';
+      } catch(_) { return ''; }
+    }
+    function offsetLabel(min){
+      const sign = min >= 0 ? '+' : '−';
+      const a = Math.abs(min); const h = Math.floor(a/60); const m = a%60;
+      return 'UTC' + sign + String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+    }
+    function formatDiff(min){
+      if (min === 0) return 'same time';
+      const sign = min > 0 ? '+' : '−';
+      const a = Math.abs(min); const h = Math.floor(a/60); const m = a%60;
+      const hpart = h ? h + 'h' : '';
+      const mpart = m ? m + 'm' : '';
+      return sign + (hpart + mpart || '0m');
+    }
+    function formatTime(p, use24){
+      if (use24) return String(p.H).padStart(2,'0') + ':' + String(p.M).padStart(2,'0');
+      const h12 = ((p.H + 11) % 12) + 1;
+      const ampm = p.H < 12 ? 'AM' : 'PM';
+      return h12 + ':' + String(p.M).padStart(2,'0') + ' ' + ampm;
+    }
+    const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    function formatDate(p){
+      // Use Date.UTC to get a deterministic weekday for the wall-clock parts
+      const wd = WEEKDAYS[new Date(Date.UTC(p.y, p.m-1, p.d)).getUTCDay()];
+      const month = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][p.m-1];
+      return `${wd}, ${p.d} ${month}`;
+    }
+
+    // ---------- Source time handling ----------
+    let sourceUtc = Date.now(); // canonical instant
+    let liveTimer = null;
+
+    function setLiveMode(on){
+      if (on && !liveTimer) {
+        liveTimer = setInterval(() => {
+          sourceUtc = Date.now();
+          syncInputsFromSource();
+          render();
+        }, 30000);
+      } else if (!on && liveTimer) {
+        clearInterval(liveTimer); liveTimer = null;
+      }
+    }
+
+    // Reflect sourceUtc into the date/time inputs (in the source zone).
+    function syncInputsFromSource(){
+      const p = partsInZone(sourceUtc, sourceZone);
+      elDate.value = `${p.y}-${String(p.m).padStart(2,'0')}-${String(p.d).padStart(2,'0')}`;
+      elTime.value = `${String(p.H).padStart(2,'0')}:${String(p.M).padStart(2,'0')}`;
+    }
+    // Read date/time inputs and convert to a UTC instant in source zone.
+    function readSourceFromInputs(){
+      const [y,mo,d] = elDate.value.split('-').map(Number);
+      const [h,mi]   = elTime.value.split(':').map(Number);
+      if (!y || !mo || !d || isNaN(h)) return;
+      sourceUtc = zonedTimeToUtc(y, mo, d, h, mi, sourceZone);
+      setLiveMode(false);
+      render();
+    }
+
+    // ---------- Render ----------
+    function render(){
+      const srcOff = zoneOffsetMinutes(sourceUtc, sourceZone);
+      elList.innerHTML = selectedZones.map(zone => {
+        const city = findCityByZone(zone);
+        if (!city) return '';
+        const p = partsInZone(sourceUtc, zone);
+        const off = zoneOffsetMinutes(sourceUtc, zone);
+        const diff = off - srcOff;
+        const isSrc = zone === sourceZone;
+        const diffCls = diff === 0 ? 'same' : (diff > 0 ? 'ahead' : 'behind');
+        const tzShort = shortName(sourceUtc, zone);
+        return `
+          <div class="tz-card ${isSrc ? 'source' : ''}" data-zone="${zone}" role="button" tabindex="0">
+            ${isSrc ? '' : `<button class="tz-remove" data-remove="${zone}" title="Remove">×</button>`}
+            <div class="tz-city">
+              <span class="tz-flag">${city.flag}</span> ${city.name}
+              ${isSrc ? '<span class="tz-source-badge">source</span>' : ''}
+            </div>
+            <div class="tz-time">${formatTime(p, fmt24)}</div>
+            <div class="tz-day">${formatDate(p)}</div>
+            <div class="tz-meta">
+              <span>${tzShort} · ${offsetLabel(off)}</span>
+              <span class="tz-diff ${diffCls}">${formatDiff(diff)}</span>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function persist(){
+      localStorage.setItem(KEY_CITIES, JSON.stringify(selectedZones));
+      localStorage.setItem(KEY_SRC, sourceZone);
+      localStorage.setItem(KEY_FMT, fmt24 ? '1' : '0');
+    }
+
+    // ---------- Wire up ----------
+    refreshSelectors();
+    syncInputsFromSource();
+    render();
+    setLiveMode(true); // tick "now" until the user changes inputs
+
+    elSrc.addEventListener('change', () => {
+      sourceZone = elSrc.value;
+      if (!selectedZones.includes(sourceZone)) selectedZones.unshift(sourceZone);
+      // Keep the same wall-clock time the user sees in the inputs, just reinterpret it in the new source zone.
+      readSourceFromInputs();
+      refreshSelectors();
+      persist(); render();
+    });
+    elDate.addEventListener('change', readSourceFromInputs);
+    elTime.addEventListener('change', readSourceFromInputs);
+    elDate.addEventListener('input',  readSourceFromInputs);
+    elTime.addEventListener('input',  readSourceFromInputs);
+
+    elFmt.addEventListener('change', () => { fmt24 = elFmt.checked; persist(); render(); });
+
+    document.getElementById('nowBtn').addEventListener('click', () => {
+      sourceUtc = Date.now();
+      syncInputsFromSource();
+      setLiveMode(true);
+      render();
+    });
+
+    document.getElementById('addBtn').addEventListener('click', () => {
+      const z = elAdd.value;
+      if (!z || selectedZones.includes(z)) return;
+      selectedZones.push(z);
+      refreshSelectors();
+      persist(); render();
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      selectedZones = [...new Set([localZone, ...DEFAULTS])].slice(0, 6);
+      sourceZone = findCityByZone(localZone) ? localZone : selectedZones[0];
+      refreshSelectors();
+      syncInputsFromSource();
+      persist(); render();
+    });
+
+    elList.addEventListener('click', e => {
+      const rm = e.target.closest('[data-remove]');
+      if (rm) {
+        e.stopPropagation();
+        const z = rm.getAttribute('data-remove');
+        selectedZones = selectedZones.filter(x => x !== z);
+        if (sourceZone === z) sourceZone = selectedZones[0];
+        refreshSelectors();
+        persist(); render();
+        return;
+      }
+      const card = e.target.closest('.tz-card');
+      if (!card) return;
+      const z = card.getAttribute('data-zone');
+      if (z === sourceZone) return;
+      sourceZone = z;
+      elSrc.value = z;
+      readSourceFromInputs();
+      refreshSelectors();
+      persist();
+    });
+    elList.addEventListener('keydown', e => {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('tz-card')) {
+        e.preventDefault();
+        e.target.click();
+      }
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', async () => {
+      const srcCity = findCityByZone(sourceZone);
+      const srcP = partsInZone(sourceUtc, sourceZone);
+      const lines = [`Meeting time — ${formatTime(srcP, fmt24)} ${formatDate(srcP)} (${srcCity.name})`, ''];
+      const srcOff = zoneOffsetMinutes(sourceUtc, sourceZone);
+      for (const zone of selectedZones) {
+        const c = findCityByZone(zone); if (!c) continue;
+        const p = partsInZone(sourceUtc, zone);
+        const diff = zoneOffsetMinutes(sourceUtc, zone) - srcOff;
+        lines.push(`${c.flag} ${c.name.padEnd(16)} ${formatTime(p, fmt24)}  ${formatDate(p)}  (${formatDiff(diff)})`);
+      }
+      const text = lines.join('\n');
+      try {
+        await navigator.clipboard.writeText(text);
+        const b = document.getElementById('copyBtn');
+        const old = b.textContent; b.textContent = '✓ Copied'; setTimeout(()=>b.textContent=old, 1500);
+      } catch(_) {
+        window.prompt('Copy this summary:', text);
+      }
+    });
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+
