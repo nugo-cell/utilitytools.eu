@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Editor — Trim, Rotate, Speed · Free Online · Utility Tools</title>
+  <meta name="description" content="Browser-only video editor: trim start/end, rotate, change speed, mute, add text overlay, extract frames, export as WebM. No upload, runs locally.">
+  <meta name="keywords" content="video editor, video trimmer online, rotate video, change speed, extract frame, webm export, browser video editor, no upload">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/video-editor">
+  <meta property="og:title" content="Video Editor — Trim, Rotate, Speed">
+  <meta property="og:url" content="/video-editor">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .ve-stage{
+      background:#000;border-radius:12px;display:flex;align-items:center;justify-content:center;
+      min-height:280px;overflow:hidden;position:relative;
+    }
+    .ve-stage video{max-width:100%;max-height:60vh;display:block;background:#000}
+    .ve-stage canvas{display:none}
+    .ve-overlay-text{
+      position:absolute;left:50%;transform:translateX(-50%);bottom:18px;
+      color:#fff;font-weight:800;text-shadow:0 0 8px #000,0 2px 4px rgba(0,0,0,.8);
+      font-size:clamp(16px,4vw,40px);text-align:center;pointer-events:none;
+      max-width:90%;line-height:1.1;
+    }
+    .ve-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:14px}
+    .ve-controls label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+    .ve-timeline{position:relative;height:46px;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;margin-top:14px;overflow:hidden;cursor:pointer}
+    .ve-tl-fill{position:absolute;top:0;bottom:0;background:linear-gradient(135deg,rgba(124,92,255,.35),rgba(255,94,156,.30));pointer-events:none}
+    .ve-tl-handle{
+      position:absolute;top:0;bottom:0;width:14px;background:var(--accent);border:2px solid #fff;border-radius:4px;
+      cursor:ew-resize;box-shadow:0 0 0 1px rgba(0,0,0,.4);touch-action:none;
+    }
+    .ve-tl-handle.end{background:#ff5e9c}
+    .ve-tl-cursor{position:absolute;top:0;bottom:0;width:2px;background:#fff;pointer-events:none;box-shadow:0 0 6px #fff}
+    .ve-tl-time{position:absolute;top:4px;font-size:10px;color:#fff;background:rgba(0,0,0,.6);padding:1px 5px;border-radius:3px;pointer-events:none;font-variant-numeric:tabular-nums}
+    .ve-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+    .ve-actions button.btn-secondary{background:var(--panel-2);color:var(--text);border:1px solid var(--border)}
+    .ve-status{font-size:13px;color:var(--muted);margin-top:8px;min-height:18px}
+    .ve-status .ok{color:var(--success)}
+    .ve-status .err{color:var(--danger)}
+    .ve-progress{height:6px;background:var(--panel-2);border-radius:99px;overflow:hidden;margin-top:6px;display:none}
+    .ve-progress.on{display:block}
+    .ve-progress > div{height:100%;width:0%;background:var(--grad);transition:width .15s}
+    .ve-meta{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:14px;margin-top:8px}
+    .ve-meta b{color:var(--text)}
+    .ve-music{
+      margin-top:14px;padding:12px;border:1px dashed var(--border-strong);border-radius:10px;
+      background:linear-gradient(135deg,rgba(0,212,170,0.06),rgba(124,92,255,0.06));
+    }
+    .ve-music h4{margin:0 0 8px;font-size:14px;color:var(--text);display:flex;align-items:center;gap:6px}
+    .ve-music .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:6px}
+    .ve-music .vol-row{display:flex;align-items:center;gap:8px}
+    .ve-music .vol-row input[type=range]{flex:1}
+    .ve-music .vol-row .val{min-width:40px;text-align:right;font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted)}
+    .ve-music .file-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+    .ve-music .file-line b{color:var(--text)}
+    .ve-music button.btn-secondary{background:var(--panel-2);color:var(--text);border:1px solid var(--border)}
+  </style>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Video Editor — Trim · Rotate · Speed · Frame · Text</h1>
+      <p>Open a local video and edit it entirely in your browser. Trim start/end, rotate, change playback speed, mute, add text overlay, grab a frame as PNG, then export to WebM. Nothing is uploaded.</p>
+    </div>
+
+    <div class="panel">
+      <label class="img-drop" id="drop">
+        <input type="file" id="file" accept="video/*">
+        <div><b>Click or drop</b> a video file (mp4, webm, mov…)</div>
+      </label>
+    </div>
+
+    <div class="panel" id="work" hidden>
+      <div class="ve-stage" id="stage">
+        <video id="vid" playsinline controls></video>
+        <canvas id="cv"></canvas>
+        <div class="ve-overlay-text" id="overlayText" hidden></div>
+      </div>
+
+      <div class="ve-meta" id="meta"></div>
+
+      <div class="ve-timeline" id="timeline" title="Drag handles to set the trim range. Click to seek.">
+        <div class="ve-tl-fill" id="tlFill"></div>
+        <div class="ve-tl-handle" id="tlStart"></div>
+        <div class="ve-tl-handle end" id="tlEnd"></div>
+        <div class="ve-tl-cursor" id="tlCursor"></div>
+        <div class="ve-tl-time" id="tlTimeStart" style="left:6px"></div>
+        <div class="ve-tl-time" id="tlTimeEnd" style="right:6px"></div>
+      </div>
+
+      <div class="ve-controls">
+        <div>
+          <label>Start (s)</label>
+          <input type="number" id="startInp" step="0.05" min="0">
+        </div>
+        <div>
+          <label>End (s)</label>
+          <input type="number" id="endInp" step="0.05" min="0">
+        </div>
+        <div>
+          <label>Playback speed</label>
+          <select id="speed">
+            <option value="0.25">0.25×</option>
+            <option value="0.5">0.5×</option>
+            <option value="0.75">0.75×</option>
+            <option value="1" selected>1× (normal)</option>
+            <option value="1.25">1.25×</option>
+            <option value="1.5">1.5×</option>
+            <option value="2">2×</option>
+            <option value="4">4×</option>
+          </select>
+        </div>
+        <div>
+          <label>Rotate</label>
+          <select id="rotate">
+            <option value="0" selected>0°</option>
+            <option value="90">90° CW</option>
+            <option value="180">180°</option>
+            <option value="270">270° CW</option>
+          </select>
+        </div>
+        <div>
+          <label>Flip</label>
+          <select id="flip">
+            <option value="none" selected>None</option>
+            <option value="h">Horizontal</option>
+            <option value="v">Vertical</option>
+            <option value="hv">Both</option>
+          </select>
+        </div>
+        <div>
+          <label>Original audio volume</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input type="range" id="origVol" min="0" max="100" value="100" style="flex:1">
+            <span class="val" id="origVolV" style="min-width:36px;text-align:right;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums">100%</span>
+          </div>
+        </div>
+        <div style="grid-column:1/-1">
+          <label>Text overlay (bottom)</label>
+          <input type="text" id="overlay" placeholder="Optional caption…">
+        </div>
+      </div>
+
+      <div class="ve-music">
+        <h4>🎵 Add music / audio track <span style="font-weight:400;color:var(--muted);font-size:12px">— mixed into the exported file</span></h4>
+        <div class="file-line">
+          <input type="file" id="musicFile" accept="audio/*">
+          <span id="musicInfo">No music loaded</span>
+          <button id="musicRemove" type="button" class="btn-secondary" hidden>✕ Remove</button>
+        </div>
+        <div class="row" id="musicControls" hidden>
+          <div class="vol-row">
+            <label style="min-width:90px">Music volume</label>
+            <input type="range" id="musicVol" min="0" max="200" value="80">
+            <span class="val" id="musicVolV">80%</span>
+          </div>
+          <div class="vol-row">
+            <label style="min-width:90px">Start at (s)</label>
+            <input type="number" id="musicOffset" min="0" step="0.1" value="0" style="flex:1">
+          </div>
+          <div class="vol-row">
+            <label class="checkbox" style="margin:0"><input type="checkbox" id="musicLoop" checked> Loop if shorter</label>
+          </div>
+          <div class="vol-row">
+            <label class="checkbox" style="margin:0"><input type="checkbox" id="replaceAudio"> Replace original audio</label>
+          </div>
+        </div>
+        <audio id="musicEl" preload="auto" style="display:none"></audio>
+      </div>
+
+      <div class="ve-actions">
+        <button id="playRangeBtn" type="button">▶ Play trimmed range</button>
+        <button id="setStartBtn" type="button" class="btn-secondary">Set start = current time</button>
+        <button id="setEndBtn"   type="button" class="btn-secondary">Set end = current time</button>
+        <button id="frameBtn"    type="button" class="btn-secondary">📸 Save current frame (PNG)</button>
+        <button id="exportBtn"   type="button">⬇ Export trimmed video (.webm)</button>
+        <button id="cancelBtn"   type="button" class="btn-secondary" hidden>✕ Cancel export</button>
+        <button id="resetBtn"    type="button" class="btn-secondary">Reset</button>
+      </div>
+
+      <div class="ve-progress" id="prog"><div></div></div>
+      <div class="ve-status" id="status"></div>
+
+      <p class="ve-status" style="margin-top:14px">
+        <b>Note:</b> Browsers can only re-encode to <b>.webm</b> (VP9/VP8 + Opus). The output works in every modern browser, VLC, and uploads cleanly to YouTube/Instagram/TikTok which transcode it server-side.
+        For lossless MP4 trimming, a desktop tool is still recommended.
+      </p>
+    </div>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const drop = $('drop'), fileInp = $('file'), work = $('work'), vid = $('vid'), cv = $('cv');
+    const stage = $('stage'), overlayEl = $('overlayText');
+    const tl = $('timeline'), tlFill = $('tlFill'), tlStart = $('tlStart'), tlEnd = $('tlEnd');
+    const tlCursor = $('tlCursor'), tlTimeStart = $('tlTimeStart'), tlTimeEnd = $('tlTimeEnd');
+    const startInp = $('startInp'), endInp = $('endInp'), speedSel = $('speed');
+    const rotSel = $('rotate'), flipSel = $('flip'), overlayInp = $('overlay');
+    const origVol = $('origVol'), origVolV = $('origVolV');
+    const musicEl = $('musicEl'), musicFile = $('musicFile'), musicInfo = $('musicInfo');
+    const musicRemove = $('musicRemove'), musicControls = $('musicControls');
+    const musicVol = $('musicVol'), musicVolV = $('musicVolV');
+    const musicOffset = $('musicOffset'), musicLoop = $('musicLoop'), replaceAudio = $('replaceAudio');
+    const status = $('status'), prog = $('prog'), progBar = prog.firstElementChild;
+    const exportBtn = $('exportBtn'), cancelBtn = $('cancelBtn');
+
+    let srcName = 'video', srcUrl = null, musicUrl = null;
+    let duration = 0;
+    let trimStart = 0, trimEnd = 0;
+    let recorder = null, recCancelled = false;
+
+    // ---------------- Web Audio mixing graph ----------------
+    // Built lazily on first user gesture. Once created, ALL audio (vid + music) goes through
+    // WebAudio (because createMediaElementSource captures the element's audio).
+    let audioCtx = null;
+    let vidSrcNode = null, vidGain = null;
+    let musicSrcNode = null, musicGain = null;
+    let exportDest = null; // MediaStreamAudioDestinationNode, only connected during export
+
+    function ensureAudioCtx() {
+      if (audioCtx) return;
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      audioCtx = new Ctx();
+      vidSrcNode = audioCtx.createMediaElementSource(vid);
+      vidGain = audioCtx.createGain();
+      vidGain.gain.value = +origVol.value / 100;
+      vidSrcNode.connect(vidGain).connect(audioCtx.destination);
+    }
+    function ensureMusicNode() {
+      if (!audioCtx || !musicEl.src || musicSrcNode) return;
+      musicSrcNode = audioCtx.createMediaElementSource(musicEl);
+      musicGain = audioCtx.createGain();
+      musicGain.gain.value = +musicVol.value / 100;
+      musicSrcNode.connect(musicGain).connect(audioCtx.destination);
+    }
+    function applyGains() {
+      const replaced = replaceAudio.checked && !!musicEl.src;
+      if (vidGain) vidGain.gain.value = replaced ? 0 : (+origVol.value / 100);
+      else vid.volume = replaced ? 0 : (+origVol.value / 100);
+      if (musicGain) musicGain.gain.value = +musicVol.value / 100;
+      else if (musicEl.src) musicEl.volume = Math.min(1, +musicVol.value / 100); // pre-graph fallback
+    }
+
+    // ---------------- Load ----------------
+    ['dragover','dragleave','drop'].forEach(ev =>
+      drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.toggle('drag', ev === 'dragover'); }));
+    drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) load(f); });
+    fileInp.onchange = e => { const f = e.target.files[0]; if (f) load(f); };
+
+    function load(f) {
+      if (!f.type.startsWith('video/')) { setStatus('Not a video file.', 'err'); return; }
+      srcName = (f.name.replace(/\.[^.]+$/, '') || 'video') + '-edit';
+      if (srcUrl) URL.revokeObjectURL(srcUrl);
+      srcUrl = URL.createObjectURL(f);
+      vid.src = srcUrl;
+      vid.onloadedmetadata = () => {
+        duration = vid.duration || 0;
+        trimStart = 0; trimEnd = duration;
+        startInp.max = endInp.max = duration.toFixed(2);
+        startInp.value = '0'; endInp.value = duration.toFixed(2);
+        work.hidden = false;
+        renderMeta();
+        layoutHandles();
+        setStatus(`Loaded ${f.name} — ${formatTime(duration)} long, ${vid.videoWidth}×${vid.videoHeight}`, 'ok');
+      };
+      vid.onerror = () => setStatus('Could not decode this video. Try a common .mp4 or .webm.', 'err');
+    }
+
+    function renderMeta() {
+      $('meta').innerHTML =
+        `<span><b>Duration:</b> ${formatTime(duration)}</span>` +
+        `<span><b>Source size:</b> ${vid.videoWidth}×${vid.videoHeight}</span>` +
+        `<span><b>Trim:</b> ${formatTime(trimStart)} → ${formatTime(trimEnd)} (${formatTime(trimEnd - trimStart)})</span>`;
+    }
+
+    // ---------------- Timeline ----------------
+    function pctOfTime(t) { return duration ? (t / duration) * 100 : 0; }
+    function timeOfPct(p) { return Math.max(0, Math.min(duration, (p / 100) * duration)); }
+    function layoutHandles() {
+      const s = pctOfTime(trimStart), e = pctOfTime(trimEnd);
+      tlStart.style.left = `calc(${s}% - 7px)`;
+      tlEnd.style.left   = `calc(${e}% - 7px)`;
+      tlFill.style.left  = `${s}%`;
+      tlFill.style.width = `${e - s}%`;
+      tlTimeStart.textContent = formatTime(trimStart);
+      tlTimeEnd.textContent   = formatTime(trimEnd);
+      startInp.value = trimStart.toFixed(2);
+      endInp.value   = trimEnd.toFixed(2);
+      renderMeta();
+    }
+    function dragHandle(handle, isEnd) {
+      handle.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        handle.setPointerCapture(e.pointerId);
+        const rect = tl.getBoundingClientRect();
+        const move = ev => {
+          const p = ((ev.clientX - rect.left) / rect.width) * 100;
+          const t = timeOfPct(p);
+          if (isEnd) trimEnd   = Math.max(trimStart + 0.05, t);
+          else       trimStart = Math.min(trimEnd - 0.05, Math.max(0, t));
+          layoutHandles();
+        };
+        const up = ev => {
+          handle.removeEventListener('pointermove', move);
+          handle.removeEventListener('pointerup', up);
+        };
+        handle.addEventListener('pointermove', move);
+        handle.addEventListener('pointerup', up);
+      });
+    }
+    dragHandle(tlStart, false);
+    dragHandle(tlEnd, true);
+    tl.addEventListener('click', e => {
+      if (e.target === tlStart || e.target === tlEnd) return;
+      const rect = tl.getBoundingClientRect();
+      const p = ((e.clientX - rect.left) / rect.width) * 100;
+      vid.currentTime = timeOfPct(p);
+    });
+    startInp.addEventListener('change', () => {
+      const v = parseFloat(startInp.value);
+      if (!isNaN(v)) { trimStart = Math.min(trimEnd - 0.05, Math.max(0, v)); layoutHandles(); }
+    });
+    endInp.addEventListener('change', () => {
+      const v = parseFloat(endInp.value);
+      if (!isNaN(v)) { trimEnd = Math.max(trimStart + 0.05, Math.min(duration, v)); layoutHandles(); }
+    });
+    $('setStartBtn').onclick = () => { trimStart = Math.min(vid.currentTime, trimEnd - 0.05); layoutHandles(); };
+    $('setEndBtn').onclick   = () => { trimEnd   = Math.max(vid.currentTime, trimStart + 0.05); layoutHandles(); };
+    $('playRangeBtn').onclick = async () => {
+      ensureAudioCtx(); ensureMusicNode();
+      if (audioCtx && audioCtx.state === 'suspended') { try { await audioCtx.resume(); } catch(_) {} }
+      vid.currentTime = trimStart;
+      vid.playbackRate = parseFloat(speedSel.value);
+      applyGains();
+      if (musicEl.src) {
+        try {
+          musicEl.loop = musicLoop.checked;
+          musicEl.currentTime = Math.max(0, +musicOffset.value || 0);
+          musicEl.playbackRate = 1; // music plays at normal speed regardless of video speed
+          await musicEl.play();
+        } catch(_) {}
+      }
+      vid.play();
+    };
+    vid.addEventListener('timeupdate', () => {
+      tlCursor.style.left = `${pctOfTime(vid.currentTime)}%`;
+      if (!vid.paused && vid.currentTime >= trimEnd) {
+        vid.pause();
+        if (musicEl.src) { try { musicEl.pause(); } catch(_) {} }
+      }
+    });
+    vid.addEventListener('pause', () => { if (musicEl.src) { try { musicEl.pause(); } catch(_) {} } });
+
+    // ---------------- Live preview controls (rotate/flip/text via CSS) ----------------
+    function applyLivePreview() {
+      const rot = +rotSel.value;
+      const flip = flipSel.value;
+      const sx = (flip === 'h' || flip === 'hv') ? -1 : 1;
+      const sy = (flip === 'v' || flip === 'hv') ? -1 : 1;
+      vid.style.transform = `rotate(${rot}deg) scale(${sx}, ${sy})`;
+      vid.style.transformOrigin = 'center';
+      vid.playbackRate = parseFloat(speedSel.value);
+      applyGains();
+      origVolV.textContent  = origVol.value + '%';
+      musicVolV.textContent = musicVol.value + '%';
+      const txt = overlayInp.value.trim();
+      overlayEl.hidden = !txt;
+      overlayEl.textContent = txt;
+    }
+    [rotSel, flipSel, overlayInp, speedSel, origVol, musicVol, replaceAudio]
+      .forEach(el => el.addEventListener('input', applyLivePreview));
+    replaceAudio.addEventListener('change', applyLivePreview);
+
+    // ---------------- Music load / remove ----------------
+    musicFile.addEventListener('change', e => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      if (musicUrl) URL.revokeObjectURL(musicUrl);
+      musicUrl = URL.createObjectURL(f);
+      musicEl.src = musicUrl;
+      musicEl.onloadedmetadata = () => {
+        musicInfo.innerHTML = `<b>${escapeHtml(f.name)}</b> · ${formatTime(musicEl.duration || 0)}`;
+        musicControls.hidden = false;
+        musicRemove.hidden = false;
+        ensureAudioCtx();
+        ensureMusicNode();
+        applyGains();
+      };
+      musicEl.onerror = () => setStatus('Could not decode this audio file.', 'err');
+    });
+    musicRemove.onclick = () => {
+      try { musicEl.pause(); } catch(_) {}
+      // We cannot un-create a MediaElementSource; just clear src & mute its gain.
+      musicEl.removeAttribute('src'); musicEl.load();
+      if (musicUrl) { URL.revokeObjectURL(musicUrl); musicUrl = null; }
+      if (musicGain) musicGain.gain.value = 0;
+      musicFile.value = '';
+      musicInfo.textContent = 'No music loaded';
+      musicControls.hidden = true;
+      musicRemove.hidden = true;
+      replaceAudio.checked = false;
+      applyGains();
+    };
+
+    // ---------------- Single frame extract ----------------
+    $('frameBtn').onclick = () => {
+      const w = vid.videoWidth, h = vid.videoHeight;
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(vid, 0, 0, w, h);
+      c.toBlob(b => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(b);
+        a.download = `${srcName}-frame-${vid.currentTime.toFixed(2)}.png`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      }, 'image/png');
+    };
+
+    // ---------------- Reset ----------------
+    $('resetBtn').onclick = () => {
+      trimStart = 0; trimEnd = duration;
+      speedSel.value = '1'; rotSel.value = '0'; flipSel.value = 'none';
+      origVol.value = 100; musicVol.value = 80;
+      replaceAudio.checked = false; overlayInp.value = '';
+      applyLivePreview(); layoutHandles();
+      vid.currentTime = 0;
+      setStatus('Reset to source.', 'ok');
+    };
+
+    // ---------------- Export (canvas + MediaRecorder + WebAudio mixer) ----------------
+    function pickMime() {
+      const candidates = [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm;codecs=vp9',
+        'video/webm;codecs=vp8',
+        'video/webm'
+      ];
+      for (const m of candidates) if (MediaRecorder.isTypeSupported(m)) return m;
+      return '';
+    }
+
+    exportBtn.onclick = async () => {
+      if (!vid.duration) return;
+      const mime = pickMime();
+      if (!mime) { setStatus('MediaRecorder + WebM is not supported in this browser.', 'err'); return; }
+
+      const speed = parseFloat(speedSel.value);
+      const rot   = +rotSel.value;
+      const flip  = flipSel.value;
+      const sx    = (flip === 'h' || flip === 'hv') ? -1 : 1;
+      const sy    = (flip === 'v' || flip === 'hv') ? -1 : 1;
+      const sw = vid.videoWidth, sh = vid.videoHeight;
+      const swap = (rot === 90 || rot === 270);
+      const ow = swap ? sh : sw;
+      const oh = swap ? sw : sh;
+
+      cv.width = ow; cv.height = oh;
+      const ctx = cv.getContext('2d');
+
+      vid.pause();
+      if (musicEl.src) { try { musicEl.pause(); } catch(_) {} }
+
+      // Make sure the audio graph is built so we can route audio to the recorder.
+      ensureAudioCtx();
+      ensureMusicNode();
+      if (audioCtx && audioCtx.state === 'suspended') { try { await audioCtx.resume(); } catch(_) {} }
+      applyGains();
+
+      vid.playbackRate = speed;
+      await seekTo(vid, trimStart);
+
+      // ---- Build output stream ----
+      const fps = 30;
+      const canvasStream = cv.captureStream(fps);
+      const tracks = [canvasStream.getVideoTracks()[0]];
+      const cleanups = [];
+
+      if (audioCtx) {
+        // Use the WebAudio mixer (handles original + music + replace + volumes correctly).
+        exportDest = audioCtx.createMediaStreamDestination();
+        if (vidGain)   vidGain.connect(exportDest);
+        if (musicGain) musicGain.connect(exportDest);
+        const at = exportDest.stream.getAudioTracks()[0];
+        if (at) tracks.push(at);
+        cleanups.push(() => {
+          try { vidGain   && vidGain.disconnect(exportDest); } catch(_) {}
+          try { musicGain && musicGain.disconnect(exportDest); } catch(_) {}
+          exportDest = null;
+        });
+      } else if (+origVol.value > 0 && typeof vid.captureStream === 'function') {
+        // Fallback: no AudioContext yet, just route the element's own audio track.
+        try {
+          const vs = vid.captureStream();
+          const at = vs.getAudioTracks()[0];
+          if (at) { tracks.push(at); cleanups.push(() => vs.getTracks().forEach(t => t.stop())); }
+        } catch(_) {}
+      }
+
+      const outStream = new MediaStream(tracks);
+      const chunks = [];
+      recorder = new MediaRecorder(outStream, { mimeType: mime, videoBitsPerSecond: 6_000_000 });
+      recorder.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+      recCancelled = false;
+
+      const expectedRealDuration = (trimEnd - trimStart) / speed;
+      const t0 = performance.now();
+      let rafId = 0;
+
+      function drawFrame() {
+        ctx.save();
+        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, ow, oh);
+        ctx.translate(ow / 2, oh / 2);
+        ctx.rotate(rot * Math.PI / 180);
+        ctx.scale(sx, sy);
+        ctx.drawImage(vid, -sw / 2, -sh / 2, sw, sh);
+        ctx.restore();
+
+        const txt = overlayInp.value.trim();
+        if (txt) {
+          const fontSize = Math.max(18, Math.round(Math.min(ow, oh) * 0.06));
+          ctx.font = `900 ${fontSize}px Impact, "Arial Black", sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.lineWidth = Math.max(2, fontSize / 10);
+          ctx.strokeStyle = '#000';
+          ctx.fillStyle = '#fff';
+          ctx.lineJoin = 'round';
+          const ty = oh - fontSize * 0.6;
+          ctx.strokeText(txt, ow / 2, ty);
+          ctx.fillText(txt, ow / 2, ty);
+        }
+        const elapsed = (performance.now() - t0) / 1000;
+        const ratio = Math.min(1, elapsed / expectedRealDuration);
+        progBar.style.width = (ratio * 100).toFixed(1) + '%';
+
+        if (vid.paused || vid.ended || vid.currentTime >= trimEnd || recCancelled) {
+          stopExport();
+          return;
+        }
+        rafId = requestAnimationFrame(drawFrame);
+      }
+
+      function stopExport() {
+        cancelAnimationFrame(rafId);
+        try { vid.pause(); } catch(_) {}
+        try { musicEl && musicEl.pause(); } catch(_) {}
+        try { recorder && recorder.state !== 'inactive' && recorder.stop(); } catch(_) {}
+        cleanups.forEach(fn => { try { fn(); } catch(_) {} });
+        canvasStream.getTracks().forEach(t => t.stop());
+        exportBtn.disabled = false; cancelBtn.hidden = true;
+        prog.classList.remove('on');
+      }
+
+      recorder.onstop = () => {
+        if (recCancelled) { setStatus('Export cancelled.', 'err'); return; }
+        const blob = new Blob(chunks, { type: mime });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${srcName}.webm`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+        setStatus(`✓ Exported ${formatBytes(blob.size)} as ${a.download}`, 'ok');
+      };
+
+      exportBtn.disabled = true; cancelBtn.hidden = false;
+      prog.classList.add('on'); progBar.style.width = '0%';
+      setStatus('Encoding… do not switch tabs (recording uses real time).', '');
+
+      recorder.start(250);
+      // Start music in lock-step with video.
+      if (musicEl.src) {
+        try {
+          musicEl.loop = musicLoop.checked;
+          musicEl.currentTime = Math.max(0, +musicOffset.value || 0);
+          musicEl.playbackRate = 1;
+          await musicEl.play();
+        } catch(_) {}
+      }
+      try { await vid.play(); } catch (e) {
+        setStatus('Could not start playback: ' + e.message, 'err');
+        stopExport(); return;
+      }
+      rafId = requestAnimationFrame(drawFrame);
+    };
+
+    cancelBtn.onclick = () => { recCancelled = true; };
+
+    // ---------------- Helpers ----------------
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+    }
+    function seekTo(v, t) {
+      return new Promise(resolve => {
+        const onSeek = () => { v.removeEventListener('seeked', onSeek); resolve(); };
+        v.addEventListener('seeked', onSeek);
+        v.currentTime = Math.min(Math.max(0, t), v.duration - 0.001);
+      });
+    }
+    function formatTime(s) {
+      if (!isFinite(s)) return '0:00';
+      const m = Math.floor(s / 60), r = s - m * 60;
+      return `${m}:${r.toFixed(2).padStart(5, '0')}`;
+    }
+    function formatBytes(b) {
+      if (b < 1024) return b + ' B';
+      if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+      if (b < 1024*1024*1024) return (b/1024/1024).toFixed(2) + ' MB';
+      return (b/1024/1024/1024).toFixed(2) + ' GB';
+    }
+    function setStatus(msg, kind) {
+      status.innerHTML = msg ? `<span class="${kind || ''}">${msg}</span>` : '';
+    }
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

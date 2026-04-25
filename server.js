@@ -30,6 +30,7 @@ app.use(helmet({
       ],
       'style-src': ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com'],
       'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+      'media-src': ["'self'", 'data:', 'blob:'],
       'font-src': ["'self'", 'data:', 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com'],
       'connect-src': ["'self'", 'https://*.googlesyndication.com', 'https://*.doubleclick.net', 'https://*.google.com'],
       'frame-src':  ['https://*.googlesyndication.com', 'https://*.doubleclick.net', 'https://*.google.com'],
@@ -102,6 +103,8 @@ const TOOLS = [
   { slug: 'img-color-picker', name: 'Color Picker from Image',  file: 'tools/img-color-picker.html', icon: 'Pck', tags: ['image','design'],            desc: 'Click any pixel to read HEX, RGB and HSL values.' },
   { slug: 'img-favicon',      name: 'Favicon Generator',        file: 'tools/img-favicon.html',      icon: 'Fav', tags: ['image','design','generator'],desc: 'Generate 16, 32, 48, 180, 192 and 512 px favicons + ZIP download.' },
   { slug: 'img-thumbnail',    name: 'Thumbnail Generator',      file: 'tools/img-thumbnail.html',    icon: 'Tmb', tags: ['image','design','generator'],desc: 'YouTube/Instagram/Facebook/LinkedIn thumbnail with text overlay.' },
+  { slug: 'video-editor',     name: 'Video Editor (Trim/Rotate)',file: 'tools/video-editor.html',    icon: '🎬',  tags: ['video','design','converter'], desc: 'Trim, rotate, change speed, mute, add text overlay, extract frames, export as WebM. Browser-only.' },
+  { slug: 'video-to-audio',   name: 'Video to MP3 / WAV',       file: 'tools/video-to-audio.html',   icon: '🎧',  tags: ['video','converter','music'], desc: 'Extract the audio track from any local video. Trim, choose channels & bitrate, save as MP3 or WAV.' },
 
   // -------- Fun Text Translator Toolkit (each tool on its own page) --------
   { slug: 'text-translators', name: 'Fun Text Translators',     file: 'tools/text-translators.html', icon: 'Aᚱ',  tags: ['text','fun','generator','converter'], desc: 'Hub linking to runes, Morse, binary, Pig Latin, Braille, NATO, hieroglyphics and more.' },
