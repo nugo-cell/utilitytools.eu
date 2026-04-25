@@ -209,7 +209,7 @@ const httpServer = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 const rooms = new Map(); // roomId -> Set<WebSocket>
 
-function isValidRoom(r) { return typeof r === 'string' && /^[a-z0-9-]{4,64}$/i.test(r); }
+function isValidRoom(r) { return typeof r === 'string' && /^[A-Za-z0-9_-]{4,64}$/.test(r); }
 
 wss.on('connection', (ws, req) => {
   const url  = new URL(req.url, 'http://localhost');
@@ -251,26 +251,36 @@ wss.on('connection', (ws, req) => {
   });
 });
 
-// ---------------- Ephemeral group chat relay ----------------
-// Same idea as p2p, but allows up to CHAT_MAX_PEERS per room and broadcasts to ALL
-// other peers (not just one). Server NEVER sees plaintext: clients encrypt every
-// message with AES-GCM using a key that lives only in the URL fragment (#…) which
-// browsers do not send to servers. The server therefore relays opaque ciphertext.
+// ---------------- Ephemeral group chat — WebRTC signaling relay ----------------
+// We do NOT carry chat messages anymore. The server only relays small SDP/ICE
+// "introductions" between peers so they can build a WebRTC mesh of DataChannels.
+// Once peers are connected, every chat message flows directly browser↔browser
+// over DTLS-encrypted DataChannels — the server cannot read or even see them.
 //
-// Abuse protection (so a bad actor can't melt the box):
-//   - Hard cap on concurrent rooms             : CHAT_MAX_ROOMS
-//   - Hard cap on peers per room               : CHAT_MAX_PEERS
-//   - Hard cap on message size                 : CHAT_MAX_MSG_BYTES
-//   - Sliding-window rate limit per socket     : CHAT_RATE_PER_WIN msgs / CHAT_RATE_WIN_MS
-//   - No persistence; in-memory only           : when last peer leaves, room is GC'd
+// Wire protocol (JSON over /ws/chat?room=…):
+//   server → client : {type:'welcome', self:'<peerId>', peers:['<id>', ...]}
+//   server → client : {type:'peer-joined', id:'<peerId>'}
+//   server → client : {type:'peer-left',   id:'<peerId>'}
+//   server → client : {type:'peers',       count:N}                (UI counter)
+//   server → client : {type:'full' | 'busy' | 'rate-limited'}
+//   client → server : {to:'<peerId>', payload:{...sdp/ice...}}
+//   server → recipient: {from:'<peerId>', payload:{...}}
+//
+// Abuse protection (server only, since payload is opaque to us):
+//   - Hard cap on concurrent rooms / peers per room / signaling msg size
+//   - Sliding-window rate limit per socket
 const CHAT_MAX_ROOMS     = 500;
 const CHAT_MAX_PEERS     = 10;
-const CHAT_MAX_MSG_BYTES = 8 * 1024;          // 8 KB per encrypted message
-const CHAT_RATE_PER_WIN  = 15;                // 15 messages
+const CHAT_MAX_MSG_BYTES = 16 * 1024;         // SDP can be a few KB
+const CHAT_RATE_PER_WIN  = 60;                // 60 signaling msgs (ICE bursts)
 const CHAT_RATE_WIN_MS   = 5000;              // per 5 seconds
 
 const chatWss = new WebSocketServer({ noServer: true });
-const chatRooms = new Map(); // roomId -> Set<WebSocket>
+const chatRooms = new Map(); // roomId -> Map<peerId, WebSocket>
+
+function genPeerId() {
+  return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
+}
 
 chatWss.on('connection', (ws, req) => {
   const url  = new URL(req.url, 'http://localhost');
@@ -283,20 +293,30 @@ chatWss.on('connection', (ws, req) => {
       try { ws.send(JSON.stringify({ type: 'busy' })); ws.close(1013, 'server busy'); } catch(_) {}
       return;
     }
-    peers = new Set(); chatRooms.set(room, peers);
+    peers = new Map(); chatRooms.set(room, peers);
   }
   if (peers.size >= CHAT_MAX_PEERS) {
     try { ws.send(JSON.stringify({ type: 'full' })); ws.close(1008, 'room full'); } catch(_) {}
     return;
   }
-  peers.add(ws);
-  ws._chatTimes = []; // for rate-limiting
 
-  // Tell everyone in the room about the new participant count.
-  for (const p of peers) {
-    if (p.readyState === 1) {
-      try { p.send(JSON.stringify({ type: 'peers', count: peers.size })); } catch(_) {}
-    }
+  const selfId = genPeerId();
+  ws._peerId = selfId;
+  ws._chatTimes = [];
+
+  const otherIds = [...peers.keys()];
+  peers.set(selfId, ws);
+
+  // Tell new peer who else is in the room (so it can initiate WebRTC offers).
+  try { ws.send(JSON.stringify({ type: 'welcome', self: selfId, peers: otherIds })); } catch(_) {}
+  // Tell existing peers about the new arrival + updated count.
+  for (const [pid, p] of peers) {
+    if (pid === selfId || p.readyState !== 1) continue;
+    try { p.send(JSON.stringify({ type: 'peer-joined', id: selfId })); } catch(_) {}
+  }
+  for (const p of peers.values()) {
+    if (p.readyState !== 1) continue;
+    try { p.send(JSON.stringify({ type: 'peers', count: peers.size })); } catch(_) {}
   }
 
   ws.on('message', data => {
@@ -312,18 +332,26 @@ chatWss.on('connection', (ws, req) => {
     }
     ws._chatTimes.push(now);
 
-    // Broadcast verbatim to every OTHER peer in the room
-    for (const p of peers) {
-      if (p !== ws && p.readyState === 1) { try { p.send(text); } catch(_) {} }
-    }
+    let msg;
+    try { msg = JSON.parse(text); } catch(_) { return; }
+    if (!msg || typeof msg.to !== 'string') return;
+    const target = peers.get(msg.to);
+    if (!target || target.readyState !== 1) return;
+    // Forward only the payload (and stamp who it came from). The server has no
+    // need to look at payload contents — they're SDP/ICE blobs.
+    try {
+      target.send(JSON.stringify({ from: selfId, payload: msg.payload }));
+    } catch(_) {}
   });
 
   ws.on('close', () => {
-    peers.delete(ws);
-    for (const p of peers) {
-      if (p.readyState === 1) {
-        try { p.send(JSON.stringify({ type: 'peers', count: peers.size })); } catch(_) {}
-      }
+    peers.delete(selfId);
+    for (const p of peers.values()) {
+      if (p.readyState !== 1) continue;
+      try {
+        p.send(JSON.stringify({ type: 'peer-left', id: selfId }));
+        p.send(JSON.stringify({ type: 'peers', count: peers.size }));
+      } catch(_) {}
     }
     if (peers.size === 0) chatRooms.delete(room);
   });

@@ -241,15 +241,14 @@
     let query = '';
 
     // Tools we recommend on first visit — most-used, broad-appeal utilities.
+    // ORDER MATTERS: this is also the display order of favorites at the top of the grid.
     const DEFAULT_FAVS = [
-      'password', 'json-formatter', 'qr', 'color',
-      'pdf-editor', 'cv', 'base64', 'text-counter',
-      'markdown', 'regex', 'img-compress', 'typing-test',
-      'encrypt', 'timezones', 'p2p-call', 'temp-chat'
+      'p2p-call', 'temp-chat', 'timezones', 'password', 'qr', 'cv',
+      'scramble', 'encrypt', 'img-compress', 'json-to-code', 'json'
     ];
     const FAV_KEY = 'utilitytools.favs';
     const FAV_SEEDED_KEY = 'utilitytools.favs.seeded';
-    const SEED_VERSION = '5'; // bump whenever DEFAULT_FAVS changes
+    const SEED_VERSION = '6'; // bump whenever DEFAULT_FAVS changes
 
     // Seed/top-up defaults whenever the visitor has not yet seen the current
     // SEED_VERSION. We always *add* (union) — never remove — so a user who
@@ -284,9 +283,17 @@
         if (!q) return true;
         return (t.name + ' ' + t.desc + ' ' + t.tags.join(' ')).toLowerCase().includes(q);
       });
-      // Sort favourites first when no specific filter is applied
+      // Sort favourites first when no specific filter is applied.
+      // Within the favourite block, honor the explicit DEFAULT_FAVS order
+      // (so "p2p-call, temp-chat, timezones, …" always appear in that sequence).
       if (!activeTag && !q) {
-        filtered = [...filtered].sort((a, b) => (favs.has(b.slug) ? 1 : 0) - (favs.has(a.slug) ? 1 : 0));
+        const favOrder = new Map(DEFAULT_FAVS.map((s, i) => [s, i]));
+        const rank = t => {
+          if (!favs.has(t.slug)) return 1e6;                 // non-favs go last
+          const idx = favOrder.get(t.slug);
+          return idx == null ? 5e5 : idx;                    // user-added favs after seeded ones
+        };
+        filtered = [...filtered].sort((a, b) => rank(a) - rank(b));
       }
       grid.innerHTML = filtered.map(t => {
         const f = favs.has(t.slug);

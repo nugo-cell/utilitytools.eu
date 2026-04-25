@@ -235,6 +235,7 @@ footer.site-footer {
   margin-bottom: 24px;
 }
 .tag {
+  position: relative;
   padding: 6px 12px;
   border-radius: 999px;
   background: var(--panel);
@@ -242,15 +243,45 @@ footer.site-footer {
   color: var(--muted);
   font-size: 13px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: transform 0.18s ease, color 0.18s, border-color 0.18s, box-shadow 0.25s, background 0.25s;
   user-select: none;
+  /* Default tag accent — overridden per nth-child below for a rainbow row. */
+  --tag-c1: #7c5cff;
+  --tag-c2: #ff5e9c;
+  --tag-glow: 124, 92, 255;
 }
-.tag:hover { color: var(--text); border-color: var(--accent-2); }
+/* Cycle through a vibrant palette so each chip has its own personality. */
+.tag-row .tag:nth-child(8n+1) { --tag-c1:#7c5cff; --tag-c2:#5d3ce8; --tag-glow:124,92,255; }   /* purple   */
+.tag-row .tag:nth-child(8n+2) { --tag-c1:#ff5e9c; --tag-c2:#ff3a6e; --tag-glow:255,94,156; }   /* pink     */
+.tag-row .tag:nth-child(8n+3) { --tag-c1:#00d4aa; --tag-c2:#00a884; --tag-glow:0,212,170;  }   /* teal     */
+.tag-row .tag:nth-child(8n+4) { --tag-c1:#ff9a3c; --tag-c2:#ff6f1f; --tag-glow:255,154,60; }   /* orange   */
+.tag-row .tag:nth-child(8n+5) { --tag-c1:#3ec1ff; --tag-c2:#1a8cff; --tag-glow:62,193,255; }   /* sky blue */
+.tag-row .tag:nth-child(8n+6) { --tag-c1:#ffd23f; --tag-c2:#ff9a3c; --tag-glow:255,210,63; }   /* gold     */
+.tag-row .tag:nth-child(8n+7) { --tag-c1:#9b59ff; --tag-c2:#ff5e9c; --tag-glow:155,89,255; }   /* violet   */
+.tag-row .tag:nth-child(8n+8) { --tag-c1:#5be584; --tag-c2:#00d4aa; --tag-glow:91,229,132; }   /* lime     */
+.tag:hover {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--tag-c1) 0%, var(--tag-c2) 100%);
+  transform: translateY(-2px) scale(1.06);
+  box-shadow:
+    0 10px 24px rgba(var(--tag-glow), 0.45),
+    0 0 22px rgba(var(--tag-glow), 0.35),
+    0 0 0 2px rgba(var(--tag-glow), 0.55);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
 .tag.active {
-  background: var(--accent);
-  color: var(--btn-text);
-  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--tag-c1) 0%, var(--tag-c2) 100%);
+  color: #fff;
+  border-color: transparent;
   font-weight: 600;
+  box-shadow: 0 6px 18px rgba(var(--tag-glow), 0.5);
+}
+.tag.active:hover {
+  transform: translateY(-2px) scale(1.06);
+  box-shadow:
+    0 12px 28px rgba(var(--tag-glow), 0.6),
+    0 0 0 2px rgba(var(--tag-glow), 0.6);
 }
 
 .empty-state {
@@ -712,6 +743,16 @@ body.tool-page .container {
 .fav-btn:hover { color: #ffd23f; transform: scale(1.1); border-color: #ffd23f; box-shadow: 0 0 12px rgba(255,210,63,0.35); filter: none; }
 .fav-btn.on    { color: #ffd23f; border-color: #ffd23f; background: rgba(255,210,63,0.12); text-shadow: 0 0 10px rgba(255,210,63,0.6); }
 .tag.fav-tag { color: #ffd23f; border-color: rgba(255,210,63,0.35); }
+.tag.fav-tag:hover {
+  background: linear-gradient(135deg, #ffd23f 0%, #ff9a3c 60%, #ff5e9c 100%);
+  color: #1a1300;
+  border-color: transparent;
+  text-shadow: none;
+  box-shadow:
+    0 12px 28px rgba(255, 154, 60, 0.55),
+    0 0 22px rgba(255, 210, 63, 0.45),
+    0 0 0 2px rgba(255, 210, 63, 0.65);
+}
 .tag.fav-tag.active { background: linear-gradient(135deg, #ffd23f 0%, #ff9a3c 100%); color: #1a1300; border-color: transparent; }
 /* When favorites system is active, cards live inside .card-wrap. Re-apply rainbow rotation by wrapper position. */
 .card-wrap:nth-child(7n+1) > .card { --card-glow: 124,92,255; --card-grad: linear-gradient(135deg, #7c5cff 0%, #ff5e9c 100%); }
