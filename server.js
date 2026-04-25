@@ -34,7 +34,7 @@ app.use(helmet({
       'img-src': ["'self'", 'data:', 'blob:', 'https:'],
       'media-src': ["'self'", 'data:', 'blob:'],
       'font-src': ["'self'", 'data:', 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com'],
-      'connect-src': ["'self'", 'ws:', 'wss:', 'https://*.googlesyndication.com', 'https://*.doubleclick.net', 'https://*.google.com'],
+      'connect-src': ["'self'", 'ws:', 'wss:', 'https://*.googlesyndication.com', 'https://*.doubleclick.net', 'https://*.google.com', 'https://ipwho.is'],
       'frame-src':  ['https://*.googlesyndication.com', 'https://*.doubleclick.net', 'https://*.google.com'],
       'object-src': ["'none'"],
       'base-uri':   ["'self'"],
@@ -110,6 +110,7 @@ const TOOLS = [
   { slug: 'p2p-call',         name: 'P2P Video Call (encrypted)',file: 'tools/p2p-call.html',        icon: '📞',  tags: ['communication','privacy','video'], desc: 'Create a private 1-to-1 video/audio call. Share a link, encrypted end-to-end via WebRTC. No recording, no account.' },
   { slug: 'temp-chat',        name: 'Temp Chat (E2E encrypted)', file: 'tools/temp-chat.html',       icon: '💬',  tags: ['communication','privacy'],     desc: 'Ephemeral encrypted group chat. Share a link, talk in real-time, close the tab and everything is gone. Up to 10 people.' },
   { slug: 'p2p-file',         name: 'P2P File Transfer (no upload)', file: 'tools/p2p-file.html',    icon: '📁',  tags: ['communication','privacy','documents'], desc: 'Send any file directly browser-to-browser via WebRTC. The file never touches our server — DTLS-encrypted, no size cap, no account.' },
+  { slug: 'ip-lookup',        name: 'IP Lookup & Map',          file: 'tools/ip-lookup.html',        icon: '🌐',  tags: ['network','privacy','developer'], desc: 'See your public IP and where it is on a map. Look up any IPv4/IPv6 — country, city, ISP, ASN, timezone.' },
 
   // -------- Fun Text Translator Toolkit (each tool on its own page) --------
   { slug: 'text-translators', name: 'Fun Text Translators',     file: 'tools/text-translators.html', icon: 'Aᚱ',  tags: ['text','fun','generator','converter'], desc: 'Hub linking to runes, Morse, binary, Pig Latin, Braille, NATO, hieroglyphics and more.' },
@@ -168,6 +169,151 @@ app.get('/blog/:slug', (req, res) => {
 });
 
 app.get('/api/tools', (req, res) => res.json({ tools: TOOLS, tags: ALL_TAGS }));
+
+// ---------------- IP geolocation proxy ----------------
+// Browsers can't call ipwho.is directly anymore (free plan dropped CORS).
+// We proxy server-side: visitor sees a same-origin response, and the third
+// party never learns the visitor's IP unless they explicitly query their own.
+// Cached for 5 minutes per IP to be a polite API consumer.
+const ipCache = new Map(); // ip -> { at, data }
+const IP_CACHE_TTL = 5 * 60 * 1000;
+function clientIp(req) {
+  const xf = (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return xf || req.socket.remoteAddress || '';
+}
+
+// Country code -> name fallback (used when provider only returns code)
+function ccToName(cc) {
+  try { return new Intl.DisplayNames(['en'], { type: 'region' }).of(cc) || cc; }
+  catch (_) { return cc; }
+}
+
+// Normalize various provider responses into the ipwho.is-style shape the UI expects.
+function normalizeIpData(src, providerHint) {
+  if (!src || typeof src !== 'object') return null;
+  // ipwho.is style (already normalized)
+  if (src.connection && src.timezone && src.ip) return src;
+
+  // ipapi.co style
+  if (src.ip && (src.country_name || src.country_code) && (src.org !== undefined || src.asn !== undefined)) {
+    if (src.error) return { success: false, message: src.reason || 'Lookup failed' };
+    return {
+      success: true,
+      ip: src.ip,
+      type: src.version || (src.ip.includes(':') ? 'IPv6' : 'IPv4'),
+      country: src.country_name, country_code: src.country_code,
+      region: src.region, city: src.city, postal: src.postal,
+      latitude: src.latitude, longitude: src.longitude,
+      connection: { isp: src.org, org: src.org, asn: src.asn ? String(src.asn).replace(/^AS/i, '') : '', domain: '' },
+      timezone: { id: src.timezone, utc: src.utc_offset },
+      currency: src.currency ? { name: src.currency_name || src.currency, code: src.currency } : null,
+      calling_code: src.country_calling_code ? String(src.country_calling_code).replace(/^\+/, '') : ''
+    };
+  }
+
+  // freeipapi.com style
+  if (src.ipAddress) {
+    return {
+      success: true,
+      ip: src.ipAddress,
+      type: src.ipVersion ? ('IPv' + src.ipVersion) : '',
+      country: src.countryName, country_code: src.countryCode,
+      region: src.regionName, city: src.cityName, postal: src.zipCode,
+      latitude: src.latitude, longitude: src.longitude,
+      connection: { isp: '', org: '', asn: '', domain: '' },
+      timezone: { id: src.timeZone, utc: '' },
+      currency: src.currency ? { name: src.currency.name || '', code: src.currency.code || '' } : null,
+      calling_code: ''
+    };
+  }
+
+  // reallyfreegeoip.org style
+  if (src.ip && src.country_code !== undefined && src.region_code !== undefined) {
+    return {
+      success: true,
+      ip: src.ip,
+      type: src.ip.includes(':') ? 'IPv6' : 'IPv4',
+      country: src.country_name, country_code: src.country_code,
+      region: src.region_name, city: src.city, postal: src.zip_code,
+      latitude: src.latitude, longitude: src.longitude,
+      connection: { isp: '', org: '', asn: '', domain: '' },
+      timezone: { id: src.time_zone, utc: '' },
+      currency: null, calling_code: ''
+    };
+  }
+
+  return null;
+}
+
+async function tryProvider(url) {
+  try {
+    const r = await fetch(url, {
+      headers: { 'User-Agent': 'UtilityTools.eu/1.0', 'Accept': 'application/json' }
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    // ipwho.is returns success:false on errors / CORS plan
+    if (j && j.success === false) return null;
+    if (j && j.error)             return null;
+    return j;
+  } catch (_) { return null; }
+}
+
+// Try several free providers in order, normalize the first one that works.
+async function lookupIp(ip) {
+  const providers = ip
+    ? [
+        `https://ipapi.co/${encodeURIComponent(ip)}/json/`,
+        `https://freeipapi.com/api/json/${encodeURIComponent(ip)}`,
+        `https://reallyfreegeoip.org/json/${encodeURIComponent(ip)}`,
+        `https://ipwho.is/${encodeURIComponent(ip)}`
+      ]
+    : [
+        'https://ipapi.co/json/',
+        'https://freeipapi.com/api/json/',
+        'https://reallyfreegeoip.org/json/',
+        'https://ipwho.is/'
+      ];
+  for (const url of providers) {
+    const raw = await tryProvider(url);
+    const norm = normalizeIpData(raw);
+    if (norm && norm.ip) return norm;
+  }
+  return { success: false, message: 'All upstream IP lookup providers failed or rate-limited.' };
+}
+
+app.get('/api/ip-lookup', async (req, res) => {
+  let ip = (req.query.ip || '').toString().trim();
+  // Basic shape check; allow empty (= caller's own IP)
+  if (ip && !/^[0-9a-fA-F:.]{2,64}$/.test(ip)) {
+    return res.status(400).json({ success: false, message: 'Invalid IP format' });
+  }
+  if (!ip) {
+    ip = clientIp(req).replace(/^::ffff:/, '');
+    // localhost fallback for dev — let ipwho.is detect from its end
+    if (!ip || ip === '::1' || ip.startsWith('127.')) ip = '';
+  }
+  const cacheKey = ip || '__self__';
+  const cached = ipCache.get(cacheKey);
+  if (cached && (Date.now() - cached.at) < IP_CACHE_TTL) {
+    return res.json(cached.data);
+  }
+  try {
+    const data = await lookupIp(ip);
+    if (!data || data.success === false) {
+      return res.status(502).json(data || { success: false, message: 'Upstream lookup failed' });
+    }
+    ipCache.set(cacheKey, { at: Date.now(), data });
+    // Trim cache if it grows
+    if (ipCache.size > 500) {
+      const oldest = [...ipCache.entries()].sort((a, b) => a[1].at - b[1].at).slice(0, 100);
+      for (const [k] of oldest) ipCache.delete(k);
+    }
+    res.json(data);
+  } catch (e) {
+    res.status(502).json({ success: false, message: 'Upstream lookup failed: ' + e.message });
+  }
+});
 
 app.get('/robots.txt', (req, res) => {
   res.type('text/plain').send(`User-agent: *\nAllow: /\nSitemap: ${SITE_URL}/sitemap.xml\n`);

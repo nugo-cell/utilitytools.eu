@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IP Lookup &amp; Map — What's My IP · Geolocate Any IP · Utility Tools</title>
+  <meta name="description" content="See your public IP and where it's located on a map. Look up any IPv4/IPv6 address — country, city, ISP, ASN, timezone, and exact coordinates. Free, no signup.">
+  <meta name="keywords" content="what is my ip, ip lookup, ip geolocation, ip address map, ipv4, ipv6, asn, isp lookup, ip on map, free ip lookup">
+  <meta name="robots" content="index,follow">
+  <!-- Tile providers (CARTO/OSM) require a Referer; override Helmet's no-referrer default for this page. -->
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <link rel="canonical" href="/ip-lookup">
+  <meta property="og:title" content="IP Lookup &amp; Map">
+  <meta property="og:url" content="/ip-lookup">
+  <link rel="stylesheet" href="/styles.css">
+  <!-- Leaflet from cdnjs (allow-listed in our CSP style-src). unpkg is blocked. -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer">
+  <style>
+    .ip-top{
+      display:grid;grid-template-columns:1fr 1fr;gap:14px;
+      background:linear-gradient(135deg,rgba(0,212,170,.10),rgba(124,92,255,.10));
+      border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;
+    }
+    @media (max-width:700px){.ip-top{grid-template-columns:1fr}}
+    .ip-top h3{margin:0 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:700}
+    .ip-big{font-family:var(--mono);font-size:22px;font-weight:800;color:var(--accent);word-break:break-all;line-height:1.2}
+    .ip-loc{font-size:14px;color:var(--text);margin-top:4px}
+    .ip-loc .flag{font-size:18px;margin-right:4px}
+    .ip-search{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+    .ip-search input{
+      flex:1;min-width:200px;padding:11px 12px;border-radius:8px;border:1px solid var(--border);
+      background:var(--panel-2);color:var(--text);font-family:var(--mono);font-size:14px;
+    }
+    .ip-search input:focus{outline:0;border-color:var(--accent)}
+    .ip-search button{padding:11px 18px}
+    .ip-search button.btn-secondary{background:var(--panel-2);color:var(--text);border:1px solid var(--border)}
+    #map{height:420px;border-radius:12px;border:1px solid var(--border);margin-top:14px;background:var(--panel-2);overflow:hidden;position:relative;width:100%}
+    .ip-grid{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:14px;
+    }
+    .ip-card{
+      background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;
+    }
+    .ip-card .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:3px}
+    .ip-card .v{font-size:14px;color:var(--text);word-break:break-all;font-variant-numeric:tabular-nums}
+    .ip-status{font-size:13px;color:var(--muted);margin-top:8px;min-height:18px}
+    .ip-status .ok{color:var(--success);font-weight:600}
+    .ip-status .err{color:var(--danger);font-weight:600}
+    .ip-status .live{color:var(--accent);font-weight:600}
+    .ip-info{
+      background:linear-gradient(135deg,rgba(0,212,170,.08),rgba(124,92,255,.08));
+      border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--muted);margin-top:14px;
+    }
+    .ip-info b{color:var(--text)}
+  </style>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>IP Lookup &amp; Map</h1>
+      <p>See your own public IP at a glance, and look up any IPv4 or IPv6 address — country, city, ISP, ASN, and exact location on a map. Powered by <a href="https://ipwho.is" target="_blank" rel="noopener">ipwho.is</a> (free, no key, GDPR-friendly).</p>
+    </div>
+
+    <div class="panel">
+      <div class="ip-top">
+        <div>
+          <h3>Your public IP</h3>
+          <div class="ip-big" id="myIp">…</div>
+          <div class="ip-loc" id="myLoc">Detecting location…</div>
+        </div>
+        <div>
+          <h3>Look up another IP</h3>
+          <form class="ip-search" id="searchForm" autocomplete="off">
+            <input id="searchInp" type="text" placeholder="e.g. 8.8.8.8 or 2606:4700:4700::1111" aria-label="IP address">
+            <button type="submit">Look up</button>
+            <button type="button" id="myBtn" class="btn-secondary" title="Show my IP again">📍 Mine</button>
+          </form>
+          <div class="ip-status" id="status"></div>
+        </div>
+      </div>
+
+      <div id="map"></div>
+
+      <div class="ip-grid" id="details"></div>
+
+      <div class="ip-info">
+        <b>How it works:</b> Lookups are proxied through our own server (which calls ipwho.is on your behalf), so the third-party API never sees your IP unless you explicitly type it in. Results include approximate latitude/longitude (typically accurate to the city level), the ISP/organization, the autonomous system number (ASN), and the local timezone. Map tiles come from CARTO / OpenStreetMap.
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    const myIp = $('myIp'), myLoc = $('myLoc'), details = $('details'), status = $('status');
+    const searchInp = $('searchInp'), searchForm = $('searchForm');
+
+    let map = null, marker = null;
+
+    function initMap() {
+      map = L.map('map', { worldCopyJump: true }).setView([20, 0], 2);
+      // CARTO Voyager tiles — free, no API key, allow standard referrers,
+      // GDPR-friendly (EU servers). Falls back to OSM if CARTO fails.
+      const carto = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        subdomains: 'abcd',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+      });
+      carto.on('tileerror', () => {
+        // Fallback to OSM if CARTO is unreachable for some reason
+        if (!map.hasLayer(osm)) { map.removeLayer(carto); osm.addTo(map); }
+      });
+      const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      });
+      carto.addTo(map);
+    }
+    initMap();
+
+    function setStatus(msg, kind) { status.innerHTML = msg ? `<span class="${kind || ''}">${msg}</span>` : ''; }
+
+    function flagFromCC(cc) {
+      if (!cc || cc.length !== 2) return '';
+      const A = 0x1F1E6, base = 'A'.charCodeAt(0);
+      return String.fromCodePoint(A + (cc.toUpperCase().charCodeAt(0) - base))
+           + String.fromCodePoint(A + (cc.toUpperCase().charCodeAt(1) - base));
+    }
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+    }
+
+    async function lookup(ip) {
+      setStatus('Looking up…', 'live');
+      try {
+        // Proxy through our own server — ipwho.is dropped browser CORS on free tier,
+        // and routing via /api/ip-lookup also keeps the visitor's IP off the third party.
+        const url = ip ? `/api/ip-lookup?ip=${encodeURIComponent(ip)}` : '/api/ip-lookup';
+        const r = await fetch(url);
+        const d = await r.json();
+        if (!d || d.success === false) {
+          setStatus('Lookup failed: ' + (d && d.message ? d.message : 'unknown error'), 'err');
+          return;
+        }
+        render(d, !ip);
+        setStatus(`✓ Located ${d.ip}`, 'ok');
+      } catch (e) {
+        setStatus('Network error: ' + e.message, 'err');
+      }
+    }
+
+    function render(d, isMine) {
+      const flag = flagFromCC(d.country_code);
+      const locStr = [d.city, d.region, d.country].filter(Boolean).join(', ');
+
+      if (isMine) {
+        myIp.textContent = d.ip || '—';
+        myLoc.innerHTML = `<span class="flag">${flag}</span>${escapeHtml(locStr || '—')}`;
+      }
+
+      const rows = [
+        ['IP address',  d.ip],
+        ['Type',        d.type ? d.type.toUpperCase() : ''],
+        ['Country',     `${flag} ${escapeHtml(d.country || '')} (${escapeHtml(d.country_code || '')})`],
+        ['Region',      escapeHtml(d.region || '')],
+        ['City',        escapeHtml(d.city || '')],
+        ['Postal',      escapeHtml(d.postal || '')],
+        ['Latitude',    d.latitude],
+        ['Longitude',   d.longitude],
+        ['ISP',         escapeHtml((d.connection && d.connection.isp) || '')],
+        ['Org',         escapeHtml((d.connection && d.connection.org) || '')],
+        ['ASN',         (d.connection && d.connection.asn) ? 'AS' + d.connection.asn : ''],
+        ['Domain',      escapeHtml((d.connection && d.connection.domain) || '')],
+        ['Timezone',    escapeHtml((d.timezone && d.timezone.id) || '')],
+        ['UTC offset',  (d.timezone && d.timezone.utc) || ''],
+        ['Currency',    d.currency ? `${escapeHtml(d.currency.name || '')} (${escapeHtml(d.currency.code || '')})` : ''],
+        ['Calling code', d.calling_code ? '+' + d.calling_code : '']
+      ].filter(([, v]) => v !== undefined && v !== null && v !== '');
+
+      details.innerHTML = rows.map(([k, v]) =>
+        `<div class="ip-card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+
+      if (typeof d.latitude === 'number' && typeof d.longitude === 'number') {
+        const ll = [d.latitude, d.longitude];
+        if (marker) { map.removeLayer(marker); marker = null; }
+        marker = L.marker(ll).addTo(map)
+          .bindPopup(`<b>${escapeHtml(d.ip)}</b><br>${escapeHtml(locStr)}`)
+          .openPopup();
+        map.setView(ll, 10);
+      }
+    }
+
+    searchForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const v = searchInp.value.trim();
+      if (!v) return;
+      lookup(v);
+    });
+    $('myBtn').onclick = () => { searchInp.value = ''; lookup(); };
+
+    // Initial: load my own IP
+    lookup();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+
