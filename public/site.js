@@ -5,6 +5,41 @@
 // without hurting SEO. Static <head> meta still lives in each page's HTML.
 
 (function () {
+  // ---------------- Google AdSense loader ----------------
+  // Inject the AdSense script tag once, on every page that loads site.js.
+  // (index.html has it inline in <head>.)
+  var ADSENSE_CLIENT = 'ca-pub-5700080992080321';
+  (function injectAdsense() {
+    if (document.querySelector('script[src*="adsbygoogle.js"]')) return;
+    var s = document.createElement('script');
+    s.async = true;
+    s.crossOrigin = 'anonymous';
+    s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + ADSENSE_CLIENT;
+    document.head.appendChild(s);
+    // Help AdSense identify the publisher when verifying the site.
+    if (!document.querySelector('meta[name="google-adsense-account"]')) {
+      var m = document.createElement('meta');
+      m.name = 'google-adsense-account';
+      m.content = ADSENSE_CLIENT;
+      document.head.appendChild(m);
+    }
+  })();
+
+  // Fill any existing <aside class="ad-slot"> placeholders with a real <ins>
+  // so Google has an explicit anchor to render an ad unit. Auto-ads will also
+  // place ads elsewhere on the page where appropriate.
+  function fillAdSlot(slot) {
+    if (!slot || slot.querySelector('ins.adsbygoogle')) return;
+    var ins = document.createElement('ins');
+    ins.className = 'adsbygoogle';
+    ins.style.display = 'block';
+    ins.setAttribute('data-ad-client', ADSENSE_CLIENT);
+    ins.setAttribute('data-ad-format', 'auto');
+    ins.setAttribute('data-full-width-responsive', 'true');
+    slot.appendChild(ins);
+    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (_) {}
+  }
+
   // ---------------- Tag <body> as a tool-page (for full-width layout) ----------------
   // site.js is included on tool pages and on long-form content pages (blog/about/legal).
   // Tools live at single-segment URLs like /json, /password, /cv. Long-form pages live
@@ -40,22 +75,13 @@
     const ad = document.createElement('aside');
     ad.className = 'ad-slot ad-top';
     ad.setAttribute('aria-label', 'Advertisement');
-    ad.innerHTML = `
-      <span class="ad-label">Advertisement</span>
-      <!--
-        Google AdSense slot. When you have your publisher ID, replace the
-        contents of this <aside> with:
-
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
-        <ins class="adsbygoogle"
-             style="display:block"
-             data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-             data-ad-slot="YYYYYYYYYY"
-             data-ad-format="auto"
-             data-full-width-responsive="true"></ins>
-        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-      -->`;
+    ad.innerHTML = '<span class="ad-label">Advertisement</span>';
     main.insertBefore(ad, main.firstChild);
+  }
+
+  // Fill every ad-slot on the page (top + inline) with a real <ins>.
+  if (!document.body.dataset.noAds) {
+    document.querySelectorAll('.ad-slot').forEach(fillAdSlot);
   }
 
   // ---------------- 2) Footer ----------------
