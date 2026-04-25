@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P2P File Transfer — No Upload, Encrypted, Direct Browser-to-Browser · Utility Tools</title>
+  <meta name="description" content="Send any file directly from your browser to another browser via WebRTC. The file never touches our server — it goes peer-to-peer over a DTLS-encrypted DataChannel. No size cap, no account, no upload.">
+  <meta name="keywords" content="p2p file transfer, webrtc file send, no upload file share, encrypted file transfer, browser file transfer, direct file share, datachannel file">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/p2p-file">
+  <meta property="og:title" content="P2P File Transfer — No Upload, Encrypted">
+  <meta property="og:url" content="/p2p-file">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .pf-share{
+      display:flex;align-items:stretch;gap:0;margin-top:10px;border:1px solid var(--border);border-radius:8px;overflow:hidden;
+    }
+    .pf-share input{
+      flex:1;border:0;background:var(--panel-2);color:var(--text);padding:10px 12px;font-family:var(--mono);font-size:13px;
+    }
+    .pf-share input:focus{outline:0}
+    .pf-share button{border:0;border-radius:0;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff;font-weight:600}
+    .pf-share button:hover{filter:brightness(1.1)}
+    .pf-status{font-size:13px;color:var(--muted);margin-top:10px;min-height:18px}
+    .pf-status .ok{color:var(--success);font-weight:600}
+    .pf-status .err{color:var(--danger);font-weight:600}
+    .pf-status .live{color:var(--accent);font-weight:600}
+    .pf-info{
+      background:linear-gradient(135deg,rgba(0,212,170,0.08),rgba(124,92,255,0.08));
+      border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--muted);margin-top:14px;
+    }
+    .pf-info b{color:var(--text)} .pf-info .lock{color:var(--success);font-weight:700}
+    .pf-start-buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+    .pf-drop{
+      border:2px dashed var(--border-strong);border-radius:12px;padding:30px 18px;text-align:center;
+      cursor:pointer;transition:.15s;background:var(--panel-2);color:var(--muted);
+    }
+    .pf-drop:hover,.pf-drop.drag{border-color:var(--accent);background:linear-gradient(135deg,rgba(124,92,255,.06),rgba(0,212,170,.06));color:var(--text)}
+    .pf-drop b{color:var(--text)}
+    .pf-drop input{display:none}
+    .pf-list{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+    .pf-item{
+      background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;
+      display:flex;flex-direction:column;gap:6px;
+    }
+    .pf-item .row1{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .pf-item .name{font-weight:600;color:var(--text);word-break:break-all;flex:1;min-width:0}
+    .pf-item .meta{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+    .pf-item .bar{height:6px;background:var(--panel);border-radius:99px;overflow:hidden}
+    .pf-item .bar > div{height:100%;width:0%;background:var(--grad);transition:width .15s}
+    .pf-item.done .bar > div{background:var(--success)}
+    .pf-item .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .pf-item .actions a,.pf-item .actions button{
+      font-size:12px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);
+      background:var(--panel);color:var(--text);text-decoration:none;cursor:pointer;
+    }
+    .pf-item .actions a:hover,.pf-item .actions button:hover{border-color:var(--accent)}
+    .pf-item .dir{font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;padding:2px 6px;border-radius:4px}
+    .pf-item.send .dir{background:rgba(124,92,255,.18);color:var(--accent)}
+    .pf-item.recv .dir{background:rgba(0,212,170,.18);color:var(--success)}
+    .pf-toast{
+      position:fixed;left:50%;bottom:30px;transform:translateX(-50%);
+      background:var(--panel);border:1px solid var(--accent);color:var(--text);
+      padding:10px 18px;border-radius:8px;font-size:14px;z-index:1000;
+      box-shadow:var(--shadow-soft);opacity:0;transition:opacity .2s, transform .2s;pointer-events:none;
+    }
+    .pf-toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
+    .pf-room{font-family:var(--mono);color:var(--accent);font-weight:700}
+  </style>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>P2P File Transfer <span style="font-size:14px;font-weight:500;color:var(--success)">🔒 DTLS-encrypted · 🚫 no upload · ⚡ direct browser-to-browser</span></h1>
+      <p>Send any file — photos, videos, PDFs, archives, anything — directly from your browser to another browser. The file <b>never touches our server</b>: it streams peer-to-peer over a WebRTC DataChannel, encrypted end-to-end with DTLS. No size cap, no account, no waiting room.</p>
+    </div>
+
+    <!-- LOBBY -->
+    <div class="panel" id="lobby">
+      <h3 style="margin-top:0">Start a transfer</h3>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 10px">
+        Create a private room, share the link with the person you want to send files to, then drop files in. They'll appear on the other side as fast as your connection allows.
+      </p>
+      <div class="pf-start-buttons">
+        <button id="createBtn" type="button">🆕 Create transfer room</button>
+        <button id="joinBtn" type="button" class="btn-secondary" style="background:var(--panel-2);color:var(--text);border:1px solid var(--border)">🔗 Join with a link / room ID</button>
+      </div>
+      <div class="pf-info">
+        <b class="lock">🔒 Why this is safer than a normal upload:</b> Sites like WeTransfer or Drive copy your file to their servers. Here, the bytes go straight from your browser to the recipient's browser over an end-to-end DTLS-encrypted WebRTC DataChannel. Our server only relays a tiny "introduction" so the two browsers can find each other — it never sees the file.
+      </div>
+    </div>
+
+    <!-- TRANSFER -->
+    <div class="panel" id="transferPanel" hidden>
+      <h3 style="margin-top:0">Room: <span class="pf-room" id="roomLabel"></span></h3>
+      <div class="pf-share">
+        <input id="shareLink" type="text" readonly aria-label="Room share link">
+        <button id="copyLink" type="button">Copy link</button>
+      </div>
+      <p class="pf-status" id="status"></p>
+
+      <label class="pf-drop" id="drop">
+        <input type="file" id="fileInput" multiple>
+        <div><b>Click or drop files</b> to send to the other person</div>
+        <div style="font-size:12px;margin-top:4px">Available once the encrypted P2P channel is open.</div>
+      </label>
+
+      <div class="pf-list" id="list"></div>
+
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+        <button id="leaveBtn" type="button" class="btn-secondary" style="background:var(--panel-2);color:var(--text);border:1px solid var(--border)">Leave room</button>
+      </div>
+
+      <div class="pf-info">
+        <b class="lock">🔒 Encrypted, peer-to-peer, never stored.</b> Files leave your device only when you drop them in, travel directly to the other browser, and exist only in RAM (and finally as a download). Close the tab and nothing remains anywhere.
+      </div>
+    </div>
+  </main>
+
+  <div class="pf-toast" id="toast"></div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const lobby = $('lobby'), transferPanel = $('transferPanel');
+    const status = $('status'), shareLink = $('shareLink'), roomLabel = $('roomLabel');
+    const drop = $('drop'), fileInput = $('fileInput'), list = $('list');
+
+    const ICE_SERVERS = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' }
+    ];
+    const CHUNK_SIZE = 64 * 1024;     // 64 KB chunks
+    const HIGH_WATER  = 1024 * 1024;  // pause when 1 MB queued
+
+    let ws = null, pc = null, dc = null;
+    let isInitiator = false, polite = true, makingOffer = false, ignoreOffer = false;
+    let roomId = null;
+
+    // Per-transfer state
+    const sending  = new Map(); // id -> { file, sentBytes, item }
+    const receiving = new Map(); // id -> { name, size, type, chunks, recvBytes, item }
+    let sendQueue = [];
+    let activeSend = null;
+
+    // ---------- helpers ----------
+    function genRoomId() {
+      const a = new Uint8Array(9); crypto.getRandomValues(a);
+      return btoa(String.fromCharCode(...a)).replace(/[+/=]/g, c => ({'+':'-','/':'_','=':''}[c])).slice(0, 12);
+    }
+    function setStatus(msg, kind) { status.innerHTML = msg ? `<span class="${kind || ''}">${msg}</span>` : ''; }
+    function toast(msg) {
+      const t = $('toast'); t.textContent = msg; t.classList.add('show');
+      clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 1800);
+    }
+    function fmtBytes(b) {
+      if (b < 1024) return b + ' B';
+      if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+      if (b < 1024*1024*1024) return (b/1024/1024).toFixed(2) + ' MB';
+      return (b/1024/1024/1024).toFixed(2) + ' GB';
+    }
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+    }
+    function newId() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
+
+    function makeItem(dir, name, size) {
+      const div = document.createElement('div');
+      div.className = 'pf-item ' + dir;
+      div.innerHTML = `
+        <div class="row1">
+          <span class="dir">${dir === 'send' ? '↑ Sending' : '↓ Receiving'}</span>
+          <span class="name">${escapeHtml(name)}</span>
+          <span class="meta"><span class="pct">0%</span> · <span class="bytes">0 B</span> / ${fmtBytes(size)}</span>
+        </div>
+        <div class="bar"><div></div></div>
+        <div class="actions"></div>`;
+      list.prepend(div);
+      return {
+        root: div,
+        bar: div.querySelector('.bar > div'),
+        pct: div.querySelector('.pct'),
+        bytes: div.querySelector('.bytes'),
+        actions: div.querySelector('.actions'),
+        update(done, total) {
+          const p = total ? Math.min(100, (done/total)*100) : 0;
+          this.bar.style.width = p.toFixed(1) + '%';
+          this.pct.textContent = p.toFixed(0) + '%';
+          this.bytes.textContent = fmtBytes(done);
+        },
+        finish(blobUrl, name) {
+          div.classList.add('done');
+          this.update(1,1);
+          if (blobUrl) {
+            const a = document.createElement('a');
+            a.href = blobUrl; a.download = name; a.textContent = '⬇ Download';
+            this.actions.appendChild(a);
+          } else {
+            const span = document.createElement('span');
+            span.style.color = 'var(--success)'; span.style.fontSize = '12px';
+            span.textContent = '✓ Sent';
+            this.actions.appendChild(span);
+          }
+        }
+      };
+    }
+
+    // ---------- entry ----------
+    $('createBtn').onclick = () => { const id = genRoomId(); location.hash = id; enterRoom(id); };
+    $('joinBtn').onclick = () => {
+      const v = prompt('Paste the link or room ID:');
+      if (!v) return;
+      let id = String(v).trim();
+      const m = id.match(/#([A-Za-z0-9_-]{4,64})/);
+      if (m) id = m[1];
+      if (!/^[A-Za-z0-9_-]{4,64}$/.test(id)) { alert('That does not look like a valid room ID.'); return; }
+      location.hash = id; enterRoom(id);
+    };
+    if (location.hash && /^#[A-Za-z0-9_-]{4,64}$/.test(location.hash)) {
+      enterRoom(location.hash.slice(1));
+    }
+
+    function enterRoom(id) {
+      roomId = id;
+      roomLabel.textContent = id;
+      shareLink.value = location.origin + '/p2p-file#' + id;
+      lobby.hidden = true; transferPanel.hidden = false;
+      setStatus('Connecting to room…', 'live');
+      connectSignaling(id);
+    }
+
+    function connectSignaling(id) {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      ws = new WebSocket(`${proto}://${location.host}/ws/p2p?room=${encodeURIComponent(id)}`);
+      ws.onerror = () => setStatus('Signaling connection failed.', 'err');
+      ws.onmessage = async (ev) => {
+        let msg; try { msg = JSON.parse(ev.data); } catch(_) { return; }
+        if (msg.type === 'full') {
+          setStatus('This room is already full (2 people max). Create a new one.', 'err');
+          cleanup(true); return;
+        }
+        if (msg.type === 'init') {
+          isInitiator = !!msg.initiator;
+          polite = !isInitiator;
+          createPeerConnection();
+          if (isInitiator) {
+            setStatus('Joined. Establishing direct encrypted P2P link…', 'live');
+            await maybeMakeOffer();
+          } else {
+            setStatus('Waiting for the other person to join — share the link below.', 'live');
+          }
+          return;
+        }
+        if (msg.type === 'peer-joined') {
+          setStatus('Peer joined — handshaking…', 'live');
+          return;
+        }
+        if (msg.type === 'peer-left') {
+          setStatus('The other person left. Channel closed.', 'err');
+          if (dc) { try { dc.close(); } catch(_) {} dc = null; }
+          if (pc) { try { pc.close(); } catch(_) {} pc = null; }
+          return;
+        }
+        if (!pc) createPeerConnection();
+        try {
+          if (msg.sdp) {
+            const offerCollision = msg.sdp.type === 'offer' && (makingOffer || pc.signalingState !== 'stable');
+            ignoreOffer = !polite && offerCollision;
+            if (ignoreOffer) return;
+            await pc.setRemoteDescription(msg.sdp);
+            if (msg.sdp.type === 'offer') {
+              await pc.setLocalDescription();
+              ws.send(JSON.stringify({ sdp: pc.localDescription }));
+            }
+          } else if (msg.candidate) {
+            try { await pc.addIceCandidate(msg.candidate); } catch(e) { if (!ignoreOffer) throw e; }
+          }
+        } catch(e) { console.warn('signaling err', e); }
+      };
+    }
+
+    function createPeerConnection() {
+      if (pc) return;
+      pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+      pc.onicecandidate = (ev) => { if (ev.candidate && ws && ws.readyState === 1) ws.send(JSON.stringify({ candidate: ev.candidate })); };
+      pc.onnegotiationneeded = maybeMakeOffer;
+      pc.ondatachannel = (ev) => attachChannel(ev.channel);
+      pc.onconnectionstatechange = () => {
+        const st = pc.connectionState;
+        if (st === 'failed') setStatus('Connection failed (likely a strict firewall). Try a different network.', 'err');
+        else if (st === 'disconnected') setStatus('Connection interrupted — trying to recover…', 'err');
+      };
+      if (isInitiator) {
+        const ch = pc.createDataChannel('file', { ordered: true });
+        attachChannel(ch);
+      }
+    }
+
+    async function maybeMakeOffer() {
+      if (!pc) return;
+      try {
+        makingOffer = true;
+        await pc.setLocalDescription();
+        ws.send(JSON.stringify({ sdp: pc.localDescription }));
+      } catch(e) { console.warn(e); }
+      finally { makingOffer = false; }
+    }
+
+    function attachChannel(channel) {
+      dc = channel;
+      dc.binaryType = 'arraybuffer';
+      dc.bufferedAmountLowThreshold = HIGH_WATER / 2;
+      dc.onopen = () => {
+        setStatus('🟢 Encrypted P2P channel open — drop files to send.', 'ok');
+        drop.classList.add('ready');
+      };
+      dc.onclose = () => setStatus('Channel closed.', 'err');
+      dc.onmessage = onChannelMessage;
+      dc.onbufferedamountlow = pumpSend;
+    }
+
+    // ---------- drag & drop / file pick ----------
+    ['dragover','dragleave','drop'].forEach(ev =>
+      drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.toggle('drag', ev === 'dragover'); }));
+    drop.addEventListener('drop', e => {
+      const files = [...(e.dataTransfer.files || [])];
+      files.forEach(queueSend);
+    });
+    fileInput.onchange = e => { [...(e.target.files || [])].forEach(queueSend); fileInput.value = ''; };
+
+    function queueSend(file) {
+      if (!dc || dc.readyState !== 'open') { toast('Channel not open yet — wait for the peer.'); return; }
+      const id = newId();
+      const item = makeItem('send', file.name, file.size);
+      const entry = { id, file, sentBytes: 0, item };
+      sending.set(id, entry);
+      sendQueue.push(entry);
+      // Tell the receiver about it
+      dc.send(JSON.stringify({ k:'meta', id, name:file.name, size:file.size, type:file.type || 'application/octet-stream' }));
+      pumpSend();
+    }
+
+    async function pumpSend() {
+      if (!dc || dc.readyState !== 'open') return;
+      while (true) {
+        if (!activeSend) {
+          activeSend = sendQueue.shift();
+          if (!activeSend) return;
+        }
+        const { file, id } = activeSend;
+        if (activeSend.sentBytes >= file.size) {
+          dc.send(JSON.stringify({ k:'end', id }));
+          activeSend.item.finish(null);
+          sending.delete(id);
+          activeSend = null;
+          continue;
+        }
+        if (dc.bufferedAmount > HIGH_WATER) return; // wait for onbufferedamountlow
+        const end = Math.min(activeSend.sentBytes + CHUNK_SIZE, file.size);
+        const slice = file.slice(activeSend.sentBytes, end);
+        let buf;
+        try { buf = await slice.arrayBuffer(); }
+        catch(e) { console.warn(e); return; }
+        // Frame: 1 byte type (1 = chunk) + 8 bytes id-prefix-hash, but to keep it simple
+        // we send a small JSON header per chunk would be wasteful; instead we prefix with
+        // an 8-byte header: first 4 bytes = id-hash, next 4 bytes = chunk index. To stay
+        // ultra-simple and still robust to a SINGLE active transfer at a time, we just
+        // send raw bytes — the receiver knows the current-active id from the most recent
+        // 'meta' header.
+        try { dc.send(buf); }
+        catch(e) { console.warn('send err', e); return; }
+        activeSend.sentBytes = end;
+        activeSend.item.update(end, file.size);
+      }
+    }
+
+    // ---------- receiving ----------
+    let activeRecvId = null;
+
+    function onChannelMessage(ev) {
+      const data = ev.data;
+      if (typeof data === 'string') {
+        let m; try { m = JSON.parse(data); } catch(_) { return; }
+        if (m.k === 'meta') {
+          const item = makeItem('recv', m.name, m.size);
+          receiving.set(m.id, { name:m.name, size:m.size, type:m.type, chunks:[], recvBytes:0, item });
+          activeRecvId = m.id;
+        } else if (m.k === 'end') {
+          const r = receiving.get(m.id); if (!r) return;
+          const blob = new Blob(r.chunks, { type: r.type });
+          const url  = URL.createObjectURL(blob);
+          r.item.finish(url, r.name);
+          receiving.delete(m.id);
+          if (activeRecvId === m.id) activeRecvId = null;
+          toast('📥 Received ' + r.name);
+        }
+        return;
+      }
+      // Binary chunk for the currently-active incoming file
+      if (!activeRecvId) return;
+      const r = receiving.get(activeRecvId); if (!r) return;
+      r.chunks.push(data);
+      r.recvBytes += data.byteLength;
+      r.item.update(r.recvBytes, r.size);
+    }
+
+    // ---------- leave / cleanup ----------
+    $('copyLink').onclick = async () => {
+      try { await navigator.clipboard.writeText(shareLink.value); toast('🔗 Link copied — send it to the other person'); }
+      catch(_) { shareLink.select(); document.execCommand('copy'); toast('Link copied'); }
+    };
+    $('leaveBtn').onclick = () => { cleanup(true); setStatus('Left room.', 'err'); };
+    window.addEventListener('beforeunload', () => cleanup(false));
+
+    function cleanup(backToLobby) {
+      try { dc && dc.close(); } catch(_) {}
+      try { pc && pc.close(); } catch(_) {}
+      try { ws && ws.close(); } catch(_) {}
+      dc = null; pc = null; ws = null;
+      sending.clear(); receiving.clear(); sendQueue = []; activeSend = null; activeRecvId = null;
+      if (backToLobby) {
+        lobby.hidden = false; transferPanel.hidden = true;
+        history.replaceState(null, '', location.pathname);
+        list.innerHTML = '';
+      }
+    }
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

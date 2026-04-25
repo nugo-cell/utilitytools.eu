@@ -109,6 +109,7 @@ const TOOLS = [
   { slug: 'video-to-audio',   name: 'Video to MP3 / WAV',       file: 'tools/video-to-audio.html',   icon: '🎧',  tags: ['video','converter','music'], desc: 'Extract the audio track from any local video. Trim, choose channels & bitrate, save as MP3 or WAV.' },
   { slug: 'p2p-call',         name: 'P2P Video Call (encrypted)',file: 'tools/p2p-call.html',        icon: '📞',  tags: ['communication','privacy','video'], desc: 'Create a private 1-to-1 video/audio call. Share a link, encrypted end-to-end via WebRTC. No recording, no account.' },
   { slug: 'temp-chat',        name: 'Temp Chat (E2E encrypted)', file: 'tools/temp-chat.html',       icon: '💬',  tags: ['communication','privacy'],     desc: 'Ephemeral encrypted group chat. Share a link, talk in real-time, close the tab and everything is gone. Up to 10 people.' },
+  { slug: 'p2p-file',         name: 'P2P File Transfer (no upload)', file: 'tools/p2p-file.html',    icon: '📁',  tags: ['communication','privacy','documents'], desc: 'Send any file directly browser-to-browser via WebRTC. The file never touches our server — DTLS-encrypted, no size cap, no account.' },
 
   // -------- Fun Text Translator Toolkit (each tool on its own page) --------
   { slug: 'text-translators', name: 'Fun Text Translators',     file: 'tools/text-translators.html', icon: 'Aᚱ',  tags: ['text','fun','generator','converter'], desc: 'Hub linking to runes, Morse, binary, Pig Latin, Braille, NATO, hieroglyphics and more.' },
