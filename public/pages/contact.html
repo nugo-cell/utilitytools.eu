@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact — UtilityTools.eu</title>
+  <meta name="description" content="Get in touch with UtilityTools.eu — feature requests, bug reports, partnership ideas. We read every email.">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/contact">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav>
+      <a href="/">Tools</a>
+      <a href="/blog">Blog</a>
+      <a href="/about">About</a>
+      <a href="/contact" class="active">Contact</a>
+    </nav>
+  </header>
+
+  <main class="container-narrow">
+    <article class="prose">
+      <h1>Contact</h1>
+      <p class="meta">An EU dad-of-two reading every message — usually within a day or two.</p>
+
+      <p>Got a feature request, a bug to report, or a tool you'd love to see added? Drop a line.
+         No form-handling backend, no database — your message goes straight to my inbox.</p>
+
+      <form id="contactForm" class="contact-form" autocomplete="on" novalidate>
+        <div class="row-2">
+          <div>
+            <label for="cName">Your name</label>
+            <input id="cName" name="name" type="text" placeholder="Jane Doe" required>
+          </div>
+          <div>
+            <label for="cEmail">Your email <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+            <input id="cEmail" name="email" type="email" placeholder="jane@example.com">
+          </div>
+        </div>
+        <div>
+          <label for="cSubject">Subject</label>
+          <select id="cSubject" name="subject">
+            <option>Feature request</option>
+            <option>Bug report</option>
+            <option>Tool idea</option>
+            <option>Partnership / collaboration</option>
+            <option>Just saying hi 👋</option>
+            <option>Privacy / GDPR question</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label for="cMessage">Message</label>
+          <textarea id="cMessage" name="message" placeholder="What's on your mind?" rows="6" required></textarea>
+        </div>
+        <div class="row" style="gap:10px">
+          <button type="submit">Send via email</button>
+          <button type="button" class="secondary" id="copyBtn">Copy message instead</button>
+        </div>
+        <div id="contactStatus" aria-live="polite"></div>
+      </form>
+
+      <h2 style="margin-top:32px">Or reach out directly</h2>
+      <p>📧 <a href="mailto:contact@benandliva.com?subject=UtilityTools.eu">contact@benandliva.com</a></p>
+      <p style="color:var(--muted);font-size:13px;margin-top:24px">
+        Privacy note: this form opens your default email client with the message pre-filled — nothing is sent to a server,
+        and we don't store anything. The "Copy" button just puts the formatted message on your clipboard.
+      </p>
+    </article>
+  </main>
+
+  <script>
+    (function () {
+      var form    = document.getElementById('contactForm');
+      var status  = document.getElementById('contactStatus');
+      var copyBtn = document.getElementById('copyBtn');
+
+      function buildBody() {
+        var name    = document.getElementById('cName').value.trim();
+        var email   = document.getElementById('cEmail').value.trim();
+        var subject = document.getElementById('cSubject').value;
+        var msg     = document.getElementById('cMessage').value.trim();
+        return {
+          subject: 'UtilityTools.eu — ' + subject,
+          body: 'From: ' + (name || '(no name)') + (email ? ' <' + email + '>' : '') + '\n\n' + msg + '\n\n— sent via utilitytools.eu/contact'
+        };
+      }
+      function valid() {
+        var name = document.getElementById('cName').value.trim();
+        var msg  = document.getElementById('cMessage').value.trim();
+        if (!name || !msg) {
+          status.className = 'contact-error';
+          status.textContent = 'Please fill in your name and a message.';
+          return false;
+        }
+        return true;
+      }
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!valid()) return;
+        var b = buildBody();
+        var url = 'mailto:contact@benandliva.com'
+                + '?subject=' + encodeURIComponent(b.subject)
+                + '&body='    + encodeURIComponent(b.body);
+        window.location.href = url;
+        status.className = 'contact-success';
+        status.textContent = 'Opening your email client… if nothing happens, click "Copy message instead".';
+      });
+
+      copyBtn.addEventListener('click', async function () {
+        if (!valid()) return;
+        var b = buildBody();
+        var text = 'To: contact@benandliva.com\nSubject: ' + b.subject + '\n\n' + b.body;
+        try {
+          await navigator.clipboard.writeText(text);
+          status.className = 'contact-success';
+          status.textContent = 'Message copied to clipboard. Paste it into any email and send to contact@benandliva.com — thank you! ❤️';
+        } catch (_) {
+          window.prompt('Copy this message and email it to contact@benandliva.com:', text);
+        }
+      });
+    })();
+  </script>
+  <script src="/consent.js"></script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

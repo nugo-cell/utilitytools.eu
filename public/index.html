@@ -8,12 +8,19 @@
   <meta name="keywords" content="EU online tools, european utilities, privacy first tools, no tracking, GDPR friendly, free online tools, json formatter, password generator, file encryption, CV maker, image tools, browser tools, no signup">
   <link rel="canonical" href="https://utilitytools.eu/">
   <meta name="robots" content="index,follow">
-  <meta name="theme-color" content="#7c5cff">
+  <meta name="theme-color" content="#0a0e1a">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
   <meta property="og:type" content="website">
   <meta property="og:title" content="UtilityTools.eu — Free EU Online Tools, Privacy-First">
   <meta property="og:description" content="A free European alternative for everyday online utilities. No tracking, no signup. Everything runs in your browser.">
   <meta property="og:url" content="https://utilitytools.eu/">
-  <meta name="twitter:card" content="summary">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/favicon.svg">
+  <link rel="manifest" href="/site.webmanifest">
   <link rel="stylesheet" href="/styles.css">
   <!-- Early theme init (before stylesheet paints) — minimizes flash. Default = light. -->
   <script>
@@ -26,10 +33,7 @@
       }
     })();
   </script>
-  <!-- Google AdSense -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5700080992080321"
-          crossorigin="anonymous"></script>
-  <meta name="google-adsense-account" content="ca-pub-5700080992080321">
+  <!-- Google AdSense is loaded by /consent.js only after the user grants consent. -->
   <style>
     /* Trust / share / contact banner */
     .trust-banner{
@@ -88,7 +92,7 @@
       <a href="/" class="active">Tools</a>
       <a href="/blog">Blog</a>
       <a href="/about">About</a>
-      <a href="mailto:contact@benandliva.com?subject=UtilityTools.eu%20%E2%80%94%20Feature%20request%20%2F%20bug%20report" title="Send feature requests or report bugs">Contact</a>
+      <a href="/contact" title="Send feature requests or report bugs">Contact</a>
       <button type="button" class="theme-toggle" id="themeToggle" aria-label="Switch theme" title="Switch theme">☀</button>
     </nav>
   </header>
@@ -101,7 +105,6 @@
            data-ad-client="ca-pub-5700080992080321"
            data-ad-format="auto"
            data-full-width-responsive="true"></ins>
-      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
     </aside>
     <section class="hero">
       <h1>The free <span class="grad">European</span> toolbox<br>for your everyday browser tasks.</h1>
@@ -122,14 +125,17 @@
         <p>This site is built by an independent EU developer — a hardworking dad of two — trying to earn through traffic and ads. Every tool runs entirely in your browser: nothing is uploaded, nothing is tracked, no accounts required. <strong>Hosted on DigitalOcean in Frankfurt 🇩🇪 — no database, no analytics, only Google AdSense to keep the lights on.</strong> If you'd like to support the project, please share these tools with someone who'd find them useful. ❤️</p>
         <div class="trust-actions">
           <button class="share-btn" id="shareBtn" type="button">📤 Share UtilityTools</button>
-          <a class="contact-btn" href="mailto:contact@benandliva.com?subject=UtilityTools.eu%20%E2%80%94%20Feature%20request%20%2F%20bug%20report&amp;body=Hi%2C%0A%0A">✉ Contact us — feature requests &amp; bugs</a>
+          <a class="contact-btn" href="/contact">✉ Contact us — feature requests &amp; bugs</a>
         </div>
       </div>
     </section>
 
     <div class="search-bar">
       <input id="search" type="search" placeholder="Search tools… (e.g. json, password, pdf)" aria-label="Search tools">
+      <span class="kbd-hint">/</span>
     </div>
+
+    <div class="recent-row" id="recentRow" hidden></div>
 
     <div class="tag-row" id="tagRow" aria-label="Filter tools by tag"></div>
 
@@ -180,7 +186,7 @@
         <a href="/">All tools</a>
         <a href="/blog">Blog</a>
         <a href="/about">About</a>
-        <a href="mailto:contact@benandliva.com?subject=UtilityTools.eu%20%E2%80%94%20Feature%20request%20%2F%20bug%20report">Contact</a>
+        <a href="/contact">Contact</a>
       </div>
       <div class="partners-col">
         <h4>Friends from the EU 🇪🇺</h4>
@@ -194,6 +200,7 @@
         <a href="/disclaimer">Disclaimer</a>
         <a href="/privacy">Privacy</a>
         <a href="/terms">Terms</a>
+        <a href="#" id="utConsentRevoke">Consent settings</a>
       </div>
     </div>
     <div class="footer-bottom">
@@ -344,11 +351,38 @@
       .then(r => r.json())
       .then(({ tools, tags }) => {
         TOOLS = tools; ALL_TAGS = tags;
-        renderTags(); render();
+        renderTags(); render(); renderRecent();
       })
       .catch(err => {
         grid.innerHTML = '<p style="color:var(--danger)">Failed to load tools: ' + err.message + '</p>';
       });
+
+    // ===== Recently used (top of page) =====
+    function renderRecent() {
+      const row = document.getElementById('recentRow');
+      if (!row) return;
+      let recent = [];
+      try { recent = JSON.parse(localStorage.getItem('utilitytools.recent') || '[]'); } catch (_) {}
+      if (!Array.isArray(recent) || !recent.length) { row.hidden = true; return; }
+      const map = Object.fromEntries(TOOLS.map(t => [t.slug, t]));
+      const items = recent.map(s => map[s]).filter(Boolean).slice(0, 6);
+      if (!items.length) { row.hidden = true; return; }
+      row.hidden = false;
+      row.innerHTML = '<span class="recent-label">Recently used:</span>'
+        + items.map(t => `<a href="/${t.slug}">${t.icon} ${t.name}</a>`).join('');
+    }
+
+    // ===== Keyboard shortcut: "/" focuses search =====
+    document.addEventListener('keydown', e => {
+      if (e.key === '/' && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) {
+        e.preventDefault();
+        searchInput.focus();
+        searchInput.select();
+      }
+      if (e.key === 'Escape' && document.activeElement === searchInput) {
+        searchInput.blur();
+      }
+    });
 
     // ===== Share button =====
     function showToast(msg) {
@@ -376,6 +410,15 @@
         }
       } catch (_) { /* user cancelled — no-op */ }
     });
+
+    // ===== Consent settings link =====
+    document.addEventListener('click', e => {
+      const a = e.target.closest('#utConsentRevoke');
+      if (!a) return;
+      e.preventDefault();
+      if (window.UTConsent) window.UTConsent.revoke();
+    });
   </script>
+  <script src="/consent.js"></script>
 </body>
 </html>

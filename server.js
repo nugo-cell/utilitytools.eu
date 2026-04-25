@@ -1,11 +1,47 @@
 // Utility Tools - Node + Express server
 
 const express = require('express');
+const helmet = require('helmet');
 const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const SITE_URL = process.env.SITE_URL || (process.env.NODE_ENV === 'production' ? 'https://utilitytools.eu' : `http://localhost:${PORT}`);
+
+// ---------------- Security headers ----------------
+// Helmet adds CSP, HSTS, X-Content-Type-Options, Referrer-Policy, etc.
+// CSP is hand-tuned to allow Google AdSense + the public CDNs the tools use.
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      'default-src': ["'self'"],
+      'script-src': [
+        "'self'",
+        "'unsafe-inline'", // tool pages have inline scripts; refactor later
+        'https://pagead2.googlesyndication.com',
+        'https://*.googlesyndication.com',
+        'https://*.doubleclick.net',
+        'https://*.google.com',
+        'https://*.gstatic.com',
+        'https://cdn.jsdelivr.net',
+        'https://cdnjs.cloudflare.com',
+        'https://unpkg.com'
+      ],
+      'style-src': ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com'],
+      'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+      'font-src': ["'self'", 'data:', 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com'],
+      'connect-src': ["'self'", 'https://*.googlesyndication.com', 'https://*.doubleclick.net', 'https://*.google.com'],
+      'frame-src':  ['https://*.googlesyndication.com', 'https://*.doubleclick.net', 'https://*.google.com'],
+      'object-src': ["'none'"],
+      'base-uri':   ["'self'"],
+      'form-action': ["'self'", 'mailto:']
+    }
+  },
+  // Allow cross-origin loading of our own static SVGs etc. for og:image
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginEmbedderPolicy: false
+}));
 
 const TOOLS = [
   { slug: 'json',      name: 'JSON Formatter',          file: 'tools/json-formatter.html', icon: '{}',   tags: ['developer','text'],           desc: 'Pretty-print, minify, and validate JSON.' },
@@ -88,7 +124,16 @@ const TOOLS = [
 
 const ALL_TAGS = [...new Set(TOOLS.flatMap(t => t.tags))].sort();
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  // 1 day for HTML, 7 days for static assets. Production browsers will revalidate.
+  setHeaders: function (res, filePath) {
+    if (/\.(?:css|js|svg|webmanifest|png|jpg|jpeg|webp|woff2?)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=604800');
+    } else if (/\.html$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
+    }
+  }
+}));
 
 for (const t of TOOLS) {
   app.get('/' + t.slug, (req, res) => res.sendFile(path.join(__dirname, 'public', t.file)));
@@ -99,7 +144,8 @@ const pages = {
   '/disclaimer': 'pages/disclaimer.html',
   '/privacy':    'pages/privacy.html',
   '/terms':      'pages/terms.html',
-  '/blog':       'pages/blog.html'
+  '/blog':       'pages/blog.html',
+  '/contact':    'pages/contact.html'
 };
 for (const [route, file] of Object.entries(pages)) {
   app.get(route, (req, res) => res.sendFile(path.join(__dirname, 'public', file)));
@@ -120,7 +166,7 @@ app.get('/robots.txt', (req, res) => {
 
 app.get('/sitemap.xml', (req, res) => {
   const urls = [
-    '/', '/about', '/disclaimer', '/privacy', '/terms', '/blog',
+    '/', '/about', '/contact', '/disclaimer', '/privacy', '/terms', '/blog',
     '/blog/best-free-online-utility-tools-2026',
     '/blog/how-to-generate-strong-passwords',
     '/blog/write-a-cv-for-free',

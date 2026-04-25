@@ -19,6 +19,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "helmet": "^8.1.0"
   }
 }

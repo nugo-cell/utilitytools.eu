@@ -1,0 +1,15 @@
+{
+  "name": "UtilityTools.eu",
+  "short_name": "UtilityTools",
+  "description": "70+ free, privacy-first online utility tools that run entirely in your browser.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0e1a",
+  "theme_color": "#7c5cff",
+  "lang": "en",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
+

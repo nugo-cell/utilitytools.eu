@@ -1,13 +1,25 @@
 // Shared site chrome — injects:
-//   1. A top ad slot (Google AdSense placeholder) right under the topnav.
-//   2. The footer (with partners / friends from the EU links for SEO).
-// Crawlers and modern browsers both render JS, so this keeps the site DRY
-// without hurting SEO. Static <head> meta still lives in each page's HTML.
+//   1. Theme (light/dark) + early-init.
+//   2. Favicon, manifest, og:image (so we don't have to repeat in every HTML).
+//   3. The top ad slot + fills any inline .ad-slot with <ins class="adsbygoogle">.
+//      AdSense itself is loaded by /consent.js, only after the user consents.
+//   4. The footer (with EU friends links + a "Consent settings" link).
+//   5. A JSON-LD <SoftwareApplication> block per tool page (SEO).
+//   6. A "Related tools" block at the bottom of each tool page.
+//   7. Recently-used tracking (per slug, in localStorage).
 
 (function () {
+  // ---------------- Consent loader ----------------
+  // Auto-inject /consent.js into <head> so we don't have to edit 70 tool HTMLs.
+  // consent.js owns the AdSense loader + the mandatory consent modal + guard.
+  (function injectConsent() {
+    if (document.querySelector('script[src="/consent.js"]')) return;
+    var s = document.createElement('script');
+    s.src = '/consent.js';
+    document.head.appendChild(s);
+  })();
+
   // ---------------- Theme (light / dark) ----------------
-  // Apply stored theme as early as possible to minimize flash. The homepage
-  // (index.html) has its own inline early-init; here we cover all other pages.
   var THEME_KEY = 'utilitytools.theme';
   function getStoredTheme() {
     try { return localStorage.getItem(THEME_KEY); } catch (_) { return null; }
@@ -41,63 +53,66 @@
     });
     applyTheme(getStoredTheme() === 'dark' ? 'dark' : 'light');
   }
-  // Sync across tabs
   window.addEventListener('storage', function (e) {
     if (e.key === THEME_KEY) applyTheme(e.newValue === 'dark' ? 'dark' : 'light');
   });
 
-  // ---------------- Google AdSense loader ----------------
-  // Inject the AdSense script tag once, on every page that loads site.js.
-  // (index.html has it inline in <head>.)
-  var ADSENSE_CLIENT = 'ca-pub-5700080992080321';
-  (function injectAdsense() {
-    if (document.querySelector('script[src*="adsbygoogle.js"]')) return;
-    var s = document.createElement('script');
-    s.async = true;
-    s.crossOrigin = 'anonymous';
-    s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + ADSENSE_CLIENT;
-    document.head.appendChild(s);
-    // Help AdSense identify the publisher when verifying the site.
-    if (!document.querySelector('meta[name="google-adsense-account"]')) {
-      var m = document.createElement('meta');
-      m.name = 'google-adsense-account';
-      m.content = ADSENSE_CLIENT;
-      document.head.appendChild(m);
+  // ---------------- Favicon / manifest / og:image ----------------
+  (function injectHeadTags() {
+    var head = document.head;
+    function ensure(sel, build) {
+      if (document.querySelector(sel)) return;
+      head.appendChild(build());
     }
+    ensure('link[rel="icon"]', function () {
+      var l = document.createElement('link');
+      l.rel = 'icon'; l.type = 'image/svg+xml'; l.href = '/favicon.svg';
+      return l;
+    });
+    ensure('link[rel="apple-touch-icon"]', function () {
+      var l = document.createElement('link');
+      l.rel = 'apple-touch-icon'; l.href = '/favicon.svg';
+      return l;
+    });
+    ensure('link[rel="manifest"]', function () {
+      var l = document.createElement('link');
+      l.rel = 'manifest'; l.href = '/site.webmanifest';
+      return l;
+    });
+    ensure('meta[name="theme-color"][media*="light"]', function () {
+      var m = document.createElement('meta');
+      m.name = 'theme-color'; m.media = '(prefers-color-scheme: light)'; m.content = '#ffffff';
+      return m;
+    });
+    ensure('meta[name="theme-color"]:not([media])', function () {
+      var m = document.createElement('meta');
+      m.name = 'theme-color'; m.content = '#0a0e1a';
+      return m;
+    });
+    ensure('meta[property="og:image"]', function () {
+      var m = document.createElement('meta');
+      m.setAttribute('property', 'og:image'); m.content = 'https://utilitytools.eu/og-image.svg';
+      return m;
+    });
+    ensure('meta[property="og:site_name"]', function () {
+      var m = document.createElement('meta');
+      m.setAttribute('property', 'og:site_name'); m.content = 'UtilityTools.eu';
+      return m;
+    });
   })();
 
-  // Fill any existing <aside class="ad-slot"> placeholders with a real <ins>
-  // so Google has an explicit anchor to render an ad unit. Auto-ads will also
-  // place ads elsewhere on the page where appropriate.
-  function fillAdSlot(slot) {
-    if (!slot || slot.querySelector('ins.adsbygoogle')) return;
-    var ins = document.createElement('ins');
-    ins.className = 'adsbygoogle';
-    ins.style.display = 'block';
-    ins.setAttribute('data-ad-client', ADSENSE_CLIENT);
-    ins.setAttribute('data-ad-format', 'auto');
-    ins.setAttribute('data-full-width-responsive', 'true');
-    slot.appendChild(ins);
-    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (_) {}
-  }
-
-  // ---------------- Tag <body> as a tool-page (for full-width layout) ----------------
-  // site.js is included on tool pages and on long-form content pages (blog/about/legal).
-  // Tools live at single-segment URLs like /json, /password, /cv. Long-form pages live
-  // under /blog, /about, /privacy, /terms, /disclaimer. Anything else = tool page.
-  (function tagToolPage() {
-    var p = (location.pathname || '/').toLowerCase().replace(/\/$/, '');
-    var contentPaths = ['/about', '/privacy', '/terms', '/disclaimer'];
-    var isContent = p === '' || p === '/' || p.indexOf('/blog') === 0 || contentPaths.indexOf(p) !== -1;
-    if (!isContent) document.body.classList.add('tool-page');
-  })();
+  // ---------------- Page classification ----------------
+  var path = (location.pathname || '/').toLowerCase().replace(/\/$/, '');
+  var contentPaths = ['/about', '/privacy', '/terms', '/disclaimer', '/contact'];
+  var isHome = path === '' || path === '/';
+  var isContent = isHome || path.indexOf('/blog') === 0 || contentPaths.indexOf(path) !== -1;
+  var isToolPage = !isContent;
+  if (isToolPage) document.body.classList.add('tool-page');
+  var currentSlug = isToolPage ? path.replace(/^\//, '').split('/')[0] : null;
 
   // ---------------- Back-to-tools link (tool pages only) ----------------
-  // Inject a single, consistent "← Back to all tools" link at the top of every
-  // tool page, so users can always get back to the index without using the
-  // browser back button. Skip if the page already has one.
   (function injectBackLink() {
-    if (!document.body.classList.contains('tool-page')) return;
+    if (!isToolPage) return;
     if (document.querySelector('.back-to-tools')) return;
     var main = document.querySelector('main.container') || document.querySelector('main');
     if (!main) return;
@@ -106,32 +121,116 @@
     a.href = '/';
     a.setAttribute('aria-label', 'Back to all tools');
     a.innerHTML = '<span aria-hidden="true">←</span> Back to all tools';
-    // Insert as the very first child of <main> so it sits above the tool header.
     main.insertBefore(a, main.firstChild);
   })();
-  // ---------------- 1) Top ad slot ----------------
-  // Skip if the page already has one, or opted out via <body data-no-ads>.
+
+  // ---------------- Track "recently used" ----------------
+  (function trackRecent() {
+    if (!currentSlug) return;
+    try {
+      var KEY = 'utilitytools.recent';
+      var arr = JSON.parse(localStorage.getItem(KEY) || '[]');
+      if (!Array.isArray(arr)) arr = [];
+      arr = arr.filter(function (s) { return s !== currentSlug; });
+      arr.unshift(currentSlug);
+      arr = arr.slice(0, 8);
+      localStorage.setItem(KEY, JSON.stringify(arr));
+    } catch (_) {}
+  })();
+
+  // ---------------- Ad slot helpers ----------------
+  function fillAdSlot(slot) {
+    if (!slot || slot.querySelector('ins.adsbygoogle')) return;
+    var ins = document.createElement('ins');
+    ins.className = 'adsbygoogle';
+    ins.style.display = 'block';
+    ins.setAttribute('data-ad-client', 'ca-pub-5700080992080321');
+    ins.setAttribute('data-ad-format', 'auto');
+    ins.setAttribute('data-full-width-responsive', 'true');
+    slot.appendChild(ins);
+    if (window.adsbygoogle) {
+      try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (_) {}
+    }
+  }
   if (!document.querySelector('.ad-slot.ad-top') && !document.body.dataset.noAds) {
-    const main = document.querySelector('main') || document.body;
-    const ad = document.createElement('aside');
+    var mainEl = document.querySelector('main') || document.body;
+    var ad = document.createElement('aside');
     ad.className = 'ad-slot ad-top';
     ad.setAttribute('aria-label', 'Advertisement');
     ad.innerHTML = '<span class="ad-label">Advertisement</span>';
-    main.insertBefore(ad, main.firstChild);
+    mainEl.insertBefore(ad, mainEl.firstChild);
   }
-
-  // Fill every ad-slot on the page (top + inline) with a real <ins>.
   if (!document.body.dataset.noAds) {
     document.querySelectorAll('.ad-slot').forEach(fillAdSlot);
   }
 
-  // Inject the theme toggle now (topnav is in the DOM on every page).
   injectThemeToggle();
 
-  // ---------------- 2) Footer ----------------
+  // ---------------- Per-tool SEO + Related tools ----------------
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function renderRelatedTools(tools, current) {
+    if (!current || !Array.isArray(tools)) return;
+    if (document.querySelector('.related-tools')) return;
+    var related = tools
+      .filter(function (x) {
+        if (x.slug === current.slug) return false;
+        return x.tags.some(function (tag) { return current.tags.indexOf(tag) !== -1; });
+      })
+      .sort(function () { return Math.random() - 0.5; })
+      .slice(0, 6);
+    if (!related.length) return;
+    var main = document.querySelector('main.container') || document.querySelector('main');
+    if (!main) return;
+    var sec = document.createElement('section');
+    sec.className = 'related-tools';
+    sec.innerHTML = '<h3>You might also like</h3><div class="related-grid">'
+      + related.map(function (r) {
+          return '<a href="/' + r.slug + '"><strong>' + escapeHtml(r.name) + '</strong><span>' + escapeHtml(r.desc) + '</span></a>';
+        }).join('')
+      + '</div>';
+    main.appendChild(sec);
+  }
+  if (isToolPage && currentSlug) {
+    fetch('/api/tools').then(function (r) { return r.json(); }).then(function (data) {
+      var tools = (data && data.tools) || [];
+      var t = tools.find(function (x) { return x.slug === currentSlug; });
+      if (!t) return;
+      if (!document.querySelector('script[type="application/ld+json"][data-tool]')) {
+        var ld = document.createElement('script');
+        ld.type = 'application/ld+json';
+        ld.setAttribute('data-tool', t.slug);
+        ld.textContent = JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'SoftwareApplication',
+          'name': t.name,
+          'description': t.desc,
+          'applicationCategory': 'UtilityApplication',
+          'operatingSystem': 'Any (browser)',
+          'url': 'https://utilitytools.eu/' + t.slug,
+          'isAccessibleForFree': true,
+          'browserRequirements': 'Requires JavaScript. Requires HTML5.',
+          'offers': { '@type': 'Offer', 'price': '0', 'priceCurrency': 'EUR' },
+          'publisher': { '@type': 'Organization', 'name': 'UtilityTools.eu', 'url': 'https://utilitytools.eu/' }
+        });
+        document.head.appendChild(ld);
+      }
+      if (!document.querySelector('meta[name="description"]')) {
+        var md = document.createElement('meta');
+        md.name = 'description'; md.content = t.desc;
+        document.head.appendChild(md);
+      }
+      renderRelatedTools(tools, t);
+    }).catch(function () { /* offline - silent */ });
+  }
+
+  // ---------------- Footer ----------------
   if (document.querySelector('footer.site-footer')) return;
 
-  const footer = document.createElement('footer');
+  var footer = document.createElement('footer');
   footer.className = 'site-footer';
   footer.innerHTML = `
     <div class="footer-inner">
@@ -151,6 +250,7 @@
         <a href="/">All tools</a>
         <a href="/blog">Blog</a>
         <a href="/about">About</a>
+        <a href="/contact">Contact</a>
       </div>
       <div class="partners-col">
         <h4>Friends from the EU 🇪🇺</h4>
@@ -164,6 +264,7 @@
         <a href="/disclaimer">Disclaimer</a>
         <a href="/privacy">Privacy</a>
         <a href="/terms">Terms</a>
+        <a href="#" id="utConsentRevoke">Consent settings</a>
       </div>
     </div>
     <div class="footer-bottom">
@@ -172,8 +273,12 @@
     </div>`;
   document.body.appendChild(footer);
 
-  // Re-call after footer in case theme toggle wasn't reachable earlier (no-op if already injected).
+  var revoke = document.getElementById('utConsentRevoke');
+  if (revoke) revoke.addEventListener('click', function (e) {
+    e.preventDefault();
+    if (window.UTConsent) window.UTConsent.revoke();
+  });
+
   injectThemeToggle();
 })();
-
 
