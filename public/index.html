@@ -119,10 +119,7 @@
     </section>
 
     <section class="trust-banner" aria-label="Safety and contact">
-      <div class="trust-icon">🛡️</div>
       <div class="trust-content">
-        <h3>Guaranteed safe — no virus, no malware, no shady code.</h3>
-        <p>This site is built by an independent EU developer — a hardworking dad of two — trying to earn through traffic and ads. Every tool runs entirely in your browser: nothing is uploaded, nothing is tracked, no accounts required. <strong>Hosted on DigitalOcean in Frankfurt 🇩🇪 — no database, no analytics, only Google AdSense to keep the lights on.</strong> If you'd like to support the project, please share these tools with someone who'd find them useful. ❤️</p>
         <div class="trust-actions">
           <button class="share-btn" id="shareBtn" type="button">📤 Share UtilityTools</button>
           <a class="contact-btn" href="/contact">✉ Contact us — feature requests &amp; bugs</a>
@@ -248,11 +245,11 @@
       'password', 'json-formatter', 'qr', 'color',
       'pdf-editor', 'cv', 'base64', 'text-counter',
       'markdown', 'regex', 'img-compress', 'typing-test',
-      'encrypt', 'timezones'
+      'encrypt', 'timezones', 'p2p-call', 'temp-chat'
     ];
     const FAV_KEY = 'utilitytools.favs';
     const FAV_SEEDED_KEY = 'utilitytools.favs.seeded';
-    const SEED_VERSION = '4'; // bump whenever DEFAULT_FAVS changes
+    const SEED_VERSION = '5'; // bump whenever DEFAULT_FAVS changes
 
     // Seed/top-up defaults whenever the visitor has not yet seen the current
     // SEED_VERSION. We always *add* (union) — never remove — so a user who

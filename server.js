@@ -3,6 +3,8 @@
 const express = require('express');
 const helmet = require('helmet');
 const path = require('path');
+const http = require('http');
+const { WebSocketServer } = require('ws');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,7 +34,7 @@ app.use(helmet({
       'img-src': ["'self'", 'data:', 'blob:', 'https:'],
       'media-src': ["'self'", 'data:', 'blob:'],
       'font-src': ["'self'", 'data:', 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com'],
-      'connect-src': ["'self'", 'https://*.googlesyndication.com', 'https://*.doubleclick.net', 'https://*.google.com'],
+      'connect-src': ["'self'", 'ws:', 'wss:', 'https://*.googlesyndication.com', 'https://*.doubleclick.net', 'https://*.google.com'],
       'frame-src':  ['https://*.googlesyndication.com', 'https://*.doubleclick.net', 'https://*.google.com'],
       'object-src': ["'none'"],
       'base-uri':   ["'self'"],
@@ -105,6 +107,8 @@ const TOOLS = [
   { slug: 'img-thumbnail',    name: 'Thumbnail Generator',      file: 'tools/img-thumbnail.html',    icon: 'Tmb', tags: ['image','design','generator'],desc: 'YouTube/Instagram/Facebook/LinkedIn thumbnail with text overlay.' },
   { slug: 'video-editor',     name: 'Video Editor (Trim/Rotate)',file: 'tools/video-editor.html',    icon: '🎬',  tags: ['video','design','converter'], desc: 'Trim, rotate, change speed, mute, add text overlay, extract frames, export as WebM. Browser-only.' },
   { slug: 'video-to-audio',   name: 'Video to MP3 / WAV',       file: 'tools/video-to-audio.html',   icon: '🎧',  tags: ['video','converter','music'], desc: 'Extract the audio track from any local video. Trim, choose channels & bitrate, save as MP3 or WAV.' },
+  { slug: 'p2p-call',         name: 'P2P Video Call (encrypted)',file: 'tools/p2p-call.html',        icon: '📞',  tags: ['communication','privacy','video'], desc: 'Create a private 1-to-1 video/audio call. Share a link, encrypted end-to-end via WebRTC. No recording, no account.' },
+  { slug: 'temp-chat',        name: 'Temp Chat (E2E encrypted)', file: 'tools/temp-chat.html',       icon: '💬',  tags: ['communication','privacy'],     desc: 'Ephemeral encrypted group chat. Share a link, talk in real-time, close the tab and everything is gone. Up to 10 people.' },
 
   // -------- Fun Text Translator Toolkit (each tool on its own page) --------
   { slug: 'text-translators', name: 'Fun Text Translators',     file: 'tools/text-translators.html', icon: 'Aᚱ',  tags: ['text','fun','generator','converter'], desc: 'Hub linking to runes, Morse, binary, Pig Latin, Braille, NATO, hieroglyphics and more.' },
@@ -196,5 +200,148 @@ app.use((req, res) => {
   });
 });
 
-app.listen(PORT, () => console.log(`\n  Utility Tools -> ${SITE_URL}\n`));
+// ---------------- WebRTC signaling relay ----------------
+// A tiny per-room WebSocket relay. Max 2 peers per room. Server only forwards
+// SDP/ICE messages between the two peers; it never touches media. Media flows
+// directly browser-to-browser via WebRTC (DTLS-SRTP encrypted by spec).
+// Nothing is stored — when both peers disconnect, the room evaporates.
+const httpServer = http.createServer(app);
+const wss = new WebSocketServer({ noServer: true });
+const rooms = new Map(); // roomId -> Set<WebSocket>
+
+function isValidRoom(r) { return typeof r === 'string' && /^[a-z0-9-]{4,64}$/i.test(r); }
+
+wss.on('connection', (ws, req) => {
+  const url  = new URL(req.url, 'http://localhost');
+  const room = url.searchParams.get('room');
+  if (!isValidRoom(room)) { try { ws.close(1008, 'invalid room'); } catch(_) {} return; }
+
+  let peers = rooms.get(room);
+  if (!peers) { peers = new Set(); rooms.set(room, peers); }
+  if (peers.size >= 2) {
+    try { ws.send(JSON.stringify({ type: 'full' })); ws.close(1008, 'room full'); } catch(_) {}
+    return;
+  }
+
+  const isInitiator = peers.size === 1; // 2nd to join initiates the WebRTC offer
+  peers.add(ws);
+  try { ws.send(JSON.stringify({ type: 'init', initiator: isInitiator, peers: peers.size })); } catch(_) {}
+  // Tell the existing peer that someone joined
+  for (const p of peers) {
+    if (p !== ws && p.readyState === 1) {
+      try { p.send(JSON.stringify({ type: 'peer-joined' })); } catch(_) {}
+    }
+  }
+
+  ws.on('message', data => {
+    // Relay any signaling payload (SDP / ICE / chat) to the OTHER peer only.
+    const text = data.toString();
+    if (text.length > 64 * 1024) return; // 64KB hard cap per message
+    for (const p of peers) {
+      if (p !== ws && p.readyState === 1) { try { p.send(text); } catch(_) {} }
+    }
+  });
+
+  ws.on('close', () => {
+    peers.delete(ws);
+    for (const p of peers) {
+      if (p.readyState === 1) { try { p.send(JSON.stringify({ type: 'peer-left' })); } catch(_) {} }
+    }
+    if (peers.size === 0) rooms.delete(room);
+  });
+});
+
+// ---------------- Ephemeral group chat relay ----------------
+// Same idea as p2p, but allows up to CHAT_MAX_PEERS per room and broadcasts to ALL
+// other peers (not just one). Server NEVER sees plaintext: clients encrypt every
+// message with AES-GCM using a key that lives only in the URL fragment (#…) which
+// browsers do not send to servers. The server therefore relays opaque ciphertext.
+//
+// Abuse protection (so a bad actor can't melt the box):
+//   - Hard cap on concurrent rooms             : CHAT_MAX_ROOMS
+//   - Hard cap on peers per room               : CHAT_MAX_PEERS
+//   - Hard cap on message size                 : CHAT_MAX_MSG_BYTES
+//   - Sliding-window rate limit per socket     : CHAT_RATE_PER_WIN msgs / CHAT_RATE_WIN_MS
+//   - No persistence; in-memory only           : when last peer leaves, room is GC'd
+const CHAT_MAX_ROOMS     = 500;
+const CHAT_MAX_PEERS     = 10;
+const CHAT_MAX_MSG_BYTES = 8 * 1024;          // 8 KB per encrypted message
+const CHAT_RATE_PER_WIN  = 15;                // 15 messages
+const CHAT_RATE_WIN_MS   = 5000;              // per 5 seconds
+
+const chatWss = new WebSocketServer({ noServer: true });
+const chatRooms = new Map(); // roomId -> Set<WebSocket>
+
+chatWss.on('connection', (ws, req) => {
+  const url  = new URL(req.url, 'http://localhost');
+  const room = url.searchParams.get('room');
+  if (!isValidRoom(room)) { try { ws.close(1008, 'invalid room'); } catch(_) {} return; }
+
+  let peers = chatRooms.get(room);
+  if (!peers) {
+    if (chatRooms.size >= CHAT_MAX_ROOMS) {
+      try { ws.send(JSON.stringify({ type: 'busy' })); ws.close(1013, 'server busy'); } catch(_) {}
+      return;
+    }
+    peers = new Set(); chatRooms.set(room, peers);
+  }
+  if (peers.size >= CHAT_MAX_PEERS) {
+    try { ws.send(JSON.stringify({ type: 'full' })); ws.close(1008, 'room full'); } catch(_) {}
+    return;
+  }
+  peers.add(ws);
+  ws._chatTimes = []; // for rate-limiting
+
+  // Tell everyone in the room about the new participant count.
+  for (const p of peers) {
+    if (p.readyState === 1) {
+      try { p.send(JSON.stringify({ type: 'peers', count: peers.size })); } catch(_) {}
+    }
+  }
+
+  ws.on('message', data => {
+    const text = data.toString();
+    if (text.length > CHAT_MAX_MSG_BYTES) return;
+
+    // Sliding-window rate limit
+    const now = Date.now();
+    ws._chatTimes = ws._chatTimes.filter(t => now - t < CHAT_RATE_WIN_MS);
+    if (ws._chatTimes.length >= CHAT_RATE_PER_WIN) {
+      try { ws.send(JSON.stringify({ type: 'rate-limited' })); } catch(_) {}
+      return;
+    }
+    ws._chatTimes.push(now);
+
+    // Broadcast verbatim to every OTHER peer in the room
+    for (const p of peers) {
+      if (p !== ws && p.readyState === 1) { try { p.send(text); } catch(_) {} }
+    }
+  });
+
+  ws.on('close', () => {
+    peers.delete(ws);
+    for (const p of peers) {
+      if (p.readyState === 1) {
+        try { p.send(JSON.stringify({ type: 'peers', count: peers.size })); } catch(_) {}
+      }
+    }
+    if (peers.size === 0) chatRooms.delete(room);
+  });
+});
+
+// Single upgrade router — avoids race conditions between the two WSS instances.
+httpServer.on('upgrade', (req, sock, head) => {
+  let pathname;
+  try { pathname = new URL(req.url, 'http://x').pathname; }
+  catch (_) { sock.destroy(); return; }
+  if (pathname === '/ws/p2p') {
+    wss.handleUpgrade(req, sock, head, ws => wss.emit('connection', ws, req));
+  } else if (pathname === '/ws/chat') {
+    chatWss.handleUpgrade(req, sock, head, ws => chatWss.emit('connection', ws, req));
+  } else {
+    sock.destroy();
+  }
+});
+
+httpServer.listen(PORT, () => console.log(`\n  Utility Tools -> ${SITE_URL}\n`));
 

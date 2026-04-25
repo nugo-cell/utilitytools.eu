@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P2P Video Call — Encrypted, No Account · Utility Tools</title>
+  <meta name="description" content="Free 1-to-1 video & audio calls. Create a private room, share a link, talk encrypted end-to-end via WebRTC. No app, no account, browser-only.">
+  <meta name="keywords" content="p2p video call, encrypted video call, webrtc browser call, no signup video chat, private call, EU video chat, secure call">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/p2p-call">
+  <meta property="og:title" content="P2P Video Call — Encrypted, No Account">
+  <meta property="og:url" content="/p2p-call">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .pc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-top:14px}
+    .pc-tile{
+      position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:16/9;
+      border:2px solid var(--border);
+    }
+    .pc-tile.live{border-color:var(--accent);box-shadow:0 0 0 2px rgba(124,92,255,.25)}
+    .pc-tile video{width:100%;height:100%;object-fit:cover;background:#000;display:block}
+    .pc-tile .pc-label{
+      position:absolute;left:10px;bottom:10px;background:rgba(0,0,0,.55);color:#fff;
+      padding:4px 9px;border-radius:6px;font-size:12px;font-weight:600;backdrop-filter:blur(6px);
+    }
+    .pc-tile .pc-mic-off{
+      position:absolute;right:10px;bottom:10px;background:rgba(255,80,80,.85);color:#fff;
+      padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;display:none;
+    }
+    .pc-tile.muted .pc-mic-off{display:inline-block}
+    .pc-tile .pc-share-badge{
+      position:absolute;left:10px;top:10px;background:linear-gradient(135deg,#22c39a,#7c5cff);color:#fff;
+      padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;display:none;
+    }
+    .pc-tile.sharing .pc-share-badge{display:inline-block}
+    .pc-tile.sharing video{object-fit:contain;background:#0a0a14}
+    .pc-empty{
+      position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+      color:#9ca3b8;font-size:14px;text-align:center;padding:14px;
+    }
+    .pc-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+    .pc-actions button.btn-secondary{background:var(--panel-2);color:var(--text);border:1px solid var(--border)}
+    .pc-actions button.btn-danger{background:#ff5e7e;color:#fff;border:0}
+    .pc-actions button.btn-danger:hover{background:#ff3a5e}
+    .pc-share{
+      display:flex;align-items:stretch;gap:0;margin-top:10px;border:1px solid var(--border);border-radius:8px;overflow:hidden;
+    }
+    .pc-share input{
+      flex:1;border:0;background:var(--panel-2);color:var(--text);padding:10px 12px;font-family:var(--mono);font-size:13px;
+    }
+    .pc-share input:focus{outline:0}
+    .pc-share button{border:0;border-radius:0;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff;font-weight:600}
+    .pc-share button:hover{filter:brightness(1.1)}
+    .pc-status{font-size:13px;color:var(--muted);margin-top:10px;min-height:18px}
+    .pc-status .ok{color:var(--success);font-weight:600}
+    .pc-status .err{color:var(--danger);font-weight:600}
+    .pc-status .live{color:var(--accent);font-weight:600}
+    .pc-info{
+      background:linear-gradient(135deg,rgba(0,212,170,0.08),rgba(124,92,255,0.08));
+      border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--muted);margin-top:14px;
+    }
+    .pc-info b{color:var(--text)}
+    .pc-info .lock{color:var(--success);font-weight:700}
+    .pc-start-buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+    .pc-toast{
+      position:fixed;left:50%;bottom:30px;transform:translateX(-50%);
+      background:var(--panel);border:1px solid var(--accent);color:var(--text);
+      padding:10px 18px;border-radius:8px;font-size:14px;z-index:1000;
+      box-shadow:var(--shadow-soft);opacity:0;transition:opacity .2s, transform .2s;pointer-events:none;
+    }
+    .pc-toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
+  </style>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>P2P Video Call <span style="font-size:14px;font-weight:500;color:var(--success)">🔒 end-to-end encrypted</span></h1>
+      <p>Free, private 1-to-1 video & audio calls. Create a room, share the link with one other person, talk securely. Audio/video flows directly between your two browsers — never through our server. No account, no app, no recording.</p>
+    </div>
+
+    <!-- LOBBY: shown until in a call -->
+    <div class="panel" id="lobby">
+      <h3 style="margin-top:0">Start a call</h3>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 10px">
+        Create a brand-new private room and send the link to the person you want to talk to. Up to 2 people per room.
+      </p>
+      <div class="pc-start-buttons">
+        <button id="createBtn" type="button">🆕 Create new room</button>
+        <button id="joinBtn"   type="button" class="btn-secondary" style="background:var(--panel-2);color:var(--text);border:1px solid var(--border)">🔗 Join with a link / room ID</button>
+      </div>
+      <div class="pc-info">
+        <b class="lock">🔒 What "encrypted" means here:</b> WebRTC mandates DTLS-SRTP encryption for all audio/video between peers. The relay server only forwards a few signaling messages (so the two browsers can find each other) — it never sees, stores, or has the keys for your call. <b>Hosted on DigitalOcean Frankfurt 🇩🇪 · GDPR-friendly · zero logs.</b>
+      </div>
+    </div>
+
+    <!-- CALL: shown after entering a room -->
+    <div class="panel" id="callPanel" hidden>
+      <h3 style="margin-top:0">Room: <span id="roomLabel" style="font-family:var(--mono);color:var(--accent)"></span></h3>
+      <div class="pc-share">
+        <input id="shareLink" type="text" readonly>
+        <button id="copyLink" type="button">Copy link</button>
+      </div>
+      <p class="pc-status" id="status"></p>
+
+      <div class="pc-grid">
+        <div class="pc-tile" id="localTile">
+          <video id="localVid" autoplay muted playsinline></video>
+          <span class="pc-label">You</span>
+          <span class="pc-mic-off">🎙 Muted</span>
+          <span class="pc-share-badge">🖥 Sharing screen</span>
+        </div>
+        <div class="pc-tile" id="remoteTile">
+          <video id="remoteVid" autoplay playsinline></video>
+          <div class="pc-empty" id="remoteEmpty">Waiting for the other person to join…</div>
+          <span class="pc-label">Peer</span>
+          <span class="pc-mic-off">🎙 Peer muted</span>
+          <span class="pc-share-badge">🖥 Sharing screen</span>
+        </div>
+      </div>
+
+      <div class="pc-actions">
+        <button id="micBtn"   type="button" class="btn-secondary">🎙 Mute mic</button>
+        <button id="camBtn"   type="button" class="btn-secondary">📹 Stop camera</button>
+        <button id="screenBtn" type="button" class="btn-secondary">🖥 Share screen</button>
+        <button id="hangBtn"  type="button" class="btn-danger">📞 Hang up</button>
+      </div>
+
+      <div class="pc-info">
+        <b>How it works:</b> WebRTC opens a direct, encrypted connection between the two browsers. Our server only relays a small "introduction" (SDP/ICE) so the browsers can find each other through routers/firewalls. We use Google's free public STUN servers. <b>If you're behind a strict corporate or double-NAT mobile network, the connection may fail</b> — try a different network or a personal hotspot.
+      </div>
+    </div>
+  </main>
+
+  <div class="pc-toast" id="toast"></div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const lobby = $('lobby'), callPanel = $('callPanel');
+    const localVid = $('localVid'), remoteVid = $('remoteVid');
+    const localTile = $('localTile'), remoteTile = $('remoteTile'), remoteEmpty = $('remoteEmpty');
+    const status = $('status'), shareLink = $('shareLink'), roomLabel = $('roomLabel');
+    const micBtn = $('micBtn'), camBtn = $('camBtn'), hangBtn = $('hangBtn');
+
+    let ws = null, pc = null, localStream = null;
+    let isInitiator = false, makingOffer = false, ignoreOffer = false, polite = true;
+    let roomId = null;
+    let screenStream = null;     // active getDisplayMedia stream while sharing
+    let cameraTrack = null;      // saved camera track so we can restore on stop
+    let videoSender = null;      // RTCRtpSender for the video track
+
+    const ICE_SERVERS = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' }
+    ];
+
+    // ---------- helpers ----------
+    function genRoomId() {
+      // 12 url-safe chars from crypto random — enough entropy that nobody can guess your room.
+      const a = new Uint8Array(9);
+      crypto.getRandomValues(a);
+      return btoa(String.fromCharCode(...a)).replace(/[+/=]/g, c => ({'+':'-','/':'_','=':''}[c])).slice(0, 12);
+    }
+    function setStatus(msg, kind) {
+      status.innerHTML = msg ? `<span class="${kind || ''}">${msg}</span>` : '';
+    }
+    function toast(msg) {
+      const t = $('toast'); t.textContent = msg; t.classList.add('show');
+      clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 1800);
+    }
+
+    // ---------- entry points ----------
+    $('createBtn').onclick = async () => {
+      const id = genRoomId();
+      location.hash = id;
+      await enterRoom(id);
+    };
+    $('joinBtn').onclick = async () => {
+      const v = prompt('Paste the call link or room ID:');
+      if (!v) return;
+      let id = v.trim();
+      // Accept full URL or bare ID
+      const m = id.match(/#([A-Za-z0-9_-]{4,64})/);
+      if (m) id = m[1];
+      if (!/^[A-Za-z0-9_-]{4,64}$/.test(id)) { alert('That does not look like a valid room ID.'); return; }
+      location.hash = id;
+      await enterRoom(id);
+    };
+
+    // Auto-join if URL has a hash (when somebody opens a shared link).
+    if (location.hash && /^#[A-Za-z0-9_-]{4,64}$/.test(location.hash)) {
+      enterRoom(location.hash.slice(1)).catch(e => alert('Could not start: ' + e.message));
+    }
+
+    // ---------- main flow ----------
+    async function enterRoom(id) {
+      roomId = id;
+      roomLabel.textContent = id;
+      shareLink.value = location.origin + '/p2p-call#' + id;
+      lobby.hidden = true;
+      callPanel.hidden = false;
+      setStatus('Requesting camera & microphone access…');
+
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+        });
+      } catch (e) {
+        setStatus('Could not access camera/mic: ' + e.message, 'err');
+        return;
+      }
+      localVid.srcObject = localStream;
+      localTile.classList.add('live');
+
+      connectSignaling(id);
+    }
+
+    function connectSignaling(id) {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      ws = new WebSocket(`${proto}://${location.host}/ws/p2p?room=${encodeURIComponent(id)}`);
+
+      ws.onopen = () => setStatus('Connecting to room…');
+      ws.onerror = () => setStatus('Signaling connection failed.', 'err');
+      ws.onclose = () => { /* peer-left or hangup will already have updated status */ };
+      ws.onmessage = async (ev) => {
+        let msg;
+        try { msg = JSON.parse(ev.data); } catch (_) { return; }
+        if (msg.type === 'full') {
+          setStatus('This room is already full (2 people max). Create a new one.', 'err');
+          cleanup(); lobby.hidden = false; callPanel.hidden = true;
+          return;
+        }
+        if (msg.type === 'init') {
+          isInitiator = !!msg.initiator;
+          // "Polite" peer in perfect-negotiation = NOT the initiator. Initiator wins glare.
+          polite = !isInitiator;
+          createPeerConnection();
+          if (isInitiator) {
+            setStatus('Joined. Calling the other person…', 'live');
+            await maybeMakeOffer();
+          } else {
+            setStatus('Waiting for the other person to join… share the link below.', 'live');
+          }
+          return;
+        }
+        if (msg.type === 'peer-joined') {
+          setStatus('Peer joined — connecting…', 'live');
+          // The initiator is whoever joined SECOND, so we (joined first) are NOT initiator here.
+          // We do nothing; the new peer will send the offer.
+          return;
+        }
+        if (msg.type === 'peer-left') {
+          setStatus('The other person left the call.', 'err');
+          if (pc) { try { pc.close(); } catch(_) {} pc = null; }
+          remoteVid.srcObject = null;
+          remoteTile.classList.remove('live', 'sharing'); remoteEmpty.style.display = '';
+          return;
+        }
+        if (msg.type === 'screen') {
+          // Pure UI hint from the other peer — no security implications, just toggles a badge.
+          remoteTile.classList.toggle('sharing', !!msg.on);
+          return;
+        }
+        // Otherwise it's a relayed signaling payload (offer / answer / ICE).
+        if (!pc) createPeerConnection();
+        try {
+          if (msg.sdp) {
+            const offerCollision = msg.sdp.type === 'offer' && (makingOffer || pc.signalingState !== 'stable');
+            ignoreOffer = !polite && offerCollision;
+            if (ignoreOffer) return;
+            await pc.setRemoteDescription(msg.sdp);
+            if (msg.sdp.type === 'offer') {
+              await pc.setLocalDescription();
+              ws.send(JSON.stringify({ sdp: pc.localDescription }));
+            }
+          } else if (msg.candidate) {
+            try { await pc.addIceCandidate(msg.candidate); }
+            catch (e) { if (!ignoreOffer) throw e; }
+          }
+        } catch (e) {
+          console.warn('signaling error:', e);
+        }
+      };
+    }
+
+    function createPeerConnection() {
+      if (pc) return;
+      pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+
+      // Add our local tracks
+      for (const t of localStream.getTracks()) {
+        const sender = pc.addTrack(t, localStream);
+        if (t.kind === 'video') { videoSender = sender; cameraTrack = t; }
+      }
+
+      pc.ontrack = (ev) => {
+        if (remoteVid.srcObject !== ev.streams[0]) {
+          remoteVid.srcObject = ev.streams[0];
+          remoteTile.classList.add('live');
+          remoteEmpty.style.display = 'none';
+        }
+      };
+      pc.onicecandidate = (ev) => {
+        if (ev.candidate && ws && ws.readyState === 1) {
+          ws.send(JSON.stringify({ candidate: ev.candidate }));
+        }
+      };
+      pc.onnegotiationneeded = maybeMakeOffer;
+      pc.onconnectionstatechange = () => {
+        const st = pc.connectionState;
+        if (st === 'connected')      setStatus('🟢 Connected — call is live and encrypted (DTLS-SRTP).', 'ok');
+        else if (st === 'connecting') setStatus('Establishing encrypted P2P connection…', 'live');
+        else if (st === 'failed')     setStatus('Connection failed (likely a strict NAT/firewall). Try a different network.', 'err');
+        else if (st === 'disconnected') setStatus('Connection interrupted — trying to recover…', 'err');
+      };
+    }
+
+    async function maybeMakeOffer() {
+      if (!pc) return;
+      try {
+        makingOffer = true;
+        await pc.setLocalDescription();
+        ws.send(JSON.stringify({ sdp: pc.localDescription }));
+      } catch (e) {
+        console.warn('offer error', e);
+      } finally {
+        makingOffer = false;
+      }
+    }
+
+    // ---------- controls ----------
+    micBtn.onclick = () => {
+      if (!localStream) return;
+      const track = localStream.getAudioTracks()[0]; if (!track) return;
+      track.enabled = !track.enabled;
+      localTile.classList.toggle('muted', !track.enabled);
+      micBtn.textContent = track.enabled ? '🎙 Mute mic' : '🎙 Unmute mic';
+    };
+    camBtn.onclick = () => {
+      if (!localStream) return;
+      const track = localStream.getVideoTracks()[0]; if (!track) return;
+      track.enabled = !track.enabled;
+      camBtn.textContent = track.enabled ? '📹 Stop camera' : '📹 Start camera';
+    };
+
+    // ---------- Screen sharing (great for IT support) ----------
+    const screenBtn = $('screenBtn');
+    screenBtn.onclick = async () => {
+      if (!pc || !videoSender) { alert('Connect first.'); return; }
+      if (screenStream) { stopScreenShare(); return; }
+      try {
+        screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: { frameRate: { ideal: 15, max: 30 } },
+          // Also share computer audio when the OS/browser allows it (Chrome/Edge on Win/ChromeOS).
+          audio: true
+        });
+      } catch (e) {
+        if (e && e.name === 'NotAllowedError') return; // user cancelled the picker
+        alert('Could not start screen share: ' + (e.message || e));
+        return;
+      }
+      const screenTrack = screenStream.getVideoTracks()[0];
+      if (!screenTrack) { alert('No video track in the captured stream.'); return; }
+
+      // Replace the camera track on the existing sender — no renegotiation needed.
+      try { await videoSender.replaceTrack(screenTrack); }
+      catch (e) { alert('Could not switch tracks: ' + e.message); screenTrack.stop(); screenStream = null; return; }
+
+      // Show the screen capture in our local preview as well.
+      localVid.srcObject = screenStream;
+      localTile.classList.add('sharing');
+
+      // Tell the other peer to show a "Sharing screen" badge.
+      if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'screen', on: true }));
+
+      // When the user clicks the browser's native "Stop sharing" bar, react.
+      screenTrack.addEventListener('ended', stopScreenShare);
+
+      screenBtn.textContent = '🛑 Stop sharing';
+    };
+
+    async function stopScreenShare() {
+      if (!screenStream) return;
+      try { screenStream.getTracks().forEach(t => t.stop()); } catch(_) {}
+      screenStream = null;
+      // Restore the camera track on the sender.
+      if (videoSender && cameraTrack) {
+        try { await videoSender.replaceTrack(cameraTrack); } catch(_) {}
+      }
+      // Restore local preview to the camera stream.
+      if (localStream) localVid.srcObject = localStream;
+      localTile.classList.remove('sharing');
+      if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'screen', on: false }));
+      screenBtn.textContent = '🖥 Share screen';
+    }
+    hangBtn.onclick = () => {
+      cleanup();
+      setStatus('Call ended.', 'err');
+      lobby.hidden = false; callPanel.hidden = true;
+      history.replaceState(null, '', location.pathname);
+    };
+
+    function cleanup() {
+      if (screenStream) { try { screenStream.getTracks().forEach(t => t.stop()); } catch(_) {} screenStream = null; }
+      if (pc) { try { pc.close(); } catch(_) {} pc = null; }
+      if (ws) { try { ws.close(); } catch(_) {} ws = null; }
+      if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+      remoteVid.srcObject = null; localVid.srcObject = null;
+      remoteTile.classList.remove('live', 'sharing'); localTile.classList.remove('live', 'muted', 'sharing');
+      remoteEmpty.style.display = '';
+      videoSender = null; cameraTrack = null;
+      screenBtn.textContent = '🖥 Share screen';
+    }
+
+    window.addEventListener('beforeunload', cleanup);
+
+    $('copyLink').onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(shareLink.value);
+        toast('🔗 Link copied — send it to the other person');
+      } catch(_) {
+        shareLink.select(); document.execCommand('copy');
+        toast('Link copied');
+      }
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

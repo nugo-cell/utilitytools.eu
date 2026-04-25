@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Temp Chat — End-to-End Encrypted, Ephemeral · Utility Tools</title>
+  <meta name="description" content="Free ephemeral encrypted group chat. Share a link, talk in real-time, close the tab — everything is gone forever. No account, no logs, AES-GCM end-to-end.">
+  <meta name="keywords" content="ephemeral chat, encrypted chat, anonymous chat, e2e encrypted chat, no signup chat room, secure chat link">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/temp-chat">
+  <meta property="og:title" content="Temp Chat — End-to-End Encrypted, Ephemeral">
+  <meta property="og:url" content="/temp-chat">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tc-room-bar{
+      display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+      background:linear-gradient(135deg,rgba(0,212,170,.10),rgba(124,92,255,.10));
+      border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;
+    }
+    .tc-room-bar .room-id{font-family:var(--mono);color:var(--accent);font-weight:700}
+    .tc-room-bar .peers{font-size:13px;color:var(--muted)}
+    .tc-room-bar .peers b{color:var(--text)}
+    .tc-fp{
+      font-family:var(--mono);font-size:11px;color:var(--success);
+      background:rgba(0,212,170,.10);border:1px solid rgba(0,212,170,.35);
+      padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:5px;
+      cursor:help;
+    }
+    .tc-fp .dot{width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 6px var(--success);animation:pulse 2s ease-in-out infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .tc-share{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex:1;min-width:240px}
+    .tc-share input{flex:1;border:0;background:var(--panel-2);color:var(--text);padding:8px 10px;font-family:var(--mono);font-size:12px}
+    .tc-share input:focus{outline:0}
+    .tc-share button{border:0;background:var(--accent);color:#fff;padding:8px 14px;cursor:pointer;font-weight:600}
+    .tc-share button:hover{filter:brightness(1.1)}
+
+    .tc-messages{
+      background:var(--panel-2);border:1px solid var(--border);border-radius:10px;
+      height:55vh;min-height:340px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;
+    }
+    .tc-msg{display:flex;flex-direction:column;max-width:80%;padding:8px 12px;border-radius:10px;line-height:1.4;word-wrap:break-word}
+    .tc-msg .who{font-size:11px;color:var(--muted);margin-bottom:2px;display:flex;justify-content:space-between;gap:10px}
+    .tc-msg .who b{color:var(--text);font-weight:700}
+    .tc-msg .body{font-size:14px;color:var(--text);white-space:pre-wrap;word-break:break-word}
+    .tc-msg .lock{font-size:10px;color:var(--success);margin-top:3px;opacity:.85;display:flex;align-items:center;gap:3px}
+    .tc-msg.you .lock{color:#a8ffe1}
+    .tc-msg.them{align-self:flex-start;background:var(--panel)}
+    .tc-msg.you{align-self:flex-end;background:linear-gradient(135deg,#7c5cff,#5d3ce8);color:#fff}
+    .tc-msg.you .who, .tc-msg.you .body{color:#fff}
+    .tc-msg.you .who b{color:#fff}
+    .tc-msg.sys{align-self:center;background:transparent;color:var(--muted);font-size:12px;font-style:italic;max-width:100%;text-align:center;padding:2px 0}
+
+    .tc-form{display:flex;gap:8px;margin-top:10px}
+    .tc-form input{flex:1;padding:11px 12px;border-radius:8px;border:1px solid var(--border);background:var(--panel-2);color:var(--text);font-size:14px}
+    .tc-form input:focus{outline:0;border-color:var(--accent)}
+    .tc-form button{padding:11px 20px}
+    .tc-name-row{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:13px;color:var(--muted)}
+    .tc-name-row input{padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--panel-2);color:var(--text);font-size:13px;width:160px}
+
+    .tc-status{font-size:12px;color:var(--muted);margin-top:6px;min-height:16px}
+    .tc-status .ok{color:var(--success);font-weight:600}
+    .tc-status .err{color:var(--danger);font-weight:600}
+    .tc-status .live{color:var(--accent);font-weight:600}
+
+    .tc-info{
+      background:linear-gradient(135deg,rgba(0,212,170,.08),rgba(124,92,255,.08));
+      border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--muted);margin-top:14px;
+    }
+    .tc-info b{color:var(--text)} .tc-info .lock{color:var(--success);font-weight:700}
+
+    .tc-start-buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+    .tc-toast{
+      position:fixed;left:50%;bottom:30px;transform:translateX(-50%);
+      background:var(--panel);border:1px solid var(--accent);color:var(--text);
+      padding:10px 18px;border-radius:8px;font-size:14px;z-index:1000;
+      box-shadow:var(--shadow-soft);opacity:0;transition:opacity .2s, transform .2s;pointer-events:none;
+    }
+    .tc-toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
+  </style>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Temp Chat <span style="font-size:14px;font-weight:500;color:var(--success)">🔒 end-to-end encrypted · 🔥 ephemeral</span></h1>
+      <p>Create a private chat room, share the link with up to 9 friends, talk in real-time. Messages are AES-GCM encrypted in your browser before they reach our server — and nothing is ever stored. <b>Close the tab and the conversation is gone forever.</b></p>
+    </div>
+
+    <!-- LOBBY -->
+    <div class="panel" id="lobby">
+      <h3 style="margin-top:0">Start a chat</h3>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 10px">
+        Create a room and share the link. Up to 10 people per room. The encryption key lives only in the URL fragment (the part after <code>#</code>) — your browser does not send it to our server, so we cannot read your messages even if we wanted to.
+      </p>
+      <div class="tc-start-buttons">
+        <button id="createBtn" type="button">🆕 Create new chat room</button>
+        <button id="joinBtn" type="button" class="btn-secondary" style="background:var(--panel-2);color:var(--text);border:1px solid var(--border)">🔗 Join with a link</button>
+      </div>
+      <div class="tc-info">
+        <b class="lock">🔒 How the encryption works:</b> When you create a room, your browser generates a random 256-bit AES-GCM key and puts it in the URL fragment (<code>#room-key</code>). Browsers <b>never send fragments to servers</b>, so the key only travels through whoever you share the link with. Every message is encrypted on your device, sent as opaque ciphertext, and decrypted on the recipients' devices.
+      </div>
+      <div class="tc-info">
+        <b>🔥 Ephemeral by design:</b> Messages are only kept in the live browser tab. Our server holds the room in RAM until everyone leaves, then erases it. There is no database, no logs, no backups. <b>If everyone closes the tab, the conversation is gone.</b>
+      </div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="panel" id="chatPanel" hidden>
+      <div class="tc-room-bar">
+        <span>Room <span class="room-id" id="roomLabel"></span></span>
+        <span class="peers"><b id="peerCount">1</b> online</span>
+        <span class="tc-fp" id="keyFp" title="Short fingerprint of the encryption key. All participants must see the same fingerprint — if not, you are not in the same encrypted room."><span class="dot"></span><span id="keyFpVal">…</span></span>
+        <div class="tc-share">
+          <input id="shareLink" type="text" readonly>
+          <button id="copyLink" type="button">Copy link</button>
+        </div>
+        <button id="leaveBtn" type="button" class="btn-secondary" style="background:var(--panel-2);color:var(--text);border:1px solid var(--border)">Leave</button>
+      </div>
+
+      <div class="tc-messages" id="messages"></div>
+
+      <form class="tc-form" id="msgForm" autocomplete="off">
+        <input id="msgInput" type="text" placeholder="Type a message…" maxlength="2000" autofocus>
+        <button type="submit">Send</button>
+      </form>
+      <div class="tc-name-row">
+        <span>Your name:</span>
+        <input id="nameInput" type="text" maxlength="24" placeholder="Anonymous">
+      </div>
+      <div class="tc-status" id="status"></div>
+
+      <div class="tc-info">
+        <b class="lock">🔒 Encrypted in your browser before sending</b> (AES-GCM 256). Our server only sees random ciphertext and cannot read it.
+      </div>
+    </div>
+  </main>
+
+  <div class="tc-toast" id="toast"></div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const lobby = $('lobby'), chatPanel = $('chatPanel');
+    const messages = $('messages'), msgInput = $('msgInput'), msgForm = $('msgForm');
+    const nameInput = $('nameInput'), shareLink = $('shareLink');
+    const roomLabel = $('roomLabel'), peerCount = $('peerCount');
+    const status = $('status');
+
+    let ws = null, key = null, roomId = null, myName = '';
+    const KEY_NAME = 'utilitytools.tempchat.name';
+
+    nameInput.value = (() => { try { return localStorage.getItem(KEY_NAME) || ''; } catch(_) { return ''; } })();
+    nameInput.addEventListener('change', () => {
+      myName = nameInput.value.trim();
+      try { localStorage.setItem(KEY_NAME, myName); } catch(_) {}
+    });
+
+    // ---------- helpers ----------
+    function setStatus(msg, kind) { status.innerHTML = msg ? `<span class="${kind || ''}">${msg}</span>` : ''; }
+    function toast(msg) {
+      const t = $('toast'); t.textContent = msg; t.classList.add('show');
+      clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 1800);
+    }
+    function b64u(buf) {
+      return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/[+/=]/g, c => ({'+':'-','/':'_','=':''}[c]));
+    }
+    function fromB64u(s) {
+      s = s.replace(/-/g,'+').replace(/_/g,'/'); while (s.length % 4) s += '=';
+      return Uint8Array.from(atob(s), c => c.charCodeAt(0));
+    }
+    function genRoomId() {
+      const a = new Uint8Array(9); crypto.getRandomValues(a);
+      return b64u(a).slice(0, 12);
+    }
+    async function genKey() {
+      return crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt','decrypt']);
+    }
+    async function exportKeyB64u(k) {
+      const raw = await crypto.subtle.exportKey('raw', k);
+      return b64u(raw);
+    }
+    async function importKeyB64u(s) {
+      const raw = fromB64u(s);
+      return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt','decrypt']);
+    }
+    async function encryptObj(obj) {
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const data = new TextEncoder().encode(JSON.stringify(obj));
+      const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data);
+      return { iv: b64u(iv), ct: b64u(ct) };
+    }
+    async function decryptObj(p) {
+      const iv = fromB64u(p.iv), ct = fromB64u(p.ct);
+      const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+      return JSON.parse(new TextDecoder().decode(pt));
+    }
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+    }
+    function fmtTime(ms) {
+      const d = new Date(ms);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // ---------- entry ----------
+    $('createBtn').onclick = async () => {
+      const id = genRoomId();
+      const k  = await genKey();
+      location.hash = id + '-' + await exportKeyB64u(k);
+      await enterRoom(id, k);
+    };
+    $('joinBtn').onclick = async () => {
+      const v = prompt('Paste the chat link:');
+      if (!v) return;
+      const m = String(v).trim().match(/#([A-Za-z0-9_-]{4,64})-([A-Za-z0-9_-]{40,})/);
+      if (!m) { alert('That does not look like a valid chat link.'); return; }
+      location.hash = m[1] + '-' + m[2];
+      try {
+        const k = await importKeyB64u(m[2]);
+        await enterRoom(m[1], k);
+      } catch(_) { alert('Invalid encryption key in link.'); }
+    };
+
+    // Auto-join from URL hash (#roomId-keyB64)
+    const hash = location.hash.replace(/^#/, '');
+    const m = hash.match(/^([A-Za-z0-9_-]{4,64})-([A-Za-z0-9_-]{40,})$/);
+    if (m) {
+      importKeyB64u(m[2]).then(k => enterRoom(m[1], k))
+        .catch(() => alert('The encryption key in this link is invalid.'));
+    }
+
+    // ---------- main flow ----------
+    async function enterRoom(id, k) {
+      roomId = id; key = k;
+      myName = nameInput.value.trim();
+      roomLabel.textContent = id;
+      const keyB64 = await exportKeyB64u(k);
+      shareLink.value = location.origin + '/temp-chat#' + id + '-' + keyB64;
+      // Short SHA-256 fingerprint of the key — all participants in the same encrypted
+      // room MUST see the same value. If yours differs from theirs, you are NOT
+      // in the same encrypted conversation.
+      const fp = await crypto.subtle.digest('SHA-256', fromB64u(keyB64));
+      $('keyFpVal').textContent = b64u(fp).slice(0, 8);
+      lobby.hidden = true; chatPanel.hidden = false;
+      sysMsg(`🔒 Room created. Share the link to invite others. Anything you type is encrypted in YOUR browser before being sent.`);
+      connect(id);
+    }
+
+    function connect(id) {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      ws = new WebSocket(`${proto}://${location.host}/ws/chat?room=${encodeURIComponent(id)}`);
+
+      ws.onopen  = () => setStatus('🟢 Connected — encrypted in your browser before sending.', 'ok');
+      ws.onerror = () => setStatus('Connection failed.', 'err');
+      ws.onclose = () => setStatus('Disconnected.', 'err');
+      ws.onmessage = async (ev) => {
+        let msg;
+        try { msg = JSON.parse(ev.data); } catch(_) { return; }
+        if (msg.type === 'peers') {
+          peerCount.textContent = msg.count;
+          return;
+        }
+        if (msg.type === 'full') {
+          sysMsg('This room is already full (10 people max).');
+          ws.close(); return;
+        }
+        if (msg.type === 'busy') {
+          sysMsg('Server is busy — too many active rooms. Try again in a minute.');
+          ws.close(); return;
+        }
+        if (msg.type === 'rate-limited') {
+          setStatus('You are sending too fast — slow down.', 'err'); return;
+        }
+        // Otherwise: encrypted payload from another peer
+        if (msg.iv && msg.ct) {
+          try {
+            const obj = await decryptObj(msg);
+            renderMsg(obj.name || 'Anonymous', obj.text || '', obj.t || Date.now(), false);
+          } catch (_) {
+            sysMsg('⚠ Could not decrypt a message (wrong key?)');
+          }
+        }
+      };
+    }
+
+    msgForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = msgInput.value.trim();
+      if (!text || !ws || ws.readyState !== 1) return;
+      myName = nameInput.value.trim() || 'Anonymous';
+      try { localStorage.setItem(KEY_NAME, myName); } catch(_) {}
+      const t = Date.now();
+      const payload = await encryptObj({ name: myName, text, t });
+      ws.send(JSON.stringify(payload));
+      // For visible proof, also report how many bytes of ciphertext just left the browser.
+      renderMsg(myName, text, t, true, payload.ct.length);
+      msgInput.value = '';
+    });
+
+    function renderMsg(name, text, t, mine, ctBytes) {
+      const div = document.createElement('div');
+      div.className = 'tc-msg ' + (mine ? 'you' : 'them');
+      const lockLine = ctBytes != null
+        ? `<div class="lock">🔒 AES-GCM-256 · sent ${ctBytes} bytes of ciphertext</div>`
+        : `<div class="lock">🔒 decrypted in your browser</div>`;
+      div.innerHTML = `<div class="who"><b>${escapeHtml(name)}</b><span>${fmtTime(t)}</span></div><div class="body">${escapeHtml(text)}</div>${lockLine}`;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+    function sysMsg(text) {
+      const div = document.createElement('div');
+      div.className = 'tc-msg sys';
+      div.textContent = text;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    $('copyLink').onclick = async () => {
+      try { await navigator.clipboard.writeText(shareLink.value); toast('🔗 Link copied — share it with up to 9 people'); }
+      catch(_) { shareLink.select(); document.execCommand('copy'); toast('Link copied'); }
+    };
+
+    $('leaveBtn').onclick = () => {
+      if (ws) { try { ws.close(); } catch(_) {} ws = null; }
+      messages.innerHTML = '';
+      lobby.hidden = false; chatPanel.hidden = true;
+      history.replaceState(null, '', location.pathname);
+      key = null; roomId = null;
+    };
+
+    window.addEventListener('beforeunload', () => { if (ws) try { ws.close(); } catch(_) {} });
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+
+
+
+

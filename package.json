@@ -20,6 +20,7 @@
   "license": "MIT",
   "dependencies": {
     "express": "^4.19.2",
-    "helmet": "^8.1.0"
+    "helmet": "^8.1.0",
+    "ws": "^8.20.0"
   }
 }
