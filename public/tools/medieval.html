@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medieval / Fantasy Text Generator (Fraktur, Gothic, Script) · Utility Tools</title>
+  <meta name="description" content="Free medieval and fantasy text generator. Convert plain English into Gothic Fraktur, Bold Fraktur, Script, Bold Fantasy and more — pure Unicode, copy-paste anywhere.">
+  <meta name="keywords" content="medieval text generator, fantasy text generator, fraktur generator, gothic text, fancy text generator, unicode font">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/medieval">
+  <meta property="og:title" content="Medieval / Fantasy Text Generator">
+  <meta property="og:url" content="/medieval">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tt-out{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px;min-height:64px;font-size:28px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+    .help{font-size:13px;color:var(--muted);margin-top:10px;padding:10px 12px;border-left:3px solid var(--accent);background:rgba(124,92,255,0.06);border-radius:0 6px 6px 0}
+    .siblings{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .siblings a{padding:6px 12px;border-radius:999px;background:var(--panel-2);border:1px solid var(--border);color:var(--muted);font-size:13px;text-decoration:none}
+    .siblings a:hover{color:var(--text);border-color:var(--accent)}
+    .faq-item{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
+    .faq-item h3{margin:0 0 6px;font-size:15px}.faq-item p{margin:0;color:var(--muted);font-size:14px}
+    .style-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:10px}
+    .style-preview div{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:10px}
+    .style-preview b{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+    .style-preview span{font-size:20px}
+  </style>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+    {"@type":"Question","name":"Why does the output look like boxes on my phone?","acceptedAnswer":{"@type":"Answer","text":"Some operating systems and apps don't ship a font that covers Mathematical Alphanumeric Symbols (U+1D400–U+1D7FF). The text is correct Unicode — it just shows as boxes when there's no glyph."}},
+    {"@type":"Question","name":"Will it work on Instagram and Twitter?","acceptedAnswer":{"@type":"Answer","text":"Yes. Both platforms render the Mathematical Alphanumeric block, which is why people often paste 'fancy' text into bios and post titles."}}
+  ]}
+  </script>
+</head>
+<body>
+  <header class="topnav"><a href="/" class="brand">Utility<span>Tools</span></a><nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav></header>
+  <main class="container">
+    <div class="tool-header">
+      <h1>Medieval / Fantasy Text Generator</h1>
+      <p>Decorative Unicode "fonts" you can paste anywhere. Pick from <strong>Fraktur (Gothic), Bold Fraktur, Script, Bold Script, Bold Fantasy, Double-struck</strong> and Monospace.</p>
+    </div>
+
+    <aside class="ad-slot ad-inline" aria-label="Advertisement"><span class="ad-label">Advertisement</span></aside>
+
+    <section class="panel">
+      <label for="in">Your text</label>
+      <textarea id="in" placeholder="Type your kingdom name…">House Ravencrest</textarea>
+      <div class="row" style="margin-top:8px">
+        <label>Style</label>
+        <select id="style" style="width:auto">
+          <option value="fraktur">Fraktur (Gothic)</option>
+          <option value="boldFraktur">Bold Fraktur</option>
+          <option value="script">Script</option>
+          <option value="boldScript">Bold Script</option>
+          <option value="bold">Bold Fantasy</option>
+          <option value="doubleStruck">Double-struck</option>
+          <option value="monospace">Monospace</option>
+        </select>
+        <button id="goBtn">Convert</button>
+        <button id="copyBtn" class="secondary">Copy</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+      <label style="margin-top:12px">Output</label>
+      <div class="tt-out" id="out"></div>
+      <div class="help">Some platforms and older fonts may not include the full Mathematical Alphanumeric Symbols block. If you see boxes (□), the receiving device doesn't have a font for those code points — the text is still correct Unicode.</div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">Compare all styles</h2>
+      <div class="style-preview" id="preview"></div>
+    </section>
+
+    <section class="panel" id="faq">
+      <h2 style="margin:0 0 12px;font-size:20px">FAQ</h2>
+      <div class="faq-item"><h3>Why does the output look like boxes on my phone?</h3><p>Some operating systems lack a font that covers Mathematical Alphanumeric Symbols (U+1D400–U+1D7FF). The text is still correct Unicode.</p></div>
+      <div class="faq-item"><h3>Will it work on Instagram, X and Discord?</h3><p>Yes — all three render the Mathematical Alphanumeric block, which is why "fancy" bios and usernames work.</p></div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">More fun translators</h2>
+      <div class="siblings">
+        <a href="/text-translators">All translators</a>
+        <a href="/runes">Runes</a><a href="/morse">Morse</a><a href="/binary">Binary</a>
+        <a href="/pig-latin">Pig Latin</a><a href="/nato">NATO</a><a href="/braille">Braille</a>
+        <a href="/upside-down">Upside-down</a><a href="/emoji-text">Emoji</a>
+        <a href="/hieroglyphics">Hieroglyphics</a><a href="/scroll">Scroll</a>
+      </div>
+    </section>
+
+    <p style="text-align:center;font-size:13px;color:var(--muted);margin:24px 0 0">🔒 All text is processed locally in your browser.</p>
+  </main>
+  <script src="/tools/text-translators.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    function render(){ $('out').textContent = TT.toFantasy($('in').value, $('style').value); renderPreview(); }
+    function renderPreview(){
+      const t = $('in').value || 'Sample';
+      const styles = [['fraktur','Fraktur'],['boldFraktur','Bold Fraktur'],['script','Script'],
+        ['boldScript','Bold Script'],['bold','Bold'],['doubleStruck','Double-struck'],['monospace','Monospace']];
+      $('preview').innerHTML = styles.map(([s,l])=>`<div><b>${l}</b><span>${TT.toFantasy(t,s)}</span></div>`).join('');
+    }
+    $('goBtn').onclick = render;
+    $('copyBtn').onclick = e => TT.copy($('out').textContent, e.currentTarget);
+    $('clearBtn').onclick = ()=>{ $('in').value=''; $('out').textContent=''; renderPreview(); };
+    $('in').addEventListener('input', render);
+    $('style').addEventListener('change', render);
+    render();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

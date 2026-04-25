@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upside-Down Text Generator (Flip Text) · Utility Tools</title>
+  <meta name="description" content="Free upside-down text generator. Flip your text using Unicode lookalikes — works in Twitter, Instagram and Discord bios. Browser-only.">
+  <meta name="keywords" content="upside down text, flip text, mirror text generator, unicode flip, social bio text">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/upside-down">
+  <meta property="og:title" content="Upside-Down Text Generator">
+  <meta property="og:url" content="/upside-down">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tt-out{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px;min-height:64px;font-size:28px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+    .help{font-size:13px;color:var(--muted);margin-top:10px;padding:10px 12px;border-left:3px solid var(--accent);background:rgba(124,92,255,0.06);border-radius:0 6px 6px 0}
+    .siblings{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .siblings a{padding:6px 12px;border-radius:999px;background:var(--panel-2);border:1px solid var(--border);color:var(--muted);font-size:13px;text-decoration:none}
+    .siblings a:hover{color:var(--text);border-color:var(--accent)}
+    .faq-item{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
+    .faq-item h3{margin:0 0 6px;font-size:15px}.faq-item p{margin:0;color:var(--muted);font-size:14px}
+  </style>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+    {"@type":"Question","name":"Where can I paste upside-down text?","acceptedAnswer":{"@type":"Answer","text":"Anywhere that supports Unicode — Twitter / X, Instagram, Discord, Facebook, TikTok bios, comments and posts. Some old SMS apps may not render every glyph."}},
+    {"@type":"Question","name":"Is this real text or just a font trick?","acceptedAnswer":{"@type":"Answer","text":"Real text. Each character is replaced by a different Unicode lookalike that happens to look like the original rotated 180°."}}
+  ]}
+  </script>
+</head>
+<body>
+  <header class="topnav"><a href="/" class="brand">Utility<span>Tools</span></a><nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav></header>
+  <main class="container">
+    <div class="tool-header">
+      <h1>Upside-Down Text Generator</h1>
+      <p>Flip text using Unicode lookalikes — works in most chat apps and social-media bios. Bonus: a "flip back" button that reads the upside-down version into normal text.</p>
+    </div>
+
+    <aside class="ad-slot ad-inline" aria-label="Advertisement"><span class="ad-label">Advertisement</span></aside>
+
+    <section class="panel">
+      <label for="in">Your text</label>
+      <textarea id="in" placeholder="Type something…">Hello world!</textarea>
+      <div class="row" style="margin-top:8px"><label class="checkbox"><input type="checkbox" id="reverse" checked> Reverse character order</label></div>
+      <div class="row" style="margin-top:8px">
+        <button id="goBtn">Flip</button>
+        <button id="backBtn" class="secondary">Flip back</button>
+        <button id="copyBtn" class="secondary">Copy</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+      <label style="margin-top:12px">Output</label>
+      <div class="tt-out" id="out"></div>
+      <div class="help">Each character is replaced by a Unicode glyph that resembles its rotated form (e.g. <code>e → ǝ</code>, <code>?</code> → <code>¿</code>). Reversing the order is what makes the result read "upside-down" when you tilt your head.</div>
+    </section>
+
+    <section class="panel" id="faq">
+      <h2 style="margin:0 0 12px;font-size:20px">FAQ</h2>
+      <div class="faq-item"><h3>Where can I paste upside-down text?</h3><p>Anywhere that supports Unicode — X/Twitter, Instagram, Discord, Facebook, TikTok bios. A few old SMS apps may not render every glyph.</p></div>
+      <div class="faq-item"><h3>Is this real text or a font trick?</h3><p>Real text. Each character is a different Unicode codepoint that happens to look like the original rotated 180°.</p></div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">More fun translators</h2>
+      <div class="siblings">
+        <a href="/text-translators">All translators</a>
+        <a href="/runes">Runes</a><a href="/morse">Morse</a><a href="/binary">Binary</a>
+        <a href="/pig-latin">Pig Latin</a><a href="/nato">NATO</a><a href="/braille">Braille</a>
+        <a href="/medieval">Medieval</a><a href="/emoji-text">Emoji</a>
+        <a href="/hieroglyphics">Hieroglyphics</a><a href="/scroll">Scroll</a>
+      </div>
+    </section>
+
+    <p style="text-align:center;font-size:13px;color:var(--muted);margin:24px 0 0">🔒 All text is processed locally in your browser.</p>
+  </main>
+  <script src="/tools/text-translators.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    function render(){ $('out').textContent = TT.flip($('in').value, $('reverse').checked); }
+    $('goBtn').onclick = render;
+    $('backBtn').onclick = ()=>{ $('out').textContent = TT.unflip($('in').value, $('reverse').checked); };
+    $('copyBtn').onclick = e => TT.copy($('out').textContent, e.currentTarget);
+    $('clearBtn').onclick = ()=>{ $('in').value=''; $('out').textContent=''; };
+    $('in').addEventListener('input', render);
+    $('reverse').addEventListener('change', render);
+    render();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

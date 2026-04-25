@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fake Certificate Generator — Free, Printable PNG · Utility Tools</title>
+  <meta name="description" content="Free fake certificate generator. Make a custom award certificate with classic, modern, luxury or fun designs. Download as PNG or print directly. Browser-only.">
+  <meta name="keywords" content="fake certificate generator, free certificate maker, printable certificate, award certificate template, certificate of achievement, certificate png">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/certificate">
+  <meta property="og:title" content="Fake Certificate Generator">
+  <meta property="og:description" content="Make a custom award certificate in 4 designs. Download as PNG or print.">
+  <meta property="og:url" content="/certificate">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .cert-stage{background:#1a1a20;border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center;overflow:auto}
+    .cert-stage canvas{max-width:100%;height:auto;background:#fff;box-shadow:0 8px 30px rgba(0,0,0,0.4)}
+    .design-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:10px 0}
+    .design-grid button{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px 8px;color:var(--text);font-weight:600;cursor:pointer;transition:.15s}
+    .design-grid button:hover{border-color:var(--accent)}
+    .design-grid button.active{border-color:var(--accent);background:rgba(124,92,255,0.12);box-shadow:0 0 0 1px var(--accent) inset}
+    .disclaimer{background:rgba(255,181,71,0.08);border:1px solid rgba(255,181,71,0.4);border-radius:8px;padding:12px 14px;font-size:13.5px;margin-bottom:16px}
+    .disclaimer b{color:var(--warn)}
+    .faq-item{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
+    .faq-item h3{margin:0 0 6px;font-size:15px}.faq-item p{margin:0;color:var(--muted);font-size:14px}
+    @media print {
+      body * { visibility: hidden; }
+      .cert-stage, .cert-stage * { visibility: visible; }
+      .cert-stage { position: absolute; inset: 0; padding: 0; background: #fff; border: 0; }
+      .cert-stage canvas { box-shadow: none; max-width: 100%; max-height: 100vh; }
+    }
+  </style>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+    {"@type":"Question","name":"Are these certificates legally valid?","acceptedAnswer":{"@type":"Answer","text":"No. They are decorative and meant for fun, gag gifts, classroom rewards, team building, and mock awards. They have no legal authority."}},
+    {"@type":"Question","name":"Is anything uploaded to a server?","acceptedAnswer":{"@type":"Answer","text":"No. The certificate is rendered entirely on a Canvas in your browser. Names and text never leave your device."}},
+    {"@type":"Question","name":"Can I print directly without downloading?","acceptedAnswer":{"@type":"Answer","text":"Yes. Click Print and your browser's print dialog will open. The page is configured so only the certificate prints — no UI."}}
+  ]}
+  </script>
+</head>
+<body>
+  <header class="topnav"><a href="/" class="brand">Utility<span>Tools</span></a><nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav></header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Fake Certificate Generator</h1>
+      <p>Make a custom award certificate with four design templates — <strong>Classic, Modern, Luxury and Fun</strong>. Download as PNG or print straight from the browser.</p>
+    </div>
+
+    <div class="disclaimer"><b>⚠ Note:</b> These certificates are decorative — for gag gifts, classroom rewards, team-building or mock awards. They have no legal authority.</div>
+
+    <section class="panel">
+      <div class="split">
+        <div>
+          <label for="name">Recipient name</label>
+          <input type="text" id="name" value="Alex Johnson" maxlength="60">
+
+          <label style="margin-top:10px" for="title">Certificate title</label>
+          <input type="text" id="title" value="Certificate of Excellence" maxlength="60">
+
+          <label style="margin-top:10px" for="reason">Reason / description</label>
+          <textarea id="reason" maxlength="240" style="min-height:90px">For outstanding contribution to the team and consistently shipping browser-only utilities that respect user privacy.</textarea>
+
+          <div class="row" style="margin-top:10px">
+            <div style="flex:1;min-width:140px"><label for="date">Date</label><input type="text" id="date" value="April 25, 2026" maxlength="40"></div>
+            <div style="flex:1;min-width:140px"><label for="signer">Signature (name)</label><input type="text" id="signer" value="Jamie Rivera" maxlength="40"></div>
+          </div>
+          <label style="margin-top:10px" for="signerTitle">Signer title (optional)</label>
+          <input type="text" id="signerTitle" value="Director of Awesome" maxlength="50">
+
+          <label style="margin-top:14px">Design template</label>
+          <div class="design-grid" id="designs">
+            <button data-d="classic" class="active">🎓 Classic</button>
+            <button data-d="modern">▮ Modern</button>
+            <button data-d="luxury">✦ Luxury</button>
+            <button data-d="fun">🎉 Fun</button>
+          </div>
+
+          <div class="row" style="margin-top:8px">
+            <button id="dlBtn">Download PNG</button>
+            <button id="printBtn" class="secondary">🖨 Print</button>
+            <button id="resetBtn" class="secondary">Reset</button>
+          </div>
+        </div>
+
+        <div>
+          <label>Preview</label>
+          <div class="cert-stage"><canvas id="cv" width="1400" height="990"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">How to use</h2>
+      <ol style="color:var(--muted);font-size:14px;line-height:1.8;margin:0;padding-left:22px">
+        <li>Fill in the recipient name, title, reason, date and signer.</li>
+        <li>Pick one of the four design templates — the preview updates live.</li>
+        <li>Click <strong>Download PNG</strong> to save a 1400×990 px image you can email, post, or print at home.</li>
+        <li>Or click <strong>Print</strong> and the browser's print dialog will open with only the certificate visible.</li>
+      </ol>
+    </section>
+
+    <section class="panel" id="faq">
+      <h2 style="margin:0 0 12px;font-size:20px">FAQ</h2>
+      <div class="faq-item"><h3>Are these certificates legally valid?</h3><p>No — they're decorative. Use for gag gifts, classroom rewards, team-building or mock awards.</p></div>
+      <div class="faq-item"><h3>Is anything uploaded to a server?</h3><p>No. The certificate is rendered entirely on a Canvas in your browser; nothing leaves your device.</p></div>
+      <div class="faq-item"><h3>Can I print directly without downloading?</h3><p>Yes. Click <strong>Print</strong> — the page is configured so only the certificate prints.</p></div>
+      <div class="faq-item"><h3>What size is the PNG?</h3><p>1400×990 pixels — a 7:5 landscape ratio that prints cleanly on US Letter and A4 paper.</p></div>
+    </section>
+  </main>
+
+  <script>
+  const $ = id => document.getElementById(id);
+  const cv = $('cv'), ctx = cv.getContext('2d');
+  let design = 'classic';
+
+  $('designs').addEventListener('click', e=>{
+    const b = e.target.closest('button[data-d]'); if(!b) return;
+    [...e.currentTarget.children].forEach(c=>c.classList.remove('active'));
+    b.classList.add('active'); design = b.dataset.d; render();
+  });
+  ['name','title','reason','date','signer','signerTitle'].forEach(id=>$(id).addEventListener('input', render));
+
+  function wrap(text, maxW, maxLines){
+    const words = (text||'').split(/\s+/);
+    const lines = []; let cur = '';
+    for(const w of words){
+      const tr = cur ? cur+' '+w : w;
+      if(ctx.measureText(tr).width > maxW && cur){ lines.push(cur); cur = w; if(lines.length>=maxLines-1) break; }
+      else cur = tr;
+    }
+    if(cur && lines.length<maxLines) lines.push(cur);
+    return lines;
+  }
+
+  function render(){
+    const W = cv.width, H = cv.height;
+    ctx.clearRect(0,0,W,H);
+    const data = {
+      name: $('name').value || ' ',
+      title: $('title').value || ' ',
+      reason: $('reason').value || ' ',
+      date: $('date').value || ' ',
+      signer: $('signer').value || ' ',
+      signerTitle: $('signerTitle').value || ''
+    };
+    if(design==='classic') drawClassic(data);
+    else if(design==='modern') drawModern(data);
+    else if(design==='luxury') drawLuxury(data);
+    else drawFun(data);
+  }
+
+  // ===== CLASSIC =====
+  function drawClassic({name,title,reason,date,signer,signerTitle}){
+    const W=cv.width, H=cv.height;
+    // Cream background
+    const bg = ctx.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0,'#fdfaf2'); bg.addColorStop(1,'#f4ecd8');
+    ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+
+    // Outer + inner gold double border
+    ctx.strokeStyle = '#a87b1a'; ctx.lineWidth = 8;
+    ctx.strokeRect(40,40,W-80,H-80);
+    ctx.lineWidth = 2;
+    ctx.strokeRect(60,60,W-120,H-120);
+
+    // Corner ornaments (4 little stars/diamonds)
+    ctx.fillStyle = '#a87b1a';
+    [[80,80],[W-80,80],[80,H-80],[W-80,H-80]].forEach(([x,y])=>{
+      ctx.beginPath();
+      for(let i=0;i<8;i++){ const a=i*Math.PI/4, r=i%2?6:14; ctx.lineTo(x+Math.cos(a)*r, y+Math.sin(a)*r); }
+      ctx.closePath(); ctx.fill();
+    });
+
+    // Header crest
+    ctx.fillStyle = '#a87b1a';
+    ctx.font = 'bold 32px Georgia, serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText('★  ★  ★', W/2, 110);
+
+    // Title
+    ctx.fillStyle = '#2b1f0a';
+    ctx.font = 'bold 64px "Times New Roman", Georgia, serif';
+    ctx.fillText(title.toUpperCase(), W/2, 170);
+
+    // Decorative rule
+    ctx.strokeStyle = '#a87b1a'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(W/2-180,260); ctx.lineTo(W/2+180,260); ctx.stroke();
+
+    // "This certificate is presented to"
+    ctx.fillStyle = '#5b4a26';
+    ctx.font = 'italic 28px Georgia, serif';
+    ctx.fillText('This certificate is proudly presented to', W/2, 290);
+
+    // Recipient name
+    ctx.fillStyle = '#1a1207';
+    ctx.font = 'bold italic 78px "Brush Script MT", "Lucida Handwriting", cursive';
+    ctx.fillText(name, W/2, 360);
+
+    // Underline under name
+    ctx.strokeStyle = '#a87b1a'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(W*0.18, 470); ctx.lineTo(W*0.82, 470); ctx.stroke();
+
+    // Reason text
+    ctx.fillStyle = '#3a2f12';
+    ctx.font = '26px Georgia, serif';
+    const lines = wrap(reason, W*0.7, 4);
+    let y = 510;
+    lines.forEach(l => { ctx.fillText(l, W/2, y); y += 36; });
+
+    // Footer signatures
+    ctx.strokeStyle = '#5b4a26'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(180, H-180); ctx.lineTo(440, H-180); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W-440, H-180); ctx.lineTo(W-180, H-180); ctx.stroke();
+    ctx.fillStyle = '#3a2f12';
+    ctx.font = '20px Georgia, serif';
+    ctx.fillText('Date', 310, H-170);
+    ctx.font = 'italic 28px "Brush Script MT", cursive';
+    ctx.fillText(date, 310, H-225);
+    ctx.font = '20px Georgia, serif';
+    ctx.fillText('Signature', W-310, H-170);
+    ctx.font = 'italic 28px "Brush Script MT", cursive';
+    ctx.fillText(signer, W-310, H-225);
+    if(signerTitle){
+      ctx.font = '16px Georgia, serif'; ctx.fillStyle = '#7a6745';
+      ctx.fillText(signerTitle, W-310, H-145);
+    }
+  }
+
+  // ===== MODERN =====
+  function drawModern({name,title,reason,date,signer,signerTitle}){
+    const W=cv.width, H=cv.height, accent='#7c5cff';
+    ctx.fillStyle = '#fafbfc'; ctx.fillRect(0,0,W,H);
+
+    // Left accent bar
+    ctx.fillStyle = accent; ctx.fillRect(0,0,16,H);
+    // Diagonal stripe top right
+    ctx.save(); ctx.fillStyle = accent;
+    ctx.beginPath(); ctx.moveTo(W,0); ctx.lineTo(W,140); ctx.lineTo(W-280,0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#5a3fd9';
+    ctx.beginPath(); ctx.moveTo(W,0); ctx.lineTo(W,80); ctx.lineTo(W-160,0); ctx.closePath(); ctx.fill();
+    ctx.restore();
+
+    // Title small uppercase
+    ctx.fillStyle = accent;
+    ctx.font = 'bold 22px "Inter","Segoe UI",sans-serif';
+    ctx.textAlign='left'; ctx.textBaseline='top';
+    ctx.fillText('CERTIFICATE', 80, 130);
+    ctx.fillStyle = '#999';
+    ctx.font = '500 16px "Inter",sans-serif';
+    ctx.fillText('OF ACHIEVEMENT', 80, 160);
+
+    // Big title
+    ctx.fillStyle = '#15161c';
+    ctx.font = 'bold 56px "Inter","Segoe UI",sans-serif';
+    const titleLines = wrap(title, W-160, 2);
+    let ty = 220;
+    titleLines.forEach(l=>{ ctx.fillText(l, 80, ty); ty += 60; });
+
+    // "Presented to"
+    ctx.fillStyle = '#888'; ctx.font='500 18px "Inter",sans-serif';
+    ctx.fillText('PRESENTED TO', 80, 380);
+
+    // Name
+    ctx.fillStyle = accent;
+    ctx.font = 'bold 72px "Inter","Segoe UI",sans-serif';
+    ctx.fillText(name, 80, 410);
+
+    // Underline
+    ctx.fillStyle = '#15161c'; ctx.fillRect(80, 510, 160, 4);
+
+    // Reason
+    ctx.fillStyle = '#444'; ctx.font='400 22px "Inter",sans-serif';
+    ctx.textBaseline='top';
+    const lines = wrap(reason, W-160, 4);
+    let y = 540;
+    lines.forEach(l=>{ ctx.fillText(l, 80, y); y += 32; });
+
+    // Footer
+    ctx.fillStyle = '#15161c'; ctx.font='bold 22px "Inter",sans-serif';
+    ctx.fillText(date, 80, H-130);
+    ctx.fillStyle = '#888'; ctx.font='500 14px "Inter",sans-serif';
+    ctx.fillText('DATE', 80, H-100);
+
+    ctx.textAlign='right';
+    ctx.fillStyle = '#15161c'; ctx.font='italic 30px Georgia,serif';
+    ctx.fillText(signer, W-80, H-140);
+    ctx.fillStyle = '#888'; ctx.font='500 14px "Inter",sans-serif';
+    ctx.fillText('SIGNATURE'+(signerTitle?' · '+signerTitle.toUpperCase():''), W-80, H-100);
+  }
+
+  // ===== LUXURY =====
+  function drawLuxury({name,title,reason,date,signer,signerTitle}){
+    const W=cv.width, H=cv.height;
+    // Deep navy background
+    ctx.fillStyle = '#0e1530'; ctx.fillRect(0,0,W,H);
+    // Subtle radial highlight
+    const rg = ctx.createRadialGradient(W/2, H/2, 100, W/2, H/2, W/1.2);
+    rg.addColorStop(0, 'rgba(255,255,255,0.05)'); rg.addColorStop(1, 'rgba(0,0,0,0.4)');
+    ctx.fillStyle = rg; ctx.fillRect(0,0,W,H);
+
+    // Gold double frame
+    const gold = '#d4af37';
+    ctx.strokeStyle = gold; ctx.lineWidth = 4;
+    ctx.strokeRect(50,50,W-100,H-100);
+    ctx.lineWidth = 1;
+    ctx.strokeRect(70,70,W-140,H-140);
+
+    // Ornate corner flourish
+    function corner(cx,cy, sx, sy){
+      ctx.strokeStyle = gold; ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + 60*sx, cy);
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx, cy + 60*sy);
+      ctx.moveTo(cx + 12*sx, cy + 12*sy);
+      ctx.arc(cx + 12*sx, cy + 12*sy, 8, 0, Math.PI*2);
+      ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx + 30*sx, cy + 30*sy, 4, 0, Math.PI*2);
+      ctx.fillStyle = gold; ctx.fill();
+    }
+    corner(80,80,1,1); corner(W-80,80,-1,1); corner(80,H-80,1,-1); corner(W-80,H-80,-1,-1);
+
+    // Crest at top
+    ctx.textAlign='center'; ctx.textBaseline='top';
+    ctx.fillStyle = gold;
+    ctx.font = 'bold 30px Georgia, serif';
+    ctx.fillText('— ✦ —', W/2, 110);
+
+    // Title
+    ctx.fillStyle = gold;
+    ctx.font = 'bold 60px "Trajan Pro","Times New Roman",Georgia,serif';
+    ctx.fillText(title.toUpperCase(), W/2, 170);
+
+    // Subtitle
+    ctx.fillStyle = '#e9d8a3';
+    ctx.font = 'italic 24px Georgia, serif';
+    ctx.fillText('Hereby awarded with distinction to', W/2, 280);
+
+    // Name
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 80px "Edwardian Script ITC","Brush Script MT", cursive, Georgia, serif';
+    ctx.fillText(name, W/2, 340);
+
+    // Underline + ornament
+    ctx.strokeStyle = gold; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(W*0.2, 460); ctx.lineTo(W*0.45, 460); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W*0.55, 460); ctx.lineTo(W*0.8, 460); ctx.stroke();
+    ctx.fillStyle = gold; ctx.font='bold 24px Georgia,serif';
+    ctx.fillText('✦', W/2, 446);
+
+    // Reason
+    ctx.fillStyle = '#e3dfd0';
+    ctx.font = '24px Georgia, serif';
+    ctx.textBaseline = 'top';
+    const lines = wrap(reason, W*0.72, 4);
+    let y = 500;
+    lines.forEach(l => { ctx.fillText(l, W/2, y); y += 34; });
+
+    // Footer
+    ctx.strokeStyle = gold; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(180, H-180); ctx.lineTo(440, H-180); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W-440, H-180); ctx.lineTo(W-180, H-180); ctx.stroke();
+    ctx.fillStyle = '#e9d8a3'; ctx.font='18px Georgia,serif';
+    ctx.fillText('DATE', 310, H-165);
+    ctx.fillText('SIGNATURE', W-310, H-165);
+    ctx.fillStyle = '#fff'; ctx.font='italic 28px "Brush Script MT",cursive';
+    ctx.fillText(date, 310, H-225);
+    ctx.fillText(signer, W-310, H-225);
+    if(signerTitle){ ctx.fillStyle='#d4af37'; ctx.font='14px Georgia,serif'; ctx.fillText(signerTitle, W-310, H-140); }
+  }
+
+  // ===== FUN =====
+  function drawFun({name,title,reason,date,signer,signerTitle}){
+    const W=cv.width, H=cv.height;
+    // Pastel gradient background
+    const bg = ctx.createLinearGradient(0,0,W,H);
+    bg.addColorStop(0,'#fff5f7'); bg.addColorStop(0.5,'#f0f5ff'); bg.addColorStop(1,'#fefae0');
+    ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+
+    // Confetti dots
+    const colors = ['#ff6b9d','#ffbf47','#7c5cff','#22c39a','#3aa6ff','#ff8a4a'];
+    for(let i=0;i<140;i++){
+      ctx.fillStyle = colors[i%colors.length];
+      const x = Math.random()*W, y = Math.random()*H, r = 4 + Math.random()*8;
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    }
+
+    // Big rounded card
+    const x0=70, y0=70, w=W-140, h=H-140, rr=40;
+    ctx.fillStyle = 'rgba(255,255,255,0.94)';
+    ctx.beginPath();
+    ctx.moveTo(x0+rr,y0);
+    ctx.arcTo(x0+w,y0,x0+w,y0+h,rr);
+    ctx.arcTo(x0+w,y0+h,x0,y0+h,rr);
+    ctx.arcTo(x0,y0+h,x0,y0,rr);
+    ctx.arcTo(x0,y0,x0+w,y0,rr);
+    ctx.closePath();
+    ctx.fill();
+    // Dashed border
+    ctx.setLineDash([14,10]); ctx.strokeStyle='#ff6b9d'; ctx.lineWidth=4;
+    ctx.stroke(); ctx.setLineDash([]);
+
+    // Top emoji row
+    ctx.textAlign='center'; ctx.textBaseline='top';
+    ctx.font='60px "Segoe UI Emoji","Apple Color Emoji",sans-serif';
+    ctx.fillText('🎉  🏆  🎊', W/2, 110);
+
+    // Title
+    ctx.fillStyle = '#7c5cff';
+    ctx.font = 'bold 58px "Comic Sans MS","Trebuchet MS",sans-serif';
+    ctx.fillText(title, W/2, 200);
+
+    // "Awarded to"
+    ctx.fillStyle = '#ff6b9d';
+    ctx.font = 'bold 26px "Trebuchet MS",sans-serif';
+    ctx.fillText('★ AWARDED TO ★', W/2, 295);
+
+    // Name
+    ctx.fillStyle = '#15161c';
+    ctx.font = 'bold 80px "Comic Sans MS","Trebuchet MS",sans-serif';
+    ctx.fillText(name, W/2, 340);
+
+    // Reason in a yellow callout
+    const lines = wrap(reason, W*0.7, 4);
+    ctx.fillStyle = '#fff3b0';
+    const calloutY = 470, padding = 14;
+    ctx.fillRect(W*0.13, calloutY, W*0.74, lines.length*34 + padding*2);
+    ctx.fillStyle = '#5a4a00';
+    ctx.font = '22px "Trebuchet MS",sans-serif';
+    let y = calloutY + padding;
+    lines.forEach(l=>{ ctx.fillText(l, W/2, y); y += 34; });
+
+    // Footer fun signatures
+    ctx.fillStyle = '#15161c'; ctx.font='bold 22px "Trebuchet MS",sans-serif';
+    ctx.textAlign='left';
+    ctx.fillText('📅 '+date, 130, H-170);
+    ctx.textAlign='right';
+    ctx.fillText('✍ '+signer, W-130, H-170);
+    if(signerTitle){
+      ctx.fillStyle='#888'; ctx.font='16px "Trebuchet MS",sans-serif';
+      ctx.fillText(signerTitle, W-130, H-140);
+    }
+
+    // Bottom emojis
+    ctx.textAlign='center';
+    ctx.font='40px "Segoe UI Emoji","Apple Color Emoji",sans-serif';
+    ctx.fillText('⭐  💯  🥳  🎁  🌟', W/2, H-110);
+  }
+
+  // Buttons
+  $('dlBtn').onclick = ()=>{
+    cv.toBlob(b=>{
+      const url=URL.createObjectURL(b);
+      const a=document.createElement('a'); a.href=url;
+      a.download = ($('name').value||'certificate').replace(/[^a-z0-9 _-]+/gi,'').trim().replace(/\s+/g,'-')+'-certificate.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }, 'image/png');
+  };
+  $('printBtn').onclick = ()=>{ render(); setTimeout(()=>window.print(), 50); };
+  $('resetBtn').onclick = ()=>{
+    $('name').value='Recipient Name';
+    $('title').value='Certificate of Achievement';
+    $('reason').value='For exceptional accomplishment and dedication.';
+    $('date').value=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+    $('signer').value='Authorized Signature';
+    $('signerTitle').value='';
+    render();
+  };
+
+  render();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

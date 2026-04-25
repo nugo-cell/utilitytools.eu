@@ -64,7 +64,25 @@ const TOOLS = [
   { slug: 'img-exif',         name: 'EXIF Viewer / Remover',    file: 'tools/img-exif.html',         icon: 'EXIF',tags: ['image','security'],          desc: 'Show EXIF metadata, then strip it by re-encoding via canvas.' },
   { slug: 'img-color-picker', name: 'Color Picker from Image',  file: 'tools/img-color-picker.html', icon: 'Pck', tags: ['image','design'],            desc: 'Click any pixel to read HEX, RGB and HSL values.' },
   { slug: 'img-favicon',      name: 'Favicon Generator',        file: 'tools/img-favicon.html',      icon: 'Fav', tags: ['image','design','generator'],desc: 'Generate 16, 32, 48, 180, 192 and 512 px favicons + ZIP download.' },
-  { slug: 'img-thumbnail',    name: 'Thumbnail Generator',      file: 'tools/img-thumbnail.html',    icon: 'Tmb', tags: ['image','design','generator'],desc: 'YouTube/Instagram/Facebook/LinkedIn thumbnail with text overlay.' }
+  { slug: 'img-thumbnail',    name: 'Thumbnail Generator',      file: 'tools/img-thumbnail.html',    icon: 'Tmb', tags: ['image','design','generator'],desc: 'YouTube/Instagram/Facebook/LinkedIn thumbnail with text overlay.' },
+
+  // -------- Fun Text Translator Toolkit (each tool on its own page) --------
+  { slug: 'text-translators', name: 'Fun Text Translators',     file: 'tools/text-translators.html', icon: 'Aᚱ',  tags: ['text','fun','generator','converter'], desc: 'Hub linking to runes, Morse, binary, Pig Latin, Braille, NATO, hieroglyphics and more.' },
+  { slug: 'runes',            name: 'English to Runes',         file: 'tools/runes.html',            icon: 'ᚱ',   tags: ['text','fun','translator'],    desc: 'Convert English to Elder Futhark-style Viking runes. Includes a "your name in runes" mode.' },
+  { slug: 'morse',            name: 'English to Morse Code',    file: 'tools/morse.html',            icon: '·−',  tags: ['text','fun','translator'],    desc: 'Translate text to Morse code with copy and audio playback.' },
+  { slug: 'binary',           name: 'English to Binary',        file: 'tools/binary.html',           icon: '01',  tags: ['text','developer','translator'], desc: 'Convert text to 8-bit binary (UTF-8) or decode binary back to text.' },
+  { slug: 'pig-latin',        name: 'English to Pig Latin',     file: 'tools/pig-latin.html',        icon: 'igPay',tags: ['text','fun','translator'],   desc: 'Turn English into Pig Latin with capitalization and punctuation preserved.' },
+  { slug: 'nato',             name: 'NATO Phonetic Alphabet',   file: 'tools/nato.html',             icon: 'Nato',tags: ['text','fun','translator'],    desc: 'Convert letters into Alpha, Bravo, Charlie… with a full reference table.' },
+  { slug: 'braille',          name: 'English to Braille',       file: 'tools/braille.html',          icon: '⠃⠗', tags: ['text','fun','translator'],    desc: 'Translate text to Unicode Braille (uncontracted Grade 1 style).' },
+  { slug: 'upside-down',      name: 'Upside-down Text',         file: 'tools/upside-down.html',      icon: '∩',   tags: ['text','fun','generator'],     desc: 'Flip your text upside down using Unicode characters.' },
+  { slug: 'medieval',         name: 'Medieval / Fantasy Text',  file: 'tools/medieval.html',         icon: '𝔉',   tags: ['text','fun','generator'],     desc: 'Gothic, Fraktur, script and bold fantasy fonts using Unicode.' },
+  { slug: 'emoji-text',       name: 'Emoji Text Generator',     file: 'tools/emoji-text.html',       icon: '🅴',  tags: ['text','fun','generator'],     desc: 'Letter emojis, keyword replacement and random emoji decoration.' },
+  { slug: 'hieroglyphics',    name: 'Hieroglyphics Name',       file: 'tools/hieroglyphics.html',    icon: '𓂀',   tags: ['text','fun','generator'],     desc: 'Phonetic name to Egyptian hieroglyphs with cartouche PNG download.' },
+  { slug: 'scroll',           name: 'Ancient Scroll Image',     file: 'tools/scroll.html',           icon: '📜',  tags: ['text','fun','generator'],     desc: 'Render any text on a parchment scroll image and download as PNG.' },
+
+  // -------- Stand-alone fun + productivity tools --------
+  { slug: 'certificate',      name: 'Certificate Generator',    file: 'tools/certificate.html',      icon: '🏆',  tags: ['fun','generator','design'],   desc: 'Make a fake certificate with 4 design templates. Download as PNG or print.' },
+  { slug: 'typing-test',      name: 'Typing Speed Test',        file: 'tools/typing-test.html',      icon: '⌨',   tags: ['fun','productivity'],         desc: 'Measure your typing speed (WPM), accuracy, and errors with 30/60/120-second tests.' }
 ];
 
 const ALL_TAGS = [...new Set(TOOLS.flatMap(t => t.tags))].sort();

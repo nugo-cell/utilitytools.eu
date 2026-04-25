@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>English to Viking Runes Translator (Elder Futhark) · Utility Tools</title>
+  <meta name="description" content="Free English to Viking runes translator. Type any text or your name and get a phonetic Elder Futhark version. Runs in your browser, nothing uploaded.">
+  <meta name="keywords" content="english to runes, viking rune translator, elder futhark translator, name in runes, rune generator">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/runes">
+  <meta property="og:title" content="English to Viking Runes Translator">
+  <meta property="og:description" content="Phonetic Elder Futhark conversion with a 'your name in runes' mode.">
+  <meta property="og:url" content="/runes">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tt-out{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px;min-height:64px;font-size:28px;line-height:1.5;white-space:pre-wrap;word-break:break-word;font-family:'Segoe UI Historic','Noto Sans Runic',serif}
+    .help{font-size:13px;color:var(--muted);margin-top:10px;padding:10px 12px;border-left:3px solid var(--accent);background:rgba(124,92,255,0.06);border-radius:0 6px 6px 0}
+    .disclaimer{background:rgba(255,181,71,0.08);border:1px solid rgba(255,181,71,0.4);border-radius:8px;padding:12px 14px;font-size:13.5px;margin-bottom:16px}
+    .disclaimer b{color:var(--warn)}
+    .siblings{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .siblings a{padding:6px 12px;border-radius:999px;background:var(--panel-2);border:1px solid var(--border);color:var(--muted);font-size:13px;text-decoration:none}
+    .siblings a:hover{color:var(--text);border-color:var(--accent);text-decoration:none}
+    .faq-item{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
+    .faq-item h3{margin:0 0 6px;font-size:15px}.faq-item p{margin:0;color:var(--muted);font-size:14px}
+  </style>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+    {"@type":"Question","name":"Is the Viking rune output a real translation?","acceptedAnswer":{"@type":"Answer","text":"No — it is a phonetic, letter-by-letter mapping into Elder Futhark. Real Old Norse runic inscriptions used different conventions, abbreviations and sometimes Younger Futhark."}},
+    {"@type":"Question","name":"What is 'name mode'?","acceptedAnswer":{"@type":"Answer","text":"Name mode replaces spaces with a centered dot and frames the result with dots — a common decorative style for inscriptions, jewellery and tattoos."}},
+    {"@type":"Question","name":"Why are 'th' and 'ng' two letters in English but one rune?","acceptedAnswer":{"@type":"Answer","text":"Elder Futhark has dedicated runes for the sounds th (ᚦ, thurisaz) and ng (ᛜ, ingwaz). The translator handles those digraphs first."}}
+  ]}
+  </script>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>English to Viking Runes Translator</h1>
+      <p>Type any English text and get a phonetic <strong>Elder Futhark</strong> rune version. Great for fantasy names, signatures and cosplay.</p>
+    </div>
+
+    <div class="disclaimer"><b>⚠ Note:</b> This tool is for fun, decorative, and educational use. Output is phonetic — not a historical translation into Old Norse.</div>
+
+    <aside class="ad-slot ad-inline" aria-label="Advertisement"><span class="ad-label">Advertisement</span></aside>
+
+    <section class="panel">
+      <label for="in">Your text</label>
+      <textarea id="in" placeholder="Type your text or name…">My name is Erik</textarea>
+      <div class="row" style="margin-top:8px"><label class="checkbox"><input type="checkbox" id="nameMode"> Name-mode (centered, dot-separated)</label></div>
+      <div class="row" style="margin-top:8px">
+        <button id="goBtn">Convert</button>
+        <button id="copyBtn" class="secondary">Copy</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+      <label style="margin-top:12px">Runes</label>
+      <div class="tt-out" id="out"></div>
+      <div class="help">Each English letter maps to the closest-sounding Elder Futhark rune (e.g. <code>th → ᚦ</code>, <code>ng → ᛜ</code>). If your device shows boxes, install a Runic-capable font like <em>Noto Sans Runic</em>.</div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">How it works</h2>
+      <p>The Elder Futhark is a 24-character runic alphabet that was used across Northern Europe roughly 150–800 CE. Our translator does a one-step phonetic mapping: it first replaces the digraphs <code>th</code> and <code>ng</code> with their dedicated runes, then converts each remaining letter to its nearest rune by sound.</p>
+      <p style="color:var(--muted);font-size:13.5px;margin:0">Useful for: fantasy character names, D&amp;D campaigns, jewellery engravings, tattoo mock-ups and crafting projects.</p>
+    </section>
+
+    <section class="panel" id="faq">
+      <h2 style="margin:0 0 12px;font-size:20px">FAQ</h2>
+      <div class="faq-item"><h3>Is the Viking rune output a real translation?</h3><p>No — it is a phonetic, letter-by-letter mapping. Real Old Norse runic inscriptions used different conventions and sometimes Younger Futhark.</p></div>
+      <div class="faq-item"><h3>What is 'name mode'?</h3><p>It replaces spaces with a centered dot and wraps the result in dots — a common decorative style for inscriptions and jewellery.</p></div>
+      <div class="faq-item"><h3>Why are 'th' and 'ng' two letters in English but one rune?</h3><p>Elder Futhark has dedicated runes for those sounds: ᚦ (thurisaz) and ᛜ (ingwaz).</p></div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">More fun translators</h2>
+      <div class="siblings">
+        <a href="/text-translators">All translators</a>
+        <a href="/morse">Morse Code</a><a href="/binary">Binary</a><a href="/pig-latin">Pig Latin</a>
+        <a href="/nato">NATO Alphabet</a><a href="/braille">Braille</a><a href="/upside-down">Upside-down</a>
+        <a href="/medieval">Medieval / Fantasy</a><a href="/emoji-text">Emoji</a>
+        <a href="/hieroglyphics">Hieroglyphics</a><a href="/scroll">Ancient Scroll</a>
+      </div>
+    </section>
+
+    <p style="text-align:center;font-size:13px;color:var(--muted);margin:24px 0 0">🔒 All text is processed locally in your browser. Nothing is uploaded.</p>
+  </main>
+
+  <script src="/tools/text-translators.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    function render(){ $('out').textContent = TT.toRunes($('in').value, $('nameMode').checked); }
+    $('goBtn').onclick = render;
+    $('clearBtn').onclick = ()=>{ $('in').value=''; $('out').textContent=''; };
+    $('copyBtn').onclick = e => TT.copy($('out').textContent, e.currentTarget);
+    $('in').addEventListener('input', render);
+    $('nameMode').addEventListener('change', render);
+    render();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

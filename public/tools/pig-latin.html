@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>English to Pig Latin Translator · Utility Tools</title>
+  <meta name="description" content="Free English to Pig Latin translator. Capitalisation and punctuation are preserved automatically. Runs in your browser.">
+  <meta name="keywords" content="pig latin translator, english to pig latin, pig latin generator, pig latin rules">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/pig-latin">
+  <meta property="og:title" content="English to Pig Latin Translator">
+  <meta property="og:url" content="/pig-latin">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tt-out{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px;min-height:64px;font-size:18px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+    .help{font-size:13px;color:var(--muted);margin-top:10px;padding:10px 12px;border-left:3px solid var(--accent);background:rgba(124,92,255,0.06);border-radius:0 6px 6px 0}
+    .siblings{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .siblings a{padding:6px 12px;border-radius:999px;background:var(--panel-2);border:1px solid var(--border);color:var(--muted);font-size:13px;text-decoration:none}
+    .siblings a:hover{color:var(--text);border-color:var(--accent)}
+    .faq-item{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
+    .faq-item h3{margin:0 0 6px;font-size:15px}.faq-item p{margin:0;color:var(--muted);font-size:14px}
+  </style>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+    {"@type":"Question","name":"What are the Pig Latin rules?","acceptedAnswer":{"@type":"Answer","text":"If a word starts with a vowel, add 'way' to the end. Otherwise, move the leading consonant cluster to the end and add 'ay'. Example: hello → ellohay, egg → eggway."}},
+    {"@type":"Question","name":"Does it preserve capitalisation?","acceptedAnswer":{"@type":"Answer","text":"Yes. Initial-capital words stay capitalised, ALL-CAPS words stay all-caps, and trailing punctuation is preserved."}}
+  ]}
+  </script>
+</head>
+<body>
+  <header class="topnav"><a href="/" class="brand">Utility<span>Tools</span></a><nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav></header>
+  <main class="container">
+    <div class="tool-header">
+      <h1>English to Pig Latin Translator</h1>
+      <p>Classic playground "secret language" — type any English sentence and get its Pig Latin equivalent. Capitalisation and punctuation are preserved automatically.</p>
+    </div>
+
+    <aside class="ad-slot ad-inline" aria-label="Advertisement"><span class="ad-label">Advertisement</span></aside>
+
+    <section class="panel">
+      <label for="in">Your text</label>
+      <textarea id="in" placeholder="Type a sentence…">Hello, this is the secret language!</textarea>
+      <div class="row" style="margin-top:8px">
+        <button id="goBtn">Convert</button>
+        <button id="copyBtn" class="secondary">Copy</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+      <label style="margin-top:12px">Pig Latin</label>
+      <div class="tt-out" id="out"></div>
+      <div class="help"><strong>Rules:</strong> Vowel-start word → add <code>way</code> at the end. Consonant-start word → move the leading consonant cluster to the end and add <code>ay</code>. Example: <code>hello → ellohay</code>, <code>egg → eggway</code>, <code>strong → ongstray</code>.</div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">Why Pig Latin?</h2>
+      <p>Pig Latin is a language game played in English-speaking countries since at least the early 1900s. It's not actually Latin — the name was a joke about it sounding fancy and unintelligible. Children use it as a "secret code" between friends; adults occasionally use it for harmless code-words.</p>
+    </section>
+
+    <section class="panel" id="faq">
+      <h2 style="margin:0 0 12px;font-size:20px">FAQ</h2>
+      <div class="faq-item"><h3>What are the Pig Latin rules?</h3><p>Vowel-start = +way. Consonant-start = move the cluster, +ay. Example: <code>egg → eggway</code>, <code>strong → ongstray</code>.</p></div>
+      <div class="faq-item"><h3>Does it preserve capitalisation?</h3><p>Yes — initial-capital, ALL-CAPS, and trailing punctuation are all preserved.</p></div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">More fun translators</h2>
+      <div class="siblings">
+        <a href="/text-translators">All translators</a>
+        <a href="/runes">Runes</a><a href="/morse">Morse</a><a href="/binary">Binary</a>
+        <a href="/nato">NATO</a><a href="/braille">Braille</a><a href="/upside-down">Upside-down</a>
+        <a href="/medieval">Medieval</a><a href="/emoji-text">Emoji</a>
+        <a href="/hieroglyphics">Hieroglyphics</a><a href="/scroll">Scroll</a>
+      </div>
+    </section>
+
+    <p style="text-align:center;font-size:13px;color:var(--muted);margin:24px 0 0">🔒 All text is processed locally in your browser.</p>
+  </main>
+  <script src="/tools/text-translators.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    function render(){ $('out').textContent = TT.toPigLatin($('in').value); }
+    $('goBtn').onclick = render;
+    $('copyBtn').onclick = e => TT.copy($('out').textContent, e.currentTarget);
+    $('clearBtn').onclick = ()=>{ $('in').value=''; $('out').textContent=''; };
+    $('in').addEventListener('input', render);
+    render();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

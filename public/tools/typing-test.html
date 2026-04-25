@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Typing Speed Test — Free WPM, Accuracy &amp; Errors · Utility Tools</title>
+  <meta name="description" content="Free typing speed test. Measure your words per minute (WPM), accuracy and errors. 30, 60 or 120 second tests with real-time correct/incorrect highlighting. Browser-only.">
+  <meta name="keywords" content="typing speed test, WPM test, words per minute, free typing test, typing accuracy, typing practice">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/typing-test">
+  <meta property="og:title" content="Typing Speed Test — WPM, Accuracy &amp; Errors">
+  <meta property="og:description" content="30, 60 or 120 second typing speed test with real-time feedback.">
+  <meta property="og:url" content="/typing-test">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .timer-pills{display:flex;gap:8px;flex-wrap:wrap}
+    .timer-pills button{padding:8px 16px;border-radius:999px;background:var(--panel-2);border:1px solid var(--border);color:var(--text);cursor:pointer;font-weight:600;font-size:14px;transition:.15s}
+    .timer-pills button:hover{border-color:var(--accent)}
+    .timer-pills button.active{border-color:var(--accent);background:rgba(124,92,255,0.14);color:#fff}
+
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:12px 0}
+    .stat{background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center}
+    .stat .v{font-size:32px;font-weight:800;line-height:1;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .stat .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:6px}
+
+    .text-area{
+      background:var(--panel-2);border:1px solid var(--border);border-radius:10px;
+      padding:22px 24px;font-family:'JetBrains Mono','Fira Code','SF Mono',Consolas,monospace;
+      font-size:22px;line-height:1.7;letter-spacing:0.3px;
+      max-height:240px;overflow:hidden;position:relative;user-select:none;
+    }
+    .text-area .ch { color: #6c7080; }
+    .text-area .ok { color: #d6dae8; }
+    .text-area .bad { color: #ff6b6b; background: rgba(255,107,107,0.15); border-radius: 3px; }
+    .text-area .bad.space { background: rgba(255,107,107,0.30); }
+    .text-area .cur {
+      border-left: 2px solid var(--accent);
+      animation: cblink 1s steps(2,start) infinite;
+      margin-left: -2px;
+    }
+    @keyframes cblink { to { border-left-color: transparent; } }
+
+    .typing-input{
+      width:100%;font-family:'JetBrains Mono',monospace;font-size:18px;
+      padding:14px 16px;background:var(--panel-2);border:1px solid var(--border);
+      border-radius:10px;color:var(--text);outline:none;
+    }
+    .typing-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,92,255,0.15)}
+    .typing-input:disabled{opacity:0.6;cursor:not-allowed}
+
+    .results{
+      background: linear-gradient(135deg, rgba(124,92,255,0.10), rgba(34,195,154,0.06));
+      border:1px solid var(--accent); border-radius:12px; padding:24px; text-align:center;
+    }
+    .results h2 { margin: 0 0 4px; font-size: 24px; }
+    .results .sub { color: var(--muted); margin: 0 0 18px; font-size: 14px; }
+    .badge{display:inline-block;padding:4px 12px;border-radius:999px;background:rgba(124,92,255,0.18);color:#fff;font-size:12px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+
+    .faq-item{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
+    .faq-item h3{margin:0 0 6px;font-size:15px}.faq-item p{margin:0;color:var(--muted);font-size:14px}
+  </style>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+    {"@type":"Question","name":"How is WPM calculated?","acceptedAnswer":{"@type":"Answer","text":"By the standard formula: characters typed divided by 5 (the average word length), divided by minutes elapsed. Only correctly typed characters count toward 'net WPM'."}},
+    {"@type":"Question","name":"How is accuracy calculated?","acceptedAnswer":{"@type":"Answer","text":"Accuracy = correct keystrokes / total keystrokes × 100%. Backspaces don't increase the total — they remove an error and let you retry."}},
+    {"@type":"Question","name":"Is my typing data sent anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. The test runs entirely in your browser. The text, your keystrokes, and your scores are never uploaded."}}
+  ]}
+  </script>
+</head>
+<body>
+  <header class="topnav"><a href="/" class="brand">Utility<span>Tools</span></a><nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav></header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Typing Speed Test</h1>
+      <p>Measure your <strong>words per minute (WPM)</strong>, <strong>accuracy</strong> and <strong>errors</strong>. Pick a duration, start typing, and get a result summary at the end.</p>
+    </div>
+
+    <section class="panel">
+      <label>Test duration</label>
+      <div class="timer-pills" id="durations">
+        <button data-d="30">30 seconds</button>
+        <button data-d="60" class="active">60 seconds</button>
+        <button data-d="120">120 seconds</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="v" id="sTime">60</div><div class="l">Time left</div></div>
+        <div class="stat"><div class="v" id="sWpm">0</div><div class="l">WPM</div></div>
+        <div class="stat"><div class="v" id="sAcc">100%</div><div class="l">Accuracy</div></div>
+        <div class="stat"><div class="v" id="sErr">0</div><div class="l">Errors</div></div>
+      </div>
+
+      <label>Type the text below</label>
+      <div class="text-area" id="textArea"></div>
+
+      <input type="text" id="input" class="typing-input" placeholder="Click here and start typing to begin…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+
+      <div class="row" style="margin-top:10px">
+        <button id="restartBtn" class="secondary">↻ Restart</button>
+        <button id="newTextBtn" class="secondary">🎲 New text</button>
+      </div>
+    </section>
+
+    <section class="panel" id="resultsPanel" style="display:none">
+      <div class="results">
+        <span class="badge" id="rTier">Result</span>
+        <h2 id="rHeadline">Time's up!</h2>
+        <p class="sub" id="rSub"></p>
+        <div class="stats" style="margin-bottom:0">
+          <div class="stat"><div class="v" id="rWpm">0</div><div class="l">Net WPM</div></div>
+          <div class="stat"><div class="v" id="rRaw">0</div><div class="l">Raw WPM</div></div>
+          <div class="stat"><div class="v" id="rAcc">100%</div><div class="l">Accuracy</div></div>
+          <div class="stat"><div class="v" id="rErr">0</div><div class="l">Errors</div></div>
+          <div class="stat"><div class="v" id="rChars">0</div><div class="l">Characters</div></div>
+          <div class="stat"><div class="v" id="rWords">0</div><div class="l">Words</div></div>
+        </div>
+        <div class="row" style="justify-content:center;margin-top:16px">
+          <button id="againBtn">Try again</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">How the score works</h2>
+      <ul style="color:var(--muted);font-size:14px;line-height:1.8;margin:0;padding-left:22px">
+        <li><strong>Net WPM</strong> = correct characters ÷ 5 ÷ elapsed minutes. This is the score most professional tests report.</li>
+        <li><strong>Raw WPM</strong> includes errors — the speed of your fingers, regardless of mistakes.</li>
+        <li><strong>Accuracy</strong> = correct keystrokes ÷ total keystrokes. Backspaces don't pad the total.</li>
+        <li><strong>Errors</strong> = number of characters that were wrong at the moment they were typed.</li>
+      </ul>
+    </section>
+
+    <section class="panel" id="faq">
+      <h2 style="margin:0 0 12px;font-size:20px">FAQ</h2>
+      <div class="faq-item"><h3>How is WPM calculated?</h3><p>Correct characters ÷ 5 ÷ minutes elapsed. 5 is the average word length used by every major typing test.</p></div>
+      <div class="faq-item"><h3>How is accuracy calculated?</h3><p>Correct keystrokes ÷ total keystrokes × 100%. Using backspace removes an error rather than padding the total.</p></div>
+      <div class="faq-item"><h3>Is my typing data sent anywhere?</h3><p>No — the test runs entirely in your browser; nothing is uploaded.</p></div>
+      <div class="faq-item"><h3>What's a good WPM?</h3><p>20–30 WPM = beginner, 40 WPM = average, 60 WPM = good, 80+ WPM = professional, 100+ WPM = excellent.</p></div>
+    </section>
+  </main>
+
+  <script>
+  const $ = id => document.getElementById(id);
+  const PARAGRAPHS = [
+    "the quick brown fox jumps over the lazy dog while a curious cat watches from a sunny window. small acts of kindness can change the entire shape of a day in unexpected ways.",
+    "good code is not written by accident. it is the result of clear thinking, honest tests, and the patience to delete the parts that do not serve the reader who comes after you.",
+    "she walked along the quiet shore at dawn, counting the colors of the sky as the tide pulled back to reveal smooth stones, broken shells, and the gentle line of yesterday's footprints.",
+    "the trick with deadlines is to start sooner than feels reasonable, finish a rough draft as fast as possible, and then keep refining only the parts that actually matter to the reader.",
+    "a healthy habit is just a small action repeated until it becomes the default. you do not need motivation, only a tiny next step that is easier to start than to keep avoiding.",
+    "rivers do not rush. they take the path of least resistance and still arrive at the sea. there is wisdom in patience, especially when the world insists on speed at every turn.",
+    "every great idea looks obvious in hindsight. the work is in noticing it before anyone else, then having the courage to ship it before it has been polished into something safe.",
+    "coffee, music, and a clean desk can do more for focus than any productivity app. simplicity wins almost every time, especially when the deadline is closer than you would like.",
+    "books are time machines. one paragraph can drop you into a different century, a different city, or the head of a stranger whose hopes feel uncomfortably similar to your own.",
+    "a kind reply costs nothing and rewrites the rest of someone's day. the internet often forgets this, but every quiet moment of grace adds up to a better, slower, friendlier place.",
+    "in software, the boring solution usually wins. clever code feels great in the moment, but next week you will not remember it, and the bug it hides will outlive both of you.",
+    "the stars do not care what you accomplish today. that is precisely why your tiny, ordinary, hopeful effort matters: it belongs entirely to you, and to no one else, and to no other day."
+  ];
+
+  let target = '', typed = '';
+  let duration = 60, timeLeft = 60;
+  let timerHandle = null, started = false, finished = false;
+  let totalKeys = 0, correctKeys = 0, errorCount = 0;
+
+  function pickText(){
+    const a = PARAGRAPHS[Math.floor(Math.random()*PARAGRAPHS.length)];
+    let b = PARAGRAPHS[Math.floor(Math.random()*PARAGRAPHS.length)];
+    while (b === a) b = PARAGRAPHS[Math.floor(Math.random()*PARAGRAPHS.length)];
+    return (a + ' ' + b).trim();
+  }
+
+  function renderText(){
+    const html = [];
+    for (let i = 0; i < target.length; i++){
+      const ch = target[i];
+      const t = typed[i];
+      let cls = 'ch';
+      if (t === undefined) cls = 'ch';
+      else if (t === ch) cls = 'ok';
+      else cls = ch === ' ' ? 'bad space' : 'bad';
+      const cursor = i === typed.length ? ' cur' : '';
+      const safe = ch === '<' ? '&lt;' : ch === '>' ? '&gt;' : ch === '&' ? '&amp;' : ch;
+      html.push(`<span class="${cls}${cursor}">${safe}</span>`);
+    }
+    if (typed.length >= target.length){
+      html.push(`<span class="cur"></span>`);
+    }
+    $('textArea').innerHTML = html.join('');
+  }
+
+  function setDuration(d){
+    duration = d; timeLeft = d;
+    [...$('durations').children].forEach(c => c.classList.toggle('active', +c.dataset.d === d));
+    $('sTime').textContent = d;
+  }
+
+  $('durations').addEventListener('click', e => {
+    const b = e.target.closest('button[data-d]'); if (!b) return;
+    if (started && !finished) return; // don't change mid-test
+    setDuration(+b.dataset.d);
+    reset(false);
+  });
+
+  function reset(newText){
+    if (timerHandle){ clearInterval(timerHandle); timerHandle = null; }
+    started = false; finished = false;
+    typed = ''; totalKeys = 0; correctKeys = 0; errorCount = 0;
+    if (newText) target = pickText();
+    timeLeft = duration;
+    $('sTime').textContent = duration;
+    $('sWpm').textContent = 0;
+    $('sAcc').textContent = '100%';
+    $('sErr').textContent = 0;
+    $('input').value = '';
+    $('input').disabled = false;
+    $('resultsPanel').style.display = 'none';
+    renderText();
+    $('input').focus();
+  }
+
+  function tick(){
+    timeLeft--;
+    $('sTime').textContent = Math.max(0, timeLeft);
+    updateLiveStats();
+    if (timeLeft <= 0) finish();
+  }
+  function elapsedMin(){
+    const elapsed = duration - timeLeft;
+    return Math.max(elapsed, 1) / 60;
+  }
+  function updateLiveStats(){
+    const correct = correctKeys;
+    const wpm = Math.round((correct / 5) / elapsedMin());
+    const acc = totalKeys === 0 ? 100 : Math.round((correctKeys / totalKeys) * 100);
+    $('sWpm').textContent = isFinite(wpm) ? Math.max(0, wpm) : 0;
+    $('sAcc').textContent = acc + '%';
+    $('sErr').textContent = errorCount;
+  }
+
+  $('input').addEventListener('input', e => {
+    if (finished) { $('input').value = ''; return; }
+    const val = e.target.value;
+
+    // Start timer on first character
+    if (!started && val.length > 0){
+      started = true;
+      timerHandle = setInterval(tick, 1000);
+    }
+
+    // Detect new keystrokes vs. backspaces
+    if (val.length > typed.length){
+      // Newly typed characters (could be paste — count each)
+      for (let i = typed.length; i < val.length; i++){
+        totalKeys++;
+        if (val[i] === target[i]) correctKeys++;
+        else errorCount++;
+      }
+    }
+    // (Backspace just shortens `typed`; we don't decrement counters — accuracy reflects what really happened)
+
+    typed = val;
+
+    // Truncate if user typed past target
+    if (typed.length > target.length){
+      typed = typed.slice(0, target.length);
+      $('input').value = typed;
+    }
+    renderText();
+    updateLiveStats();
+
+    // Auto-finish if user reaches end
+    if (typed.length >= target.length){
+      finish();
+    }
+  });
+
+  $('input').addEventListener('keydown', e => {
+    // Block paste shortcuts to keep score honest
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) e.preventDefault();
+  });
+
+  function finish(){
+    finished = true;
+    if (timerHandle){ clearInterval(timerHandle); timerHandle = null; }
+    $('input').disabled = true;
+
+    const elapsedSec = Math.max(1, duration - Math.max(0, timeLeft));
+    const minutes = elapsedSec / 60;
+    const netWpm = Math.max(0, Math.round((correctKeys / 5) / minutes));
+    const rawWpm = Math.max(0, Math.round((totalKeys / 5) / minutes));
+    const acc = totalKeys === 0 ? 100 : Math.round((correctKeys / totalKeys) * 100);
+    const words = (typed.trim().split(/\s+/).filter(Boolean) || []).length;
+
+    let tier = 'Beginner', headline = 'Keep practicing!';
+    if (netWpm >= 100){ tier = 'Excellent 🚀'; headline = 'Phenomenal speed!'; }
+    else if (netWpm >= 80){ tier = 'Professional 💼'; headline = 'Pro-level typing!'; }
+    else if (netWpm >= 60){ tier = 'Good 👍'; headline = 'Solid typing!'; }
+    else if (netWpm >= 40){ tier = 'Average ⌨'; headline = 'Right in the middle.'; }
+    else if (netWpm >= 20){ tier = 'Beginner 🌱'; headline = 'Keep practicing — you\'ll get there!'; }
+    else { tier = 'Just starting'; headline = 'Everyone starts somewhere.'; }
+
+    $('rTier').textContent = tier;
+    $('rHeadline').textContent = headline;
+    $('rSub').textContent = `Test duration: ${duration}s • Typed for ${elapsedSec}s`;
+    $('rWpm').textContent = netWpm;
+    $('rRaw').textContent = rawWpm;
+    $('rAcc').textContent = acc + '%';
+    $('rErr').textContent = errorCount;
+    $('rChars').textContent = correctKeys + '/' + totalKeys;
+    $('rWords').textContent = words;
+    $('resultsPanel').style.display = 'block';
+    $('resultsPanel').scrollIntoView({behavior:'smooth', block:'center'});
+  }
+
+  $('restartBtn').onclick = ()=> reset(false);
+  $('newTextBtn').onclick = ()=> reset(true);
+  $('againBtn').onclick = ()=> reset(true);
+
+  // Auto-focus input on click anywhere on text area
+  $('textArea').addEventListener('click', ()=> $('input').focus());
+
+  // Init
+  target = pickText();
+  setDuration(60);
+  reset(false);
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

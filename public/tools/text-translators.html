@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fun Text Translator Toolkit — Runes, Morse, Binary, Braille, Hieroglyphics · Utility Tools</title>
+  <meta name="description" content="Free fun text translators — convert English to Viking runes, Morse code, binary, Pig Latin, NATO alphabet, Braille, upside-down text, medieval fonts, emoji, hieroglyphics, and ancient scroll images. Runs entirely in your browser.">
+  <meta name="keywords" content="english to runes, english to morse code, english to binary, pig latin translator, english to NATO alphabet, english to braille, upside down text, medieval text generator, hieroglyphics name generator, ancient scroll text generator, fun text translator">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/text-translators">
+  <meta property="og:title" content="Fun Text Translator Toolkit">
+  <meta property="og:description" content="Convert English text into runes, Morse, binary, Pig Latin, Braille, hieroglyphics, fantasy text, and more — all in your browser.">
+  <meta property="og:url" content="/text-translators">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tt-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:14px; }
+    .tt-card { display:block; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:18px; color:var(--text); text-decoration:none; transition: transform 0.15s, border-color 0.15s, box-shadow 0.2s; }
+    .tt-card:hover { transform: translateY(-3px); border-color: var(--accent); text-decoration:none; box-shadow: 0 10px 24px rgba(124,92,255,0.18); }
+    .tt-card .tt-glyph { font-size:32px; line-height:1; margin-bottom:10px; background: var(--grad); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+    .tt-card h3 { margin:0 0 4px; font-size:16px; color:var(--text); }
+    .tt-card p  { margin:0; color:var(--muted); font-size:13px; }
+    .disclaimer { background: rgba(255,181,71,0.08); border:1px solid rgba(255,181,71,0.4); color:var(--text); border-radius:8px; padding:12px 14px; font-size:13.5px; margin-bottom:16px; }
+    .disclaimer b { color: var(--warn); }
+    .faq-item { background: var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:14px 16px; margin-bottom:10px; }
+    .faq-item h3 { margin:0 0 6px; font-size:15px; color:var(--text); }
+    .faq-item p  { margin:0; color:var(--muted); font-size:14px; }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+    {"@type":"Question","name":"Is everything processed in my browser?","acceptedAnswer":{"@type":"Answer","text":"Yes. All conversions run locally in JavaScript. No text is uploaded, no account is required, and nothing is stored after you close the tab."}},
+    {"@type":"Question","name":"Are the runes and hieroglyphics historically accurate?","acceptedAnswer":{"@type":"Answer","text":"No. They are decorative and phonetic. They are not authentic translations into Old Norse or Ancient Egyptian."}},
+    {"@type":"Question","name":"Why does some output look like boxes on my device?","acceptedAnswer":{"@type":"Answer","text":"The text is correct Unicode but your device is missing a font for those code points."}},
+    {"@type":"Question","name":"Can I decode binary or Morse back to English?","acceptedAnswer":{"@type":"Answer","text":"Yes — both pages have a paste-and-decode mode."}},
+    {"@type":"Question","name":"Is the Braille output real Grade 2 Braille?","acceptedAnswer":{"@type":"Answer","text":"No. We produce uncontracted Grade 1 Braille."}}]}
+  </script>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Fun Text Translator Toolkit</h1>
+      <p>Convert English text into <strong>runes, Morse code, binary, Pig Latin, Braille, hieroglyphics, fantasy text, emoji</strong>, and more. Pick a translator below — every tool runs in your browser, with nothing uploaded.</p>
+    </div>
+
+    <div class="disclaimer">
+      <b>⚠ Note:</b> These tools are for fun, decorative, and educational use. Some conversions are phonetic or symbolic, not historically exact translations.
+    </div>
+
+    <section>
+      <div class="tt-grid">
+        <a class="tt-card" href="/runes"><div class="tt-glyph">ᚱᚢᚾᛖ</div><h3>English to Viking Runes</h3><p>Phonetic Elder Futhark with a "name mode" for signatures.</p></a>
+        <a class="tt-card" href="/morse"><div class="tt-glyph">·−·−·</div><h3>English to Morse Code</h3><p>Encode, decode, copy and play audible Morse beeps.</p></a>
+        <a class="tt-card" href="/binary"><div class="tt-glyph">01010</div><h3>English to Binary</h3><p>UTF-8 binary in three styles, plus binary → text decoder.</p></a>
+        <a class="tt-card" href="/pig-latin"><div class="tt-glyph">igPay</div><h3>English to Pig Latin</h3><p>Classic playground language with capitalisation preserved.</p></a>
+        <a class="tt-card" href="/nato"><div class="tt-glyph">Alpha</div><h3>NATO Phonetic Alphabet</h3><p>Alpha, Bravo, Charlie… with a full reference table.</p></a>
+        <a class="tt-card" href="/braille"><div class="tt-glyph">⠃⠗⠁⠊⠇⠇⠑</div><h3>English to Braille</h3><p>Unicode Braille (uncontracted Grade 1) with copy.</p></a>
+        <a class="tt-card" href="/upside-down"><div class="tt-glyph">uʍop</div><h3>Upside-down Text</h3><p>Flip text using Unicode lookalikes — works in social bios.</p></a>
+        <a class="tt-card" href="/medieval"><div class="tt-glyph">𝔐𝔢𝔡</div><h3>Medieval / Fantasy Text</h3><p>Fraktur, Bold Fraktur, Script, Bold Fantasy, Double-struck.</p></a>
+        <a class="tt-card" href="/emoji-text"><div class="tt-glyph">🅴🅼🅾</div><h3>Emoji Text Generator</h3><p>Letter emojis, keyword replacement, random decoration.</p></a>
+        <a class="tt-card" href="/hieroglyphics"><div class="tt-glyph">𓂀𓆣𓏏</div><h3>Hieroglyphics Name</h3><p>Phonetic Egyptian hieroglyphs with cartouche PNG download.</p></a>
+        <a class="tt-card" href="/scroll"><div class="tt-glyph">📜</div><h3>Ancient Scroll Image</h3><p>Render text on a parchment scroll and download as PNG.</p></a>
+      </div>
+    </section>
+
+    <aside class="ad-slot ad-inline" aria-label="Advertisement"><span class="ad-label">Advertisement</span></aside>
+
+    <section class="panel">
+      <h2 style="margin:0 0 12px;font-size:22px">About this toolkit</h2>
+      <p>This collection is built for hobbyists, writers, students, role-players and curious browsers. It covers the most-searched <strong>English to runes</strong>, <strong>English to Morse code</strong>, <strong>English to binary</strong>, <strong>English to Pig Latin</strong>, <strong>English to NATO alphabet</strong>, <strong>English to Braille</strong>, <strong>upside-down text</strong>, <strong>hieroglyphics name generator</strong> and <strong>ancient scroll text generator</strong> conversions — each in its own dedicated page so it's fast to load and easy to bookmark.</p>
+      <p style="color:var(--muted);font-size:13.5px;margin-bottom:0">Every tool is implemented in plain JavaScript using the Canvas API and Web Audio API where needed. Nothing is sent to a server.</p>
+    </section>
+
+    <section class="panel" id="faq">
+      <h2 style="margin:0 0 12px;font-size:22px">Frequently Asked Questions</h2>
+      <div class="faq-item"><h3>Is everything processed in my browser?</h3><p>Yes. All conversions run locally. Nothing is uploaded, nothing is stored after you close the tab.</p></div>
+      <div class="faq-item"><h3>Are the runes and hieroglyphics historically accurate?</h3><p>No — they are decorative, phonetic mappings. They are not authentic translations into Old Norse or Ancient Egyptian.</p></div>
+      <div class="faq-item"><h3>Why does some output look like boxes on my device?</h3><p>The text is correct Unicode but your device is missing a font for those code points (e.g. Egyptian Hieroglyphs, Runic, Mathematical Alphanumeric Symbols).</p></div>
+      <div class="faq-item"><h3>Can I decode binary or Morse back to English?</h3><p>Yes — the <a href="/binary">Binary</a> and <a href="/morse">Morse</a> pages each include a decoder.</p></div>
+      <div class="faq-item"><h3>Is the Braille output real Grade 2 Braille?</h3><p>No. It's uncontracted Grade 1 Braille — one Unicode dot pattern per letter, digit or basic punctuation mark.</p></div>
+    </section>
+
+    <p style="text-align:center;font-size:13px;color:var(--muted);margin:24px 0 0">
+      🔒 <strong>Privacy note:</strong> All text is processed locally in your browser. Nothing is uploaded.
+    </p>
+  </main>
+  <script src="/site.js"></script>
+</body>
+</html>
+

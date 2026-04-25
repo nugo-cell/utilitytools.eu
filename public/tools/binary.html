@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>English to Binary Translator (UTF-8) · Utility Tools</title>
+  <meta name="description" content="Free English to binary translator. Convert text to 8-bit UTF-8 binary in three styles, or decode binary back to text. Browser-only.">
+  <meta name="keywords" content="english to binary, text to binary, binary translator, ascii to binary, utf-8 binary, decode binary">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/binary">
+  <meta property="og:title" content="English to Binary Translator">
+  <meta property="og:url" content="/binary">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tt-out{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px;min-height:64px;font-family:var(--mono);font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+    .help{font-size:13px;color:var(--muted);margin-top:10px;padding:10px 12px;border-left:3px solid var(--accent);background:rgba(124,92,255,0.06);border-radius:0 6px 6px 0}
+    .siblings{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .siblings a{padding:6px 12px;border-radius:999px;background:var(--panel-2);border:1px solid var(--border);color:var(--muted);font-size:13px;text-decoration:none}
+    .siblings a:hover{color:var(--text);border-color:var(--accent)}
+    .faq-item{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
+    .faq-item h3{margin:0 0 6px;font-size:15px}.faq-item p{margin:0;color:var(--muted);font-size:14px}
+  </style>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+    {"@type":"Question","name":"Is this ASCII or UTF-8?","acceptedAnswer":{"@type":"Answer","text":"Both. Plain English letters are identical in ASCII and UTF-8 (one byte each). Non-ASCII characters such as emoji or accented letters are encoded as their UTF-8 multi-byte sequence."}},
+    {"@type":"Question","name":"Can I paste binary back to get text?","acceptedAnswer":{"@type":"Answer","text":"Yes. Paste any 0s and 1s — spaces are ignored. Click Decode to turn the bits back into the original UTF-8 text."}},
+    {"@type":"Question","name":"What does 'grouped by word' do?","acceptedAnswer":{"@type":"Answer","text":"It encodes each whitespace-separated word independently and joins them with two spaces, so you can see word boundaries clearly."}}
+  ]}
+  </script>
+</head>
+<body>
+  <header class="topnav"><a href="/" class="brand">Utility<span>Tools</span></a><nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav></header>
+  <main class="container">
+    <div class="tool-header">
+      <h1>English to Binary Translator</h1>
+      <p>Convert text to <strong>8-bit binary (UTF-8)</strong> in three styles, or decode binary back to readable English.</p>
+    </div>
+
+    <aside class="ad-slot ad-inline" aria-label="Advertisement"><span class="ad-label">Advertisement</span></aside>
+
+    <section class="panel">
+      <label for="in">Text or binary</label>
+      <textarea id="in" placeholder="Type text or paste binary…">Hello world!</textarea>
+      <div class="row" style="margin-top:8px">
+        <label>Style</label>
+        <select id="style" style="width:auto">
+          <option value="space">Spaces between bytes</option>
+          <option value="continuous">Continuous (no spaces)</option>
+          <option value="word">Grouped by word</option>
+        </select>
+        <button id="goBtn">Encode</button>
+        <button id="decBtn" class="secondary">Decode (Binary → text)</button>
+        <button id="copyBtn" class="secondary">Copy</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+      <label style="margin-top:12px">Output</label>
+      <div class="tt-out" id="out"></div>
+      <div class="help">Each character is encoded as its UTF-8 bytes in 8-bit binary. Non-ASCII characters such as <code>é</code>, <code>中</code> or 🌍 use multiple bytes.</div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">How binary text works</h2>
+      <p>Computers store every character as a number. UTF-8 — the dominant text encoding on the web — represents each ASCII character (A–Z, a–z, 0–9, basic punctuation) in exactly one byte (8 bits), and characters from other scripts in 2–4 bytes. The translator first encodes your text to UTF-8 bytes, then prints each byte as binary.</p>
+    </section>
+
+    <section class="panel" id="faq">
+      <h2 style="margin:0 0 12px;font-size:20px">FAQ</h2>
+      <div class="faq-item"><h3>Is this ASCII or UTF-8?</h3><p>Both — plain English letters are identical in ASCII and UTF-8. Non-ASCII characters use multi-byte UTF-8 sequences.</p></div>
+      <div class="faq-item"><h3>Can I paste binary back to get text?</h3><p>Yes. Paste 0s and 1s (spaces are ignored) and click <strong>Decode</strong>.</p></div>
+      <div class="faq-item"><h3>What does "grouped by word" do?</h3><p>Encodes each word independently and joins them with two spaces so word boundaries are obvious.</p></div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">More fun translators</h2>
+      <div class="siblings">
+        <a href="/text-translators">All translators</a>
+        <a href="/runes">Runes</a><a href="/morse">Morse</a><a href="/pig-latin">Pig Latin</a>
+        <a href="/nato">NATO</a><a href="/braille">Braille</a><a href="/upside-down">Upside-down</a>
+        <a href="/medieval">Medieval</a><a href="/emoji-text">Emoji</a>
+        <a href="/hieroglyphics">Hieroglyphics</a><a href="/scroll">Scroll</a>
+      </div>
+    </section>
+
+    <p style="text-align:center;font-size:13px;color:var(--muted);margin:24px 0 0">🔒 All text is processed locally in your browser.</p>
+  </main>
+  <script src="/tools/text-translators.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    function encode(){ $('out').textContent = TT.toBinary($('in').value, $('style').value); }
+    $('goBtn').onclick = encode;
+    $('decBtn').onclick = ()=>{ $('out').textContent = TT.fromBinary($('in').value); };
+    $('copyBtn').onclick = e => TT.copy($('out').textContent, e.currentTarget);
+    $('clearBtn').onclick = ()=>{ $('in').value=''; $('out').textContent=''; };
+    $('in').addEventListener('input', encode);
+    $('style').addEventListener('change', encode);
+    encode();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

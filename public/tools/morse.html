@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>English to Morse Code Translator (with Audio) · Utility Tools</title>
+  <meta name="description" content="Free English to Morse code translator. Encode, decode, copy, and play audible Morse beeps using the Web Audio API. 100% browser-based.">
+  <meta name="keywords" content="english to morse code, morse code translator, morse code generator, decode morse code, morse code audio">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/morse">
+  <meta property="og:title" content="English to Morse Code Translator">
+  <meta property="og:url" content="/morse">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tt-out{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px;min-height:64px;font-family:var(--mono);font-size:15px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+    .help{font-size:13px;color:var(--muted);margin-top:10px;padding:10px 12px;border-left:3px solid var(--accent);background:rgba(124,92,255,0.06);border-radius:0 6px 6px 0}
+    .siblings{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .siblings a{padding:6px 12px;border-radius:999px;background:var(--panel-2);border:1px solid var(--border);color:var(--muted);font-size:13px;text-decoration:none}
+    .siblings a:hover{color:var(--text);border-color:var(--accent)}
+    .faq-item{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
+    .faq-item h3{margin:0 0 6px;font-size:15px}.faq-item p{margin:0;color:var(--muted);font-size:14px}
+  </style>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+    {"@type":"Question","name":"How do I read Morse code?","acceptedAnswer":{"@type":"Answer","text":"A dot (.) is a short signal, a dash (-) is roughly three times longer. Letters are separated by single spaces, words by a forward slash (/)."}},
+    {"@type":"Question","name":"Can I decode Morse back to English?","acceptedAnswer":{"@type":"Answer","text":"Yes — paste Morse code into the input box and click Decode. The translator handles letters, digits and 18 punctuation marks."}},
+    {"@type":"Question","name":"Why does playback need a click first?","acceptedAnswer":{"@type":"Answer","text":"Modern browsers block audio until the user interacts with the page. Pressing Play creates the AudioContext and starts the beeps."}}
+  ]}
+  </script>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>English to Morse Code Translator</h1>
+      <p>Translate any text to <strong>Morse code</strong> — letters separated by spaces, words by <code>/</code>. Press play to hear it as audible beeps.</p>
+    </div>
+
+    <aside class="ad-slot ad-inline" aria-label="Advertisement"><span class="ad-label">Advertisement</span></aside>
+
+    <section class="panel">
+      <label for="in">Text or Morse</label>
+      <textarea id="in" placeholder="Type a message…">SOS save our ship</textarea>
+      <div class="row" style="margin-top:8px">
+        <button id="goBtn">Encode</button>
+        <button id="decBtn" class="secondary">Decode (Morse → text)</button>
+        <button id="copyBtn" class="secondary">Copy</button>
+        <button id="playBtn" class="secondary">▶ Play sound</button>
+        <button id="stopBtn" class="secondary" disabled>■ Stop</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+      <label style="margin-top:12px">Output</label>
+      <div class="tt-out" id="out"></div>
+      <div class="help">Includes letters A–Z, digits 0–9, and 18 punctuation marks (<code>. , ? ! ' " / ( ) &amp; : ; = + - _ $ @</code>). Audio is generated locally with the Web Audio API at 600 Hz.</div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">About Morse code</h2>
+      <p>Morse code was developed in the 1830s by Samuel Morse and Alfred Vail for the electrical telegraph and is still used in amateur radio and aviation emergency signalling. Each letter is a unique pattern of dots and dashes, with the most-used letters (E, T) given the shortest codes.</p>
+    </section>
+
+    <section class="panel" id="faq">
+      <h2 style="margin:0 0 12px;font-size:20px">FAQ</h2>
+      <div class="faq-item"><h3>How do I read Morse code?</h3><p>A dot (.) is a short signal, a dash (-) is about three times longer. Letters are separated by single spaces; words by a forward slash (/).</p></div>
+      <div class="faq-item"><h3>Can I decode Morse back to English?</h3><p>Yes — paste Morse into the input and click <strong>Decode</strong>. The translator handles letters, digits and punctuation.</p></div>
+      <div class="faq-item"><h3>Why does playback need a click first?</h3><p>Browsers block audio until the user interacts with the page. Pressing Play creates the AudioContext and starts the beeps.</p></div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">More fun translators</h2>
+      <div class="siblings">
+        <a href="/text-translators">All translators</a>
+        <a href="/runes">Runes</a><a href="/binary">Binary</a><a href="/pig-latin">Pig Latin</a>
+        <a href="/nato">NATO Alphabet</a><a href="/braille">Braille</a><a href="/upside-down">Upside-down</a>
+        <a href="/medieval">Medieval</a><a href="/emoji-text">Emoji</a>
+        <a href="/hieroglyphics">Hieroglyphics</a><a href="/scroll">Ancient Scroll</a>
+      </div>
+    </section>
+
+    <p style="text-align:center;font-size:13px;color:var(--muted);margin:24px 0 0">🔒 All text is processed locally in your browser.</p>
+  </main>
+
+  <script src="/tools/text-translators.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    function encode(){ $('out').textContent = TT.toMorse($('in').value); }
+    $('goBtn').onclick = encode;
+    $('decBtn').onclick = ()=>{
+      const v = $('in').value.trim();
+      if(/^[.\-\s\/]+$/.test(v)) $('out').textContent = TT.fromMorse(v);
+      else $('out').textContent = '⚠ Paste Morse code (dots/dashes, slashes between words) into the input first.';
+    };
+    $('copyBtn').onclick = e => TT.copy($('out').textContent, e.currentTarget);
+    $('clearBtn').onclick = ()=>{ $('in').value=''; $('out').textContent=''; };
+    $('playBtn').onclick = ()=>{
+      const code = TT.toMorse($('in').value);
+      $('out').textContent = code;
+      $('stopBtn').disabled = false;
+      TT.playMorse(code, ()=>{ $('stopBtn').disabled = true; });
+    };
+    $('stopBtn').onclick = ()=>{ TT.stopMorse(); $('stopBtn').disabled = true; };
+    $('in').addEventListener('input', encode);
+    encode();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emoji Text Generator (Letters, Keywords, Decoration) · Utility Tools</title>
+  <meta name="description" content="Free emoji text generator. Turn letters into regional-indicator emojis, replace keywords with emoji, or sprinkle in random emoji decoration. Browser-only.">
+  <meta name="keywords" content="emoji text generator, letters to emoji, emoji translator, emoji decorator, regional indicator emoji">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/emoji-text">
+  <meta property="og:title" content="Emoji Text Generator">
+  <meta property="og:url" content="/emoji-text">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tt-out{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px;min-height:64px;font-size:24px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+    .help{font-size:13px;color:var(--muted);margin-top:10px;padding:10px 12px;border-left:3px solid var(--accent);background:rgba(124,92,255,0.06);border-radius:0 6px 6px 0}
+    .siblings{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .siblings a{padding:6px 12px;border-radius:999px;background:var(--panel-2);border:1px solid var(--border);color:var(--muted);font-size:13px;text-decoration:none}
+    .siblings a:hover{color:var(--text);border-color:var(--accent)}
+    .faq-item{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
+    .faq-item h3{margin:0 0 6px;font-size:15px}.faq-item p{margin:0;color:var(--muted);font-size:14px}
+  </style>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+    {"@type":"Question","name":"Why are some letters spelling out country flags?","acceptedAnswer":{"@type":"Answer","text":"In Letter mode each Latin letter is replaced by its 'Regional Indicator Symbol'. When two indicators sit next to each other and form a valid country code (like U+S = US), most platforms render them as a single flag emoji."}},
+    {"@type":"Question","name":"How does Keyword mode pick emojis?","acceptedAnswer":{"@type":"Answer","text":"It runs through ~40 hand-picked English keywords (love, fire, money, cat, pizza, code, etc.) and inserts the matching emoji after each match. Other words are left alone."}}
+  ]}
+  </script>
+</head>
+<body>
+  <header class="topnav"><a href="/" class="brand">Utility<span>Tools</span></a><nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav></header>
+  <main class="container">
+    <div class="tool-header">
+      <h1>Emoji Text Generator</h1>
+      <p>Three modes: turn each letter into a regional-indicator emoji, replace keywords with emoji, or sprinkle in random emoji decoration.</p>
+    </div>
+
+    <aside class="ad-slot ad-inline" aria-label="Advertisement"><span class="ad-label">Advertisement</span></aside>
+
+    <section class="panel">
+      <label for="in">Your text</label>
+      <textarea id="in" placeholder="Type something fun…">I love fire and money</textarea>
+      <div class="row" style="margin-top:8px">
+        <label>Mode</label>
+        <select id="mode" style="width:auto">
+          <option value="letters">🅰️ Letter emojis (regional indicators)</option>
+          <option value="keywords">❤️ Keyword replacement</option>
+          <option value="decorate">✨ Random decoration</option>
+        </select>
+        <button id="goBtn">Convert</button>
+        <button id="copyBtn" class="secondary">Copy</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+      <label style="margin-top:12px">Output</label>
+      <div class="tt-out" id="out"></div>
+      <div class="help">Letter mode uses Unicode <em>Regional Indicator Symbols</em>; some letter pairs that match country codes will render as flags. Keyword mode covers ~40 common English words.</div>
+    </section>
+
+    <section class="panel" id="faq">
+      <h2 style="margin:0 0 12px;font-size:20px">FAQ</h2>
+      <div class="faq-item"><h3>Why are some letters spelling out country flags?</h3><p>Two adjacent regional indicators that form a valid country code render as a flag (e.g. <code>US</code> → 🇺🇸).</p></div>
+      <div class="faq-item"><h3>How does Keyword mode pick emojis?</h3><p>It runs through ~40 hand-picked English keywords (love, fire, money, cat, pizza, code…) and inserts the matching emoji after each match.</p></div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">More fun translators</h2>
+      <div class="siblings">
+        <a href="/text-translators">All translators</a>
+        <a href="/runes">Runes</a><a href="/morse">Morse</a><a href="/binary">Binary</a>
+        <a href="/pig-latin">Pig Latin</a><a href="/nato">NATO</a><a href="/braille">Braille</a>
+        <a href="/upside-down">Upside-down</a><a href="/medieval">Medieval</a>
+        <a href="/hieroglyphics">Hieroglyphics</a><a href="/scroll">Scroll</a>
+      </div>
+    </section>
+
+    <p style="text-align:center;font-size:13px;color:var(--muted);margin:24px 0 0">🔒 All text is processed locally in your browser.</p>
+  </main>
+  <script src="/tools/text-translators.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    function render(){
+      const t = $('in').value, m = $('mode').value;
+      $('out').textContent = m==='letters' ? TT.lettersToEmoji(t) : m==='keywords' ? TT.keywordsToEmoji(t) : TT.decorate(t);
+    }
+    $('goBtn').onclick = render;
+    $('copyBtn').onclick = e => TT.copy($('out').textContent, e.currentTarget);
+    $('clearBtn').onclick = ()=>{ $('in').value=''; $('out').textContent=''; };
+    $('in').addEventListener('input', render);
+    $('mode').addEventListener('change', render);
+    render();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

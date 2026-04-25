@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>English to NATO Phonetic Alphabet Translator · Utility Tools</title>
+  <meta name="description" content="Convert any text to the NATO phonetic alphabet — Alpha, Bravo, Charlie… with the full ICAO reference table. Free and browser-only.">
+  <meta name="keywords" content="english to NATO alphabet, NATO phonetic alphabet, alpha bravo charlie, ICAO alphabet, phonetic spelling">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/nato">
+  <meta property="og:title" content="NATO Phonetic Alphabet Translator">
+  <meta property="og:url" content="/nato">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tt-out{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px;min-height:64px;font-size:16px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+    .nato-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;font-family:var(--mono);font-size:13px;margin-top:10px}
+    .nato-grid div{background:var(--panel-2);border:1px solid var(--border);border-radius:6px;padding:6px 8px}
+    .nato-grid div b{color:var(--accent);margin-right:6px}
+    .siblings{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .siblings a{padding:6px 12px;border-radius:999px;background:var(--panel-2);border:1px solid var(--border);color:var(--muted);font-size:13px;text-decoration:none}
+    .siblings a:hover{color:var(--text);border-color:var(--accent)}
+    .faq-item{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
+    .faq-item h3{margin:0 0 6px;font-size:15px}.faq-item p{margin:0;color:var(--muted);font-size:14px}
+  </style>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+    {"@type":"Question","name":"Why is 9 spelled 'Niner'?","acceptedAnswer":{"@type":"Answer","text":"In radiotelephony 9 is pronounced 'Niner' to avoid confusion with the German 'nein' (no) and to keep all digits at two syllables for clearer transmission."}},
+    {"@type":"Question","name":"Is this the same as the police phonetic alphabet?","acceptedAnswer":{"@type":"Answer","text":"No. The NATO/ICAO alphabet (Alpha, Bravo, Charlie…) is the international standard. Some police forces use the older LAPD phonetic alphabet (Adam, Boy, Charles…)."}}
+  ]}
+  </script>
+</head>
+<body>
+  <header class="topnav"><a href="/" class="brand">Utility<span>Tools</span></a><nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav></header>
+  <main class="container">
+    <div class="tool-header">
+      <h1>English to NATO Phonetic Alphabet</h1>
+      <p>Spell anything out loud over a noisy radio. Letters become <strong>Alpha, Bravo, Charlie</strong>, digits use the radiotelephony names — <em>Niner</em> for 9.</p>
+    </div>
+
+    <aside class="ad-slot ad-inline" aria-label="Advertisement"><span class="ad-label">Advertisement</span></aside>
+
+    <section class="panel">
+      <label for="in">Letters or digits</label>
+      <textarea id="in" placeholder="Type letters or numbers…">UTL-2026</textarea>
+      <div class="row" style="margin-top:8px">
+        <label>Separator</label>
+        <select id="sep" style="width:auto">
+          <option value=" ">Space</option>
+          <option value=" - ">- (hyphen)</option>
+          <option value="\n">New line</option>
+        </select>
+        <button id="goBtn">Convert</button>
+        <button id="copyBtn" class="secondary">Copy</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+      <label style="margin-top:12px">Output</label>
+      <div class="tt-out" id="out"></div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">Full reference table</h2>
+      <div class="nato-grid" id="natoTable"></div>
+    </section>
+
+    <section class="panel" id="faq">
+      <h2 style="margin:0 0 12px;font-size:20px">FAQ</h2>
+      <div class="faq-item"><h3>Why is 9 spelled "Niner"?</h3><p>To avoid confusion with the German "nein" (no) and to keep every digit at roughly two syllables for clearer radio transmission.</p></div>
+      <div class="faq-item"><h3>Is this the same as the police phonetic alphabet?</h3><p>No — NATO/ICAO is the international standard. Some police forces use the older LAPD alphabet (Adam, Boy, Charles…).</p></div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">More fun translators</h2>
+      <div class="siblings">
+        <a href="/text-translators">All translators</a>
+        <a href="/runes">Runes</a><a href="/morse">Morse</a><a href="/binary">Binary</a>
+        <a href="/pig-latin">Pig Latin</a><a href="/braille">Braille</a><a href="/upside-down">Upside-down</a>
+        <a href="/medieval">Medieval</a><a href="/emoji-text">Emoji</a>
+        <a href="/hieroglyphics">Hieroglyphics</a><a href="/scroll">Scroll</a>
+      </div>
+    </section>
+
+    <p style="text-align:center;font-size:13px;color:var(--muted);margin:24px 0 0">🔒 All text is processed locally in your browser.</p>
+  </main>
+  <script src="/tools/text-translators.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    function render(){
+      const sep = $('sep').value === '\\n' ? '\n' : $('sep').value;
+      $('out').textContent = TT.toNato($('in').value, sep);
+    }
+    $('goBtn').onclick = render;
+    $('copyBtn').onclick = e => TT.copy($('out').textContent, e.currentTarget);
+    $('clearBtn').onclick = ()=>{ $('in').value=''; $('out').textContent=''; };
+    $('in').addEventListener('input', render);
+    $('sep').addEventListener('change', render);
+    document.getElementById('natoTable').innerHTML =
+      Object.entries(TT.NATO).map(([k,v])=>`<div><b>${k}</b>${v}</div>`).join('');
+    render();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

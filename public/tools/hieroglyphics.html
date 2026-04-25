@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hieroglyphics Name Generator (Cartouche PNG) · Utility Tools</title>
+  <meta name="description" content="Free hieroglyphics name generator. Phonetic English-to-Egyptian hieroglyph mapping, plus a downloadable cartouche PNG. Browser-only.">
+  <meta name="keywords" content="hieroglyphics name generator, name in hieroglyphics, egyptian hieroglyph translator, cartouche generator, name in hieroglyphs">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/hieroglyphics">
+  <meta property="og:title" content="Hieroglyphics Name Generator">
+  <meta property="og:url" content="/hieroglyphics">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tt-out{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px;min-height:64px;font-size:36px;line-height:1.4;white-space:pre-wrap;word-break:break-word;font-family:'Noto Sans Egyptian Hieroglyphs',serif}
+    .help{font-size:13px;color:var(--muted);margin-top:10px;padding:10px 12px;border-left:3px solid var(--accent);background:rgba(124,92,255,0.06);border-radius:0 6px 6px 0}
+    .disclaimer{background:rgba(255,181,71,0.08);border:1px solid rgba(255,181,71,0.4);border-radius:8px;padding:12px 14px;font-size:13.5px;margin-bottom:16px}
+    .disclaimer b{color:var(--warn)}
+    .siblings{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .siblings a{padding:6px 12px;border-radius:999px;background:var(--panel-2);border:1px solid var(--border);color:var(--muted);font-size:13px;text-decoration:none}
+    .siblings a:hover{color:var(--text);border-color:var(--accent)}
+    .faq-item{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
+    .faq-item h3{margin:0 0 6px;font-size:15px}.faq-item p{margin:0;color:var(--muted);font-size:14px}
+  </style>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+    {"@type":"Question","name":"Is this a real Egyptian translation?","acceptedAnswer":{"@type":"Answer","text":"No. This is a phonetic, decorative mapping from English letters to single Egyptian hieroglyphs. Real ancient Egyptian had multi-letter signs, determinatives, and grammar that this simple tool does not handle."}},
+    {"@type":"Question","name":"What is a cartouche?","acceptedAnswer":{"@type":"Answer","text":"A cartouche is the oval frame around the name of a pharaoh or important figure in Egyptian inscriptions. It signified royalty and protected the name."}}
+  ]}
+  </script>
+</head>
+<body>
+  <header class="topnav"><a href="/" class="brand">Utility<span>Tools</span></a><nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav></header>
+  <main class="container">
+    <div class="tool-header">
+      <h1>Hieroglyphics Name Generator</h1>
+      <p>Phonetic mapping from English letters to <strong>Egyptian hieroglyph</strong> Unicode. Download your name framed in a <strong>cartouche</strong> as a PNG.</p>
+    </div>
+
+    <div class="disclaimer"><b>⚠ Note:</b> This tool is for fun, decorative, and educational use. Hieroglyphs are mapped <em>phonetically</em> — this is <strong>not</strong> a real translation into Ancient Egyptian.</div>
+
+    <aside class="ad-slot ad-inline" aria-label="Advertisement"><span class="ad-label">Advertisement</span></aside>
+
+    <section class="panel">
+      <label for="in">Name (a–z, max 40 characters)</label>
+      <input type="text" id="in" placeholder="Type a name…" value="Cleopatra" maxlength="40">
+      <div class="row" style="margin-top:8px">
+        <button id="goBtn">Convert</button>
+        <button id="copyBtn" class="secondary">Copy text</button>
+        <button id="dlBtn" class="secondary">Download cartouche PNG</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+      <label style="margin-top:12px">Hieroglyph text</label>
+      <div class="tt-out" id="out"></div>
+      <label style="margin-top:12px">Cartouche preview</label>
+      <div class="img-stage" style="background:#2a1f0e"><canvas id="cv"></canvas></div>
+      <div class="help">Each English letter uses one of the standard Egyptian "alphabetic" hieroglyphs (e.g. <code>a → 𓄿</code>, <code>n → 𓈖</code>). The cartouche image is rendered with the Canvas API — no external assets.</div>
+    </section>
+
+    <section class="panel" id="faq">
+      <h2 style="margin:0 0 12px;font-size:20px">FAQ</h2>
+      <div class="faq-item"><h3>Is this a real Egyptian translation?</h3><p>No — phonetic and decorative only. Real Egyptian writing used multi-letter signs, determinatives and grammar this tool does not implement.</p></div>
+      <div class="faq-item"><h3>What is a cartouche?</h3><p>An oval frame placed around the name of a pharaoh or important figure to mark and protect it.</p></div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">More fun translators</h2>
+      <div class="siblings">
+        <a href="/text-translators">All translators</a>
+        <a href="/runes">Runes</a><a href="/morse">Morse</a><a href="/binary">Binary</a>
+        <a href="/pig-latin">Pig Latin</a><a href="/nato">NATO</a><a href="/braille">Braille</a>
+        <a href="/upside-down">Upside-down</a><a href="/medieval">Medieval</a>
+        <a href="/emoji-text">Emoji</a><a href="/scroll">Scroll</a>
+      </div>
+    </section>
+
+    <p style="text-align:center;font-size:13px;color:var(--muted);margin:24px 0 0">🔒 All text is processed locally in your browser.</p>
+  </main>
+  <script src="/tools/text-translators.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    const cv = $('cv');
+    function render(){
+      const v = $('in').value;
+      $('out').textContent = TT.toHieroglyphs(v);
+      TT.drawCartouche(cv, v || 'Anubis');
+    }
+    $('goBtn').onclick = render;
+    $('copyBtn').onclick = e => TT.copy($('out').textContent, e.currentTarget);
+    $('clearBtn').onclick = ()=>{ $('in').value=''; render(); };
+    $('dlBtn').onclick = ()=>{
+      render();
+      cv.toBlob(b => TT.downloadBlob(b, ($('in').value||'name')+'-hieroglyphics.png'), 'image/png');
+    };
+    $('in').addEventListener('input', render);
+    render();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+
