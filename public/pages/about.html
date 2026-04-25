@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About — UtilityTools.eu</title>
+  <meta name="description" content="UtilityTools.eu is a free European alternative for everyday online utilities. No tracking, no accounts — every tool runs locally in your browser.">
+  <meta name="keywords" content="UtilityTools.eu, EU online tools, european alternative, privacy first, GDPR friendly, browser tools">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://utilitytools.eu/about">
+  <meta name="theme-color" content="#7c5cff">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="About — UtilityTools.eu">
+  <meta property="og:description" content="A free European alternative for everyday online utilities — privacy guaranteed, runs in your browser.">
+  <meta property="og:url" content="https://utilitytools.eu/about">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span><span class="tld">.eu</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about" class="active">About</a></nav>
+  </header>
+
+  <main class="container-narrow">
+    <article class="prose">
+      <h1>About UtilityTools.eu</h1>
+      <p class="meta">A free European alternative for everyday online utilities.</p>
+
+      <div class="badges" style="margin: 14px 0 24px; display:flex; gap:8px; flex-wrap:wrap">
+        <span class="eu-badge eu">Made in the EU</span>
+        <span class="eu-badge"><span class="dot"></span> Zero tracking</span>
+        <span class="eu-badge"><span class="dot"></span> 100% in your browser</span>
+        <span class="eu-badge"><span class="dot"></span> No signup, ever</span>
+      </div>
+
+      <p><strong>UtilityTools.eu</strong> exists for one reason: the boring, useful tools you reach for every week — JSON formatters, password generators, timestamp converters, CV builders, budget calculators — shouldn't require an account, an ad-walled landing page, a "free trial", or that you trust some unknown server with your data.</p>
+
+      <h2>Privacy guaranteed — by design</h2>
+      <p>Every tool on this site runs entirely in your browser using standard web APIs. When you paste JSON into the formatter, generate a password, build a CV, or compute a hash, none of that content ever leaves your device. We don't have a database. There's nothing to leak.</p>
+      <p>Concretely:</p>
+      <ul>
+        <li><strong>No analytics.</strong> No Google Analytics, no Plausible, no pixel beacons, no third-party JavaScript watching you.</li>
+        <li><strong>No cookies.</strong> The site sets none. The only browser storage we use is <code>localStorage</code> on the same machine — for tools like the CV maker that autosave your work locally.</li>
+        <li><strong>No accounts.</strong> Nothing to sign up for, nothing to forget the password to.</li>
+        <li><strong>No ads.</strong> No retargeting, no ad networks, no consent banners.</li>
+        <li><strong>No data uploads.</strong> The server only ships HTML/CSS/JS files and a small public list of tools. It never receives your inputs.</li>
+      </ul>
+
+      <h2>An EU alternative</h2>
+      <p>Most "free online tools" sites are based in the US, run on US-owned analytics, and quietly funnel your data through dozens of partners. We are based in the European Union and built specifically to be a clean, GDPR-friendly alternative — small, fast, and respectful by default. If a tool you'd find useful is missing, we're always open to suggestions.</p>
+
+      <h2>Why "boring tools"?</h2>
+      <p>Because the dull utilities are the ones we reach for every week. They don't need AI, they don't need fancy branding — they just need to be fast, correct, and there when you need them. We obsess over making each one a single, focused page that loads in under a second and does exactly what it says.</p>
+
+      <h2>Open and free</h2>
+      <p>All 30+ tools are free, with no usage limits, no premium tier, and no sneaky upsells. The whole site works offline after the first visit, because each page is a self-contained file your browser can cache.</p>
+
+      <h2>Technical details</h2>
+      <p>The site is built with Node.js, Express, and plain HTML/CSS/JavaScript. No heavy frameworks, no build step, no third-party trackers — just the web platform doing what it was designed to do. A small handful of tools (QR code, DOCX-to-PDF, Markdown preview) load one open-source library from a public CDN; nothing about your input is uploaded.</p>
+
+      <p style="margin-top: 28px"><a href="/" class="brand" style="font-size:18px">→ Browse all tools</a></p>
+    </article>
+  </main>
+
+  <script src="/site.js"></script>
+</body>
+</html>
+

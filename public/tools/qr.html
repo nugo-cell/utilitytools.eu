@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Code Generator — Free Online Tool · Utility Tools</title>
+  <meta name="description" content="Free online QR code generator. Create a QR code from any text or URL and download as PNG. Runs fully in your browser.">
+  <meta name="keywords" content="qr code generator, free qr code, qr maker, url to qr, text to qr">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/qr">
+  <meta property="og:title" content="QR Code Generator">
+  <meta property="og:description" content="Create a QR code from any text or URL. Download as PNG.">
+  <meta property="og:url" content="/qr">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>QR Code Generator</h1>
+      <p>Generate a scannable QR code from any text or URL. Download as PNG.</p>
+    </div>
+
+    <div class="panel">
+      <div class="split">
+        <div>
+          <label for="text">Text or URL</label>
+          <textarea id="text" placeholder="https://example.com">https://example.com</textarea>
+          <div class="row" style="margin-top:12px">
+            <label style="display:inline">Size:</label>
+            <input type="number" id="size" value="256" min="80" max="1024" style="width:100px">
+            <label style="display:inline;margin-left:12px">Error correction:</label>
+            <select id="ec" style="width:auto">
+              <option value="L">L (7%)</option>
+              <option value="M" selected>M (15%)</option>
+              <option value="Q">Q (25%)</option>
+              <option value="H">H (30%)</option>
+            </select>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button id="genBtn">Generate</button>
+            <button id="downloadBtn" class="secondary">Download PNG</button>
+          </div>
+          <div id="status" class="status"></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center">
+          <div id="qrHost" style="padding:20px;background:#fff;border-radius:8px;"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const host = document.getElementById('qrHost');
+    const status = document.getElementById('status');
+    let qr = null;
+    function setStatus(m,ok){ status.textContent = m; status.className = 'status ' + (ok?'ok':'err'); }
+
+    function generate() {
+      const text = document.getElementById('text').value.trim();
+      if (!text) { setStatus('Enter some text or URL', false); return; }
+      const size = Math.max(80, Math.min(1024, +document.getElementById('size').value || 256));
+      const ec = document.getElementById('ec').value;
+      host.innerHTML = '';
+      qr = new QRCode(host, {
+        text, width: size, height: size,
+        correctLevel: QRCode.CorrectLevel[ec]
+      });
+      setStatus('Generated ✓', true);
+    }
+
+    document.getElementById('genBtn').onclick = generate;
+    document.getElementById('downloadBtn').onclick = () => {
+      const img = host.querySelector('img') || host.querySelector('canvas');
+      if (!img) { setStatus('Generate a QR code first', false); return; }
+      const src = img.tagName === 'CANVAS' ? img.toDataURL('image/png') : img.src;
+      const a = document.createElement('a');
+      a.href = src; a.download = 'qr-code.png';
+      a.click();
+    };
+    generate();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>

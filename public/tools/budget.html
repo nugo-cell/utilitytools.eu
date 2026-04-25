@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Free Budget Calculator — Utility Tools</title>
+  <meta name="description" content="Free monthly budget calculator. Track income and expenses by category, see live totals, and print a clean budget report.">
+  <meta name="keywords" content="budget calculator, monthly budget, free budget tool, personal finance, household budget, printable budget">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/budget">
+  <meta property="og:title" content="Free Budget Calculator — Utility Tools">
+  <meta property="og:description" content="Track income and expenses, see live totals, print a clean budget report.">
+  <meta property="og:url" content="/budget">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Budget Calculator</h1>
+      <p>A simple monthly budget. Add income and expenses, see the balance live, and print a clean report.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row budget-controls no-print" style="margin-bottom:16px">
+        <label style="display:inline">Title:</label>
+        <input type="text" id="budgetTitle" placeholder="Monthly budget — April 2026" value="Monthly budget" style="max-width:320px">
+        <label style="display:inline;margin-left:12px">Currency:</label>
+        <input type="text" id="currency" value="$" style="width:70px">
+        <button id="printBtn" class="secondary" style="margin-left:auto">Print / Save as PDF</button>
+      </div>
+
+      <div id="budgetTitleDisplay" style="font-size:20px;font-weight:700;margin-bottom:8px"></div>
+      <div id="budgetDate" style="color:var(--muted);margin-bottom:16px"></div>
+
+      <h3 style="margin:0 0 8px;color:var(--success);font-size:15px">Income</h3>
+      <table class="budget-table" id="incomeTable">
+        <thead><tr><th>Description</th><th style="width:160px">Amount</th><th style="width:60px" class="no-print"></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <button id="addIncome" class="secondary small no-print" style="margin-top:8px">+ Add income</button>
+
+      <h3 style="margin:24px 0 8px;color:var(--danger);font-size:15px">Expenses</h3>
+      <table class="budget-table" id="expenseTable">
+        <thead><tr><th>Category</th><th>Description</th><th style="width:160px">Amount</th><th style="width:60px" class="no-print"></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <button id="addExpense" class="secondary small no-print" style="margin-top:8px">+ Add expense</button>
+
+      <div class="budget-totals" style="margin-top:24px">
+        <div class="stat"><div class="value" id="totalIncome">0</div><div class="label">Total income</div></div>
+        <div class="stat"><div class="value" id="totalExpense">0</div><div class="label">Total expenses</div></div>
+        <div class="stat"><div class="value" id="balance">0</div><div class="label">Balance</div></div>
+        <div class="stat"><div class="value" id="savingsRate">0%</div><div class="label">Savings rate</div></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const defaultIncome = [
+      { desc: 'Salary', amount: 4000 },
+      { desc: 'Side income', amount: 0 }
+    ];
+    const defaultExpenses = [
+      { cat: 'Housing',      desc: 'Rent / Mortgage',  amount: 1200 },
+      { cat: 'Utilities',    desc: 'Electricity, internet, water', amount: 200 },
+      { cat: 'Food',         desc: 'Groceries',        amount: 400 },
+      { cat: 'Food',         desc: 'Eating out',       amount: 150 },
+      { cat: 'Transport',    desc: 'Fuel / transit',   amount: 150 },
+      { cat: 'Health',       desc: 'Insurance',        amount: 120 },
+      { cat: 'Entertainment',desc: 'Subscriptions',    amount: 50 },
+      { cat: 'Savings',      desc: 'Savings',          amount: 400 }
+    ];
+
+    function fmt(n) {
+      const cur = document.getElementById('currency').value || '';
+      return cur + (Math.round(n*100)/100).toLocaleString();
+    }
+
+    function renderIncome() {
+      const tbody = document.querySelector('#incomeTable tbody');
+      tbody.innerHTML = defaultIncome.map((r, i) => `
+        <tr data-i="${i}">
+          <td><input type="text" value="${r.desc.replace(/"/g,'&quot;')}" data-field="desc"></td>
+          <td><input type="number" value="${r.amount}" data-field="amount" step="0.01"></td>
+          <td class="no-print"><button class="secondary small del">×</button></td>
+        </tr>
+      `).join('');
+    }
+    function renderExpenses() {
+      const tbody = document.querySelector('#expenseTable tbody');
+      tbody.innerHTML = defaultExpenses.map((r, i) => `
+        <tr data-i="${i}">
+          <td><input type="text" value="${r.cat.replace(/"/g,'&quot;')}" data-field="cat"></td>
+          <td><input type="text" value="${r.desc.replace(/"/g,'&quot;')}" data-field="desc"></td>
+          <td><input type="number" value="${r.amount}" data-field="amount" step="0.01"></td>
+          <td class="no-print"><button class="secondary small del">×</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function totals() {
+      const income = defaultIncome.reduce((s, r) => s + (+r.amount || 0), 0);
+      const expense = defaultExpenses.reduce((s, r) => s + (+r.amount || 0), 0);
+      const balance = income - expense;
+      const rate = income > 0 ? Math.round((balance / income) * 100) : 0;
+      document.getElementById('totalIncome').textContent = fmt(income);
+      document.getElementById('totalExpense').textContent = fmt(expense);
+      const bEl = document.getElementById('balance');
+      bEl.textContent = fmt(balance);
+      bEl.style.color = balance >= 0 ? 'var(--success)' : 'var(--danger)';
+      document.getElementById('savingsRate').textContent = rate + '%';
+    }
+
+    function bindTable(tableId, list) {
+      const table = document.getElementById(tableId);
+      table.addEventListener('input', e => {
+        const input = e.target;
+        if (!input.dataset.field) return;
+        const row = input.closest('tr'); const i = +row.dataset.i;
+        const field = input.dataset.field;
+        list[i][field] = field === 'amount' ? +input.value : input.value;
+        totals();
+      });
+      table.addEventListener('click', e => {
+        if (!e.target.classList.contains('del')) return;
+        const row = e.target.closest('tr');
+        list.splice(+row.dataset.i, 1);
+        tableId === 'incomeTable' ? renderIncome() : renderExpenses();
+        totals();
+      });
+    }
+
+    document.getElementById('addIncome').onclick = () => {
+      defaultIncome.push({ desc: '', amount: 0 });
+      renderIncome(); totals();
+    };
+    document.getElementById('addExpense').onclick = () => {
+      defaultExpenses.push({ cat: '', desc: '', amount: 0 });
+      renderExpenses(); totals();
+    };
+    document.getElementById('printBtn').onclick = () => window.print();
+    document.getElementById('currency').addEventListener('input', totals);
+    document.getElementById('budgetTitle').addEventListener('input', e => {
+      document.getElementById('budgetTitleDisplay').textContent = e.target.value;
+    });
+
+    // Initial
+    document.getElementById('budgetTitleDisplay').textContent = document.getElementById('budgetTitle').value;
+    document.getElementById('budgetDate').textContent = new Date().toLocaleDateString(undefined, { year:'numeric', month:'long', day:'numeric' });
+    renderIncome(); renderExpenses(); totals();
+    bindTable('incomeTable', defaultIncome);
+    bindTable('expenseTable', defaultExpenses);
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>

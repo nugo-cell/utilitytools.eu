@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory Match Game for Kids — Free Online · Utility Tools</title>
+  <meta name="description" content="A fun memory matching game for kids. Flip cards, find pairs of emojis. Three sizes, no signup, runs in your browser.">
+  <meta name="keywords" content="memory game, matching game for kids, concentration game, memory match online">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/memory">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Memory Match Game — Utility Tools">
+  <meta property="og:description" content="Free online emoji memory match game.">
+  <meta property="og:url" content="/memory">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .board { display: grid; gap: 10px; margin: 18px auto 0; max-width: 560px; }
+    .card-mem {
+      aspect-ratio: 1;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      user-select: none;
+      transition: transform 0.15s, background 0.2s;
+    }
+    .card-mem.flipped { background: var(--accent); color: #0b0f17; }
+    .card-mem.matched { background: rgba(74,222,128,0.2); border-color: var(--success); cursor: default; }
+    .card-mem:not(.flipped):not(.matched) { color: transparent; }
+    .card-mem:not(.flipped):not(.matched):hover { transform: scale(1.04); border-color: var(--accent-2); }
+    .scoreboard { display:flex; justify-content:center; gap: 24px; color: var(--muted); font-size: 14px; margin-top: 6px; }
+    .scoreboard b { color: var(--text); font-family: var(--mono); }
+  </style>
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container container-narrow">
+    <div class="tool-header">
+      <h1>Memory Match</h1>
+      <p>Flip cards two at a time. Find all the matching pairs!</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="justify-content:center">
+        <label for="size">Board size</label>
+        <select id="size" style="max-width:160px">
+          <option value="4">Easy (4×3)</option>
+          <option value="6" selected>Medium (4×4)</option>
+          <option value="8">Hard (4×5)</option>
+          <option value="12">Expert (6×4)</option>
+        </select>
+        <button id="newBtn">New game</button>
+      </div>
+      <div class="scoreboard">
+        <span>Moves: <b id="moves">0</b></span>
+        <span>Pairs: <b id="pairs">0</b> / <b id="totalPairs">0</b></span>
+        <span>Time: <b id="time">0s</b></span>
+      </div>
+
+      <div class="board" id="board"></div>
+
+      <div id="winMsg" style="text-align:center;margin-top:18px;color:var(--success);font-size:20px" hidden>🎉 You won in <span id="winMoves"></span> moves and <span id="winTime"></span>!</div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const EMOJIS = ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🦄','🐝','🐢','🦋','🐳','🦖','🦕','🐙'];
+    let cards=[], flipped=[], matched=0, moves=0, lock=false, t0=0, tHandle=null, totalPairs=0;
+
+    function shuffle(a){ for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+    function fmt(s){ if (s<60) return s+'s'; return Math.floor(s/60)+'m '+(s%60)+'s'; }
+
+    function newGame(){
+      const pairs = parseInt($('size').value);
+      totalPairs = pairs;
+      const cols = pairs===6 ? 4 : pairs===4 ? 4 : pairs===8 ? 4 : 6;
+      $('board').style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+      const set = shuffle([...EMOJIS]).slice(0, pairs);
+      cards = shuffle([...set, ...set]).map((e,i) => ({ id:i, emoji:e, flipped:false, matched:false }));
+      matched=0; moves=0; flipped=[]; lock=false;
+      $('moves').textContent=0; $('pairs').textContent=0; $('totalPairs').textContent=pairs;
+      $('winMsg').hidden = true;
+      render();
+      clearInterval(tHandle); t0 = Date.now();
+      $('time').textContent = '0s';
+      tHandle = setInterval(() => { $('time').textContent = fmt(Math.floor((Date.now()-t0)/1000)); }, 500);
+    }
+
+    function render(){
+      $('board').innerHTML = cards.map(c => `
+        <div class="card-mem ${c.flipped?'flipped':''} ${c.matched?'matched':''}" data-id="${c.id}">${c.emoji}</div>
+      `).join('');
+      $('board').querySelectorAll('.card-mem').forEach(el => el.onclick = () => onClick(parseInt(el.dataset.id)));
+    }
+
+    function onClick(id){
+      if (lock) return;
+      const c = cards[id];
+      if (c.flipped || c.matched) return;
+      c.flipped = true; flipped.push(c); render();
+      if (flipped.length === 2){
+        moves++; $('moves').textContent = moves;
+        if (flipped[0].emoji === flipped[1].emoji){
+          flipped.forEach(x => x.matched = true);
+          matched++;
+          $('pairs').textContent = matched;
+          flipped = []; render();
+          if (matched === totalPairs){
+            clearInterval(tHandle);
+            $('winMoves').textContent = moves;
+            $('winTime').textContent = fmt(Math.floor((Date.now()-t0)/1000));
+            $('winMsg').hidden = false;
+          }
+        } else {
+          lock = true;
+          setTimeout(() => { flipped.forEach(x => x.flipped=false); flipped=[]; lock=false; render(); }, 800);
+        }
+      }
+    }
+
+    $('newBtn').onclick = newGame;
+    $('size').onchange = newGame;
+    newGame();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

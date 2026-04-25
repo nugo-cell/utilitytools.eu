@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spelling Practice for Kids — Hear &amp; Spell · Utility Tools</title>
+  <meta name="description" content="Spelling practice tool for kids. The browser reads each word out loud and scores your spelling. Bring your own word list.">
+  <meta name="keywords" content="spelling practice, spelling test, kids spelling, hear and spell">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/spelling">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Spelling Practice — Utility Tools">
+  <meta property="og:description" content="Hear-and-spell practice for kids using your own word list.">
+  <meta property="og:url" content="/spelling">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .big-input { font-size: 28px !important; text-align: center; padding: 14px; font-family: var(--mono) !important; }
+    .speak-btn { font-size: 22px; padding: 16px 28px; }
+    .feedback { text-align:center; font-size: 22px; min-height: 30px; margin-top: 8px; }
+    .ok { color: var(--success); } .err { color: var(--danger); }
+  </style>
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container container-narrow">
+    <div class="tool-header">
+      <h1>Spelling Practice</h1>
+      <p>Click <strong>🔊 Hear word</strong>, then type what you heard. The computer will tell you if you got it right.</p>
+    </div>
+
+    <div class="panel" id="setup">
+      <label for="words">Words to practice (one per line)</label>
+      <textarea id="words" placeholder="cat&#10;dog&#10;school&#10;rainbow&#10;butterfly" style="min-height:160px"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button id="loadEasyBtn" class="secondary small">Load easy list</button>
+        <button id="loadMidBtn" class="secondary small">Load medium list</button>
+        <button id="loadHardBtn" class="secondary small">Load hard list</button>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <label for="voice">Voice</label>
+        <select id="voice" style="max-width:280px"></select>
+        <label for="rate">Speed</label>
+        <input id="rate" type="range" min="0.5" max="1.5" step="0.1" value="0.9" style="max-width:160px">
+        <label class="checkbox"><input type="checkbox" id="shuffle" checked> Shuffle</label>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button id="startBtn">Start practice</button>
+      </div>
+      <div id="ttsWarn" class="status err" hidden>Your browser doesn't support speech. You can still see each word in text instead.</div>
+    </div>
+
+    <div class="panel" id="game" hidden>
+      <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:13px">
+        <span>Word <span id="qNum">1</span> / <span id="qTot">0</span></span>
+        <span>Score: <span id="score">0</span></span>
+      </div>
+      <div style="text-align:center;margin:18px 0">
+        <button id="speakBtn" class="speak-btn">🔊 Hear word</button>
+        <button id="revealBtn" class="secondary" style="margin-left:8px">👁 Reveal</button>
+      </div>
+      <input id="answer" type="text" class="big-input" placeholder="Type the word..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <div class="feedback" id="fb"></div>
+      <div class="row" style="justify-content:center;margin-top:10px">
+        <button id="checkBtn">Check</button>
+        <button id="skipBtn" class="secondary">Skip</button>
+        <button id="quitBtn" class="secondary">Quit</button>
+      </div>
+    </div>
+
+    <div class="panel" id="result" hidden>
+      <h2 style="margin-top:0">Practice complete! ⭐</h2>
+      <div class="stat-grid">
+        <div class="stat"><div class="value" id="finalScore">0</div><div class="label">Correct</div></div>
+        <div class="stat"><div class="value" id="finalAcc">0%</div><div class="label">Accuracy</div></div>
+      </div>
+      <div id="missedWrap" style="margin-top:14px" hidden>
+        <label>Words to review</label>
+        <div id="missed" class="output"></div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button id="againBtn">Practice again</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const lists = {
+      easy: ['cat','dog','sun','run','book','tree','milk','bird','fish','jump','red','blue','five','star','play'],
+      medium: ['school','friend','because','people','little','animal','garden','window','enough','please','through','beautiful','happy','laugh','around'],
+      hard: ['necessary','separate','restaurant,'.replace(',',''),'questionnaire','accommodate','rhythm','occurrence','definitely','embarrass','privilege','conscience','liaison','minuscule','perseverance','silhouette']
+    };
+
+    let words = [], idx = 0, score = 0, missed = [];
+    const synth = window.speechSynthesis;
+    let voices = [];
+
+    function loadVoices(){
+      voices = synth ? synth.getVoices() : [];
+      const sel = $('voice');
+      sel.innerHTML = voices.length
+        ? voices.map((v,i)=>`<option value="${i}">${v.name} (${v.lang})${v.default?' [default]':''}</option>`).join('')
+        : '<option>(no voices available)</option>';
+      // pick an English voice by default
+      const en = voices.findIndex(v => /en[-_]/i.test(v.lang));
+      if (en >= 0) sel.value = en;
+    }
+    if (synth){
+      loadVoices();
+      synth.onvoiceschanged = loadVoices;
+    } else {
+      $('ttsWarn').hidden = false;
+    }
+
+    function speak(text){
+      if (!synth) return;
+      synth.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      const i = parseInt($('voice').value); if (voices[i]) u.voice = voices[i];
+      u.rate = parseFloat($('rate').value);
+      synth.speak(u);
+    }
+
+    function start(){
+      let raw = $('words').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+      if (raw.length < 1){ alert('Add at least one word.'); return; }
+      if ($('shuffle').checked) raw = raw.sort(()=>Math.random()-0.5);
+      words = raw; idx = 0; score = 0; missed = [];
+      $('qTot').textContent = words.length; $('score').textContent = 0;
+      $('setup').hidden = true; $('result').hidden = true; $('game').hidden = false;
+      next();
+    }
+
+    function next(){
+      $('qNum').textContent = idx+1;
+      $('answer').value=''; $('fb').textContent=''; $('answer').focus();
+      setTimeout(()=>speak(words[idx]), 200);
+    }
+
+    function check(){
+      const want = words[idx].toLowerCase().trim();
+      const got = $('answer').value.toLowerCase().trim();
+      if (got === want){ score++; $('fb').innerHTML='<span class="ok">✓ Great!</span>'; }
+      else { missed.push(words[idx]); $('fb').innerHTML=`<span class="err">✗ It was "<strong>${words[idx]}</strong>"</span>`; }
+      $('score').textContent = score;
+      setTimeout(()=>{ idx++; if (idx>=words.length) finish(); else next(); }, 900);
+    }
+
+    function finish(){
+      $('game').hidden=true; $('result').hidden=false;
+      $('finalScore').textContent = `${score} / ${words.length}`;
+      $('finalAcc').textContent = Math.round(score/words.length*100)+'%';
+      if (missed.length){ $('missedWrap').hidden=false; $('missed').textContent = missed.join('\n'); }
+      else $('missedWrap').hidden=true;
+    }
+
+    $('startBtn').onclick = start;
+    $('speakBtn').onclick = () => speak(words[idx]);
+    $('revealBtn').onclick = () => $('fb').innerHTML = `<span style="color:var(--muted)">${words[idx]}</span>`;
+    $('checkBtn').onclick = check;
+    $('skipBtn').onclick = () => { missed.push(words[idx]); idx++; if (idx>=words.length) finish(); else next(); };
+    $('quitBtn').onclick = () => { $('game').hidden=true; $('setup').hidden=false; };
+    $('againBtn').onclick = () => { $('result').hidden=true; $('setup').hidden=false; };
+    $('answer').addEventListener('keydown', e => { if (e.key==='Enter') check(); });
+
+    $('loadEasyBtn').onclick = () => $('words').value = lists.easy.join('\n');
+    $('loadMidBtn').onclick  = () => $('words').value = lists.medium.join('\n');
+    $('loadHardBtn').onclick = () => $('words').value = lists.hard.join('\n');
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

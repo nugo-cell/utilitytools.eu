@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Free PDF Signer — Sign PDFs in Your Browser · UtilityTools.eu</title>
+  <meta name="description" content="Free PDF signer that runs entirely in your browser. Draw or type your signature, place it on any page of a PDF, and download the signed file. No upload — your document never leaves your device.">
+  <meta name="keywords" content="pdf signer, sign pdf online, free pdf signature, draw signature pdf, electronic signature, e-sign pdf, pdf esign">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/pdf-signer">
+  <meta name="theme-color" content="#7c5cff">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .signer-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 1000px) { .signer-grid { grid-template-columns: 1fr; } }
+    .sig-pane { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+    .sig-pane h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
+    .sig-canvas-wrap { background: #fff; border-radius: 8px; aspect-ratio: 2.4; position: relative; overflow: hidden; }
+    .sig-canvas-wrap canvas { width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
+    .sig-canvas-wrap .placeholder { position: absolute; inset: 0; display:flex; align-items:center; justify-content:center; color:#bbb; font-style:italic; pointer-events:none; }
+    .sig-tools { display:flex; gap:6px; margin-top: 10px; flex-wrap:wrap; align-items:center; }
+    .sig-tools input[type=color], .sig-tools select { padding: 4px; height: 32px; }
+    .sig-tools button { padding: 6px 10px; font-size: 12px; }
+    .preview-canvas {
+      background: #fff; border-radius: 8px;
+      display: block; cursor: crosshair;
+      max-width: 100%; height: auto;       /* prevent aspect-ratio distortion */
+      box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+    }
+    /* Outer scroll container so big zooms get a scrollbar instead of overflow */
+    .preview-scroll {
+      max-height: 75vh; overflow: auto;
+      background: var(--panel-2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px;
+      display: flex; justify-content: center;
+    }
+    .pdf-controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom: 10px; }
+    .pdf-controls button { padding: 6px 10px; font-size: 13px; }
+    .pdf-controls .spacer { flex: 1; }
+    .pdf-controls .zoom { display:flex; gap:4px; align-items:center; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
+    .pdf-controls .zoom button { padding: 4px 10px; font-size: 13px; min-width: 30px; }
+    .pdf-controls .zoom .lbl { font-size: 12px; color: var(--muted); padding: 0 6px; min-width: 44px; text-align:center; font-variant-numeric: tabular-nums; }
+    .field { margin-bottom: 10px; }
+    .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .field input, .field select { width: 100%; padding: 8px 10px; box-sizing: border-box; }
+    .field .row { display:flex; gap:8px; align-items:center; }
+    .field .row input[type=range] { flex:1; }
+    .field .row .num { min-width: 48px; text-align:right; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; }
+
+    #placedSig {
+      position: absolute; display: none;
+      cursor: move; user-select: none; touch-action: none;
+      outline: 3px dashed var(--accent); outline-offset: 2px;
+      background: rgba(124, 92, 255, 0.06);
+      z-index: 5;
+    }
+    #placedSig img { display:block; width: 100%; height: 100%; pointer-events: none; }
+    #placedSig .grip {
+      position: absolute; right: -12px; bottom: -12px;
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--accent); border: 3px solid #fff;
+      cursor: nwse-resize; box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      z-index: 6;
+    }
+    .hint { font-size: 12px; color: var(--muted); margin: 0 0 10px; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span><span class="tld">.eu</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>PDF Signer</h1>
+      <p>Draw or type a signature, click on the PDF to place it, drag to fine-tune, and download the signed file. Everything happens in your browser — your PDF is never uploaded.</p>
+    </div>
+
+    <div class="signer-grid">
+      <div>
+        <div class="sig-pane">
+          <h3>1 · Your signature</h3>
+          <div style="display:flex; gap:6px; margin-bottom:10px">
+            <button data-mode="draw" class="active" id="modeDraw">Draw</button>
+            <button data-mode="type" class="secondary" id="modeType">Type</button>
+          </div>
+
+          <div id="drawWrap">
+            <div class="sig-canvas-wrap">
+              <canvas id="sig" width="600" height="250" aria-label="Signature drawing area"></canvas>
+              <div class="placeholder" id="sigPh">Sign here with mouse / finger</div>
+            </div>
+            <div class="sig-tools">
+              <label style="font-size:12px;color:var(--muted)" for="sigColor">Color</label>
+              <input type="color" id="sigColor" value="#0a3a8a">
+              <select id="sigWidth" aria-label="Stroke width">
+                <option value="2">Thin</option>
+                <option value="3" selected>Medium</option>
+                <option value="5">Thick</option>
+              </select>
+              <button class="secondary small" id="sigClear">Clear</button>
+            </div>
+          </div>
+
+          <div id="typeWrap" style="display:none">
+            <input type="text" id="typedName" placeholder="Your name" aria-label="Typed signature"
+              style="width:100%;padding:10px;font-size:24px;font-family:'Brush Script MT','Lucida Handwriting',cursive;color:#0a3a8a;box-sizing:border-box">
+            <select id="typedFont" style="margin-top:8px;width:100%" aria-label="Signature font">
+              <option value="Brush Script MT, cursive">Brush Script</option>
+              <option value="Lucida Handwriting, cursive">Lucida Handwriting</option>
+              <option value="'Segoe Script', cursive">Segoe Script</option>
+              <option value="'Comic Sans MS', cursive">Comic Sans</option>
+              <option value="'Courier New', monospace">Typewriter</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="sig-pane">
+          <h3>2 · Load PDF</h3>
+          <input type="file" id="pdfFile" accept="application/pdf" aria-label="PDF file">
+          <div id="pdfMeta" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
+        </div>
+
+        <div class="sig-pane" id="pageControls" style="display:none">
+          <h3>3 · Place &amp; size</h3>
+          <div class="field">
+            <label for="pageSel">Page</label>
+            <select id="pageSel"></select>
+          </div>
+          <div class="field">
+            <label for="sizePct">Signature size (% of page width)</label>
+            <div class="row">
+              <input type="range" id="sizePct" min="5" max="60" value="22" step="1">
+              <span class="num" id="sizePctVal">22%</span>
+            </div>
+          </div>
+          <p class="hint">Click on the PDF to place. Drag the signature to move, or drag the small dot in the corner to resize.</p>
+          <div class="actions">
+            <button id="save" disabled>💾 Download signed PDF</button>
+            <button id="print" class="secondary" disabled>🖨️ Print signed</button>
+            <button id="clearPlacement" class="secondary" disabled>Clear placement</button>
+          </div>
+          <div id="status" class="status" style="margin-top:8px"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="sig-pane">
+          <h3>Preview</h3>
+          <div class="pdf-controls" id="pdfControls" style="display:none">
+            <button id="prev" class="secondary small">← Prev</button>
+            <span id="pageLabel" style="color:var(--muted);font-size:13px"></span>
+            <button id="next" class="secondary small">Next →</button>
+            <span class="spacer"></span>
+            <div class="zoom" role="group" aria-label="Zoom">
+              <button id="zoomOut" class="secondary" title="Zoom out">−</button>
+              <span class="lbl" id="zoomLbl">100%</span>
+              <button id="zoomIn" class="secondary" title="Zoom in">+</button>
+              <button id="zoomFit" class="secondary" title="Fit to width">Fit</button>
+            </div>
+          </div>
+          <div class="preview-scroll" id="previewScroll" style="display:none">
+            <div id="previewWrap" style="position:relative;display:inline-block">
+              <canvas id="preview" class="preview-canvas"></canvas>
+              <div id="placedSig">
+                <img id="placedImg" alt="">
+                <div class="grip" id="grip" title="Drag to resize"></div>
+              </div>
+            </div>
+          </div>
+          <div id="emptyHint" style="text-align:center;color:var(--muted);padding:60px 20px;font-style:italic">Load a PDF to start signing</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const $ = id => document.getElementById(id);
+    const setStatus = (m, ok = true) => { $('status').textContent = m; $('status').className = 'status ' + (ok ? 'ok' : 'err'); };
+
+    // ============ Signature drawing canvas ============
+    const sig = $('sig'); const sctx = sig.getContext('2d');
+    sctx.lineCap = 'round'; sctx.lineJoin = 'round';
+    let drawing = false, hasInk = false;
+    function pos(e) {
+      const r = sig.getBoundingClientRect();
+      const t = e.touches ? e.touches[0] : e;
+      return { x: (t.clientX - r.left) * sig.width / r.width, y: (t.clientY - r.top) * sig.height / r.height };
+    }
+    function start(e) {
+      e.preventDefault(); drawing = true; hasInk = true; $('sigPh').style.display = 'none';
+      sctx.strokeStyle = $('sigColor').value; sctx.lineWidth = +$('sigWidth').value;
+      const p = pos(e); sctx.beginPath(); sctx.moveTo(p.x, p.y);
+    }
+    function moveDraw(e) { if (!drawing) return; e.preventDefault(); const p = pos(e); sctx.lineTo(p.x, p.y); sctx.stroke(); }
+    function endDraw() { if (drawing) { drawing = false; refreshSignature(); } }
+    sig.addEventListener('mousedown', start); sig.addEventListener('mousemove', moveDraw); window.addEventListener('mouseup', endDraw);
+    sig.addEventListener('touchstart', start); sig.addEventListener('touchmove', moveDraw); window.addEventListener('touchend', endDraw);
+    $('sigClear').onclick = () => {
+      sctx.clearRect(0, 0, sig.width, sig.height); hasInk = false; $('sigPh').style.display = '';
+      refreshSignature();
+    };
+
+    // Mode toggle
+    let mode = 'draw';
+    $('modeDraw').onclick = () => setMode('draw');
+    $('modeType').onclick = () => setMode('type');
+    function setMode(m) {
+      mode = m;
+      $('modeDraw').classList.toggle('active', m === 'draw');
+      $('modeDraw').classList.toggle('secondary', m !== 'draw');
+      $('modeType').classList.toggle('active', m === 'type');
+      $('modeType').classList.toggle('secondary', m !== 'type');
+      $('drawWrap').style.display = m === 'draw' ? '' : 'none';
+      $('typeWrap').style.display = m === 'type' ? '' : 'none';
+      refreshSignature();
+    }
+    $('typedFont').onchange = () => { $('typedName').style.fontFamily = $('typedFont').value; refreshSignature(); };
+    $('typedName').addEventListener('input', refreshSignature);
+    $('sigColor').addEventListener('input', refreshSignature);
+
+    function getSignatureDataUrl() {
+      if (mode === 'draw') {
+        if (!hasInk) return null;
+        const c = trimCanvas(sig);
+        return c ? c.toDataURL('image/png') : null;
+      } else {
+        const name = $('typedName').value.trim();
+        if (!name) return null;
+        const measure = document.createElement('canvas').getContext('2d');
+        measure.font = '120px ' + ($('typedFont').value);
+        const w = Math.max(200, Math.ceil(measure.measureText(name).width) + 60);
+        const c = document.createElement('canvas');
+        c.width = w; c.height = 220;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = $('sigColor').value;
+        ctx.font = '120px ' + ($('typedFont').value);
+        ctx.textBaseline = 'middle';
+        ctx.fillText(name, 20, 110);
+        const trimmed = trimCanvas(c);
+        return trimmed ? trimmed.toDataURL('image/png') : null;
+      }
+    }
+    function trimCanvas(src) {
+      const w = src.width, h = src.height;
+      const data = src.getContext('2d').getImageData(0, 0, w, h).data;
+      let minX = w, minY = h, maxX = 0, maxY = 0, found = false;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        if (data[(y * w + x) * 4 + 3] > 8) {
+          found = true;
+          if (x < minX) minX = x; if (y < minY) minY = y;
+          if (x > maxX) maxX = x; if (y > maxY) maxY = y;
+        }
+      }
+      if (!found) return null;
+      const pad = 4;
+      const tw = Math.max(1, maxX - minX + 1 + 2 * pad), th = Math.max(1, maxY - minY + 1 + 2 * pad);
+      const out = document.createElement('canvas'); out.width = tw; out.height = th;
+      out.getContext('2d').drawImage(src, minX - pad, minY - pad, tw, th, 0, 0, tw, th);
+      return out;
+    }
+
+    let sigDataUrl = null;
+    let sigRatio = 0.4;
+    function refreshSignature() {
+      sigDataUrl = getSignatureDataUrl();
+      if (!sigDataUrl) {
+        sigRatio = 0.4;
+        $('placedImg').src = '';
+        updatePlacedBox();
+        return;
+      }
+      const img = new Image();
+      img.onload = () => {
+        sigRatio = img.height / img.width;
+        $('placedImg').src = sigDataUrl;
+        updatePlacedBox();
+      };
+      img.src = sigDataUrl;
+    }
+
+    // ============ PDF handling ============
+    // pdfBytes is kept as a Uint8Array we own. pdf.js transfers its input
+    // ArrayBuffer to its worker (detaching it), and pdf-lib also consumes the
+    // buffer it loads from. So we always pass a *fresh copy* to either library.
+    let pdfBytes = null;
+    let pdfjsDoc = null;
+    let currentPage = 1, totalPages = 0;
+    let placement = null; // { pageIndex, xPct, yPct, sizePct }
+    let zoom = 1.0;       // user zoom multiplier (1 = fit-to-container)
+
+    $('pdfFile').addEventListener('change', async e => {
+      const f = e.target.files[0]; if (!f) return;
+      try {
+        const buf = await f.arrayBuffer();
+        // Own copy that nothing else can detach.
+        pdfBytes = new Uint8Array(buf);
+        // Give pdf.js a fresh copy (it will transfer/detach this one).
+        pdfjsDoc = await pdfjsLib.getDocument({ data: pdfBytes.slice() }).promise;
+        totalPages = pdfjsDoc.numPages;
+        currentPage = 1;
+        placement = null;
+        zoom = 1.0; updateZoomLabel();
+        $('clearPlacement').disabled = true;
+        $('print').disabled = true;
+        $('pdfMeta').textContent = `${f.name} — ${totalPages} page${totalPages > 1 ? 's' : ''}`;
+        $('pageSel').innerHTML = Array.from({ length: totalPages }, (_, i) => `<option value="${i + 1}">Page ${i + 1}</option>`).join('');
+        $('pageControls').style.display = '';
+        $('pdfControls').style.display = '';
+        $('previewScroll').style.display = '';
+        $('emptyHint').style.display = 'none';
+        $('save').disabled = false;
+        await renderPage();
+        setStatus('PDF loaded — draw a signature, then click on the page', true);
+      } catch (err) {
+        setStatus('Failed to open PDF: ' + err.message, false);
+      }
+    });
+
+    $('prev').onclick = () => { if (currentPage > 1) { currentPage--; $('pageSel').value = currentPage; renderPage(); } };
+    $('next').onclick = () => { if (currentPage < totalPages) { currentPage++; $('pageSel').value = currentPage; renderPage(); } };
+    $('pageSel').onchange = () => { currentPage = +$('pageSel').value; renderPage(); };
+    $('sizePct').oninput = () => {
+      $('sizePctVal').textContent = $('sizePct').value + '%';
+      if (placement) { placement.sizePct = +$('sizePct').value / 100; updatePlacedBox(); }
+    };
+
+    // Zoom
+    function updateZoomLabel() { $('zoomLbl').textContent = Math.round(zoom * 100) + '%'; }
+    $('zoomIn').onclick  = () => { zoom = Math.min(3, zoom + 0.25); updateZoomLabel(); renderPage(); };
+    $('zoomOut').onclick = () => { zoom = Math.max(0.25, zoom - 0.25); updateZoomLabel(); renderPage(); };
+    $('zoomFit').onclick = () => { zoom = 1.0; updateZoomLabel(); renderPage(); };
+
+    async function renderPage() {
+      if (!pdfjsDoc) return;
+      const page = await pdfjsDoc.getPage(currentPage);
+      const vp = page.getViewport({ scale: 1 });
+      // Default "fit" width is a comfortable preview ~ container width.
+      const scrollEl = $('previewScroll');
+      const fitW = Math.min(720, Math.max(320, scrollEl.clientWidth - 40));
+      const displayW = fitW * zoom;
+      const renderScale = (displayW / vp.width) * (window.devicePixelRatio || 1);
+      const v = page.getViewport({ scale: renderScale });
+
+      const c = $('preview');
+      c.width  = v.width;
+      c.height = v.height;
+      // Lock the *displayed* size so CSS scaling matches our chosen zoom.
+      c.style.width  = displayW + 'px';
+      c.style.height = (displayW * vp.height / vp.width) + 'px';
+
+      await page.render({ canvasContext: c.getContext('2d'), viewport: v }).promise;
+      $('pageLabel').textContent = `Page ${currentPage} / ${totalPages}`;
+      updatePlacedBox();
+    }
+
+    // Click-to-place
+    $('preview').addEventListener('click', e => {
+      if (!sigDataUrl) { setStatus('Draw or type a signature first', false); return; }
+      const c = $('preview'); const r = c.getBoundingClientRect();
+      placement = {
+        pageIndex: currentPage - 1,
+        xPct: (e.clientX - r.left) / r.width,
+        yPct: (e.clientY - r.top) / r.height,
+        sizePct: +$('sizePct').value / 100
+      };
+      $('clearPlacement').disabled = false;
+      $('print').disabled = false;
+      updatePlacedBox();
+      setStatus('Drag to fine-tune position. When ready, click Download or Print.', true);
+    });
+
+    $('clearPlacement').onclick = () => {
+      placement = null;
+      $('clearPlacement').disabled = true;
+      $('print').disabled = true;
+      updatePlacedBox();
+      setStatus('Placement cleared');
+    };
+
+    function updatePlacedBox() {
+      const box = $('placedSig');
+      if (!placement || placement.pageIndex !== currentPage - 1 || !sigDataUrl) {
+        box.style.display = 'none'; return;
+      }
+      const c = $('preview');
+      const cw = c.offsetWidth, ch = c.offsetHeight;
+      const w = cw * placement.sizePct;
+      const h = w * sigRatio;
+      box.style.display = 'block';   // override CSS default of `display:none`
+      box.style.width  = w + 'px';
+      box.style.height = h + 'px';
+      box.style.left = (placement.xPct * cw - w / 2) + 'px';
+      box.style.top  = (placement.yPct * ch - h / 2) + 'px';
+    }
+
+    // Drag-to-move + drag-to-resize
+    (function attachDrag() {
+      const box = $('placedSig'); const grip = $('grip');
+      let dragging = false, resizing = false, startX, startY, startPct, startSizePct;
+      function down(e, kind) {
+        if (!placement) return;
+        e.preventDefault(); e.stopPropagation();
+        const t = e.touches ? e.touches[0] : e;
+        startX = t.clientX; startY = t.clientY;
+        startPct = { x: placement.xPct, y: placement.yPct };
+        startSizePct = placement.sizePct;
+        if (kind === 'move') dragging = true; else resizing = true;
+      }
+      function moveHandler(e) {
+        if (!dragging && !resizing) return;
+        e.preventDefault();
+        const t = e.touches ? e.touches[0] : e;
+        const c = $('preview'); const r = c.getBoundingClientRect();
+        if (dragging) {
+          placement.xPct = Math.max(0, Math.min(1, startPct.x + (t.clientX - startX) / r.width));
+          placement.yPct = Math.max(0, Math.min(1, startPct.y + (t.clientY - startY) / r.height));
+        } else if (resizing) {
+          const delta = (t.clientX - startX) / r.width;
+          placement.sizePct = Math.max(0.05, Math.min(0.6, startSizePct + delta));
+          $('sizePct').value = Math.round(placement.sizePct * 100);
+          $('sizePctVal').textContent = $('sizePct').value + '%';
+        }
+        updatePlacedBox();
+      }
+      function up() { dragging = false; resizing = false; }
+      box.addEventListener('mousedown',  e => { if (e.target === grip) return; down(e, 'move'); });
+      box.addEventListener('touchstart', e => { if (e.target === grip) return; down(e, 'move'); }, { passive: false });
+      grip.addEventListener('mousedown',  e => down(e, 'resize'));
+      grip.addEventListener('touchstart', e => down(e, 'resize'), { passive: false });
+      window.addEventListener('mousemove', moveHandler);
+      window.addEventListener('touchmove', moveHandler, { passive: false });
+      window.addEventListener('mouseup', up);
+      window.addEventListener('touchend', up);
+    })();
+
+    // ============ Build / Save / Print signed PDF ============
+    async function buildSignedPdf() {
+      if (!pdfBytes) throw new Error('Load a PDF first');
+      if (!placement) throw new Error('Click on the preview to place the signature');
+      if (!sigDataUrl) throw new Error('Draw or type your signature first');
+
+      // Always hand pdf-lib a fresh copy — its load() may detach the buffer.
+      const doc = await PDFLib.PDFDocument.load(pdfBytes.slice());
+      const png = await doc.embedPng(sigDataUrl);
+      const page = doc.getPage(placement.pageIndex);
+      const rot = ((page.getRotation().angle % 360) + 360) % 360;
+
+      const { width: pw, height: ph } = page.getSize();
+      const vw = (rot === 90 || rot === 270) ? ph : pw;
+      const vh = (rot === 90 || rot === 270) ? pw : ph;
+
+      const sigW = vw * placement.sizePct;
+      const sigH = sigW * (png.height / png.width);
+
+      const cxV = placement.xPct * vw;
+      const cyV = (1 - placement.yPct) * vh;
+
+      let px, py;
+      if (rot === 0)        { px = cxV;       py = cyV; }
+      else if (rot === 90)  { px = cyV;       py = pw - cxV; }
+      else if (rot === 180) { px = pw - cxV;  py = ph - cyV; }
+      else /* 270 */        { px = ph - cyV;  py = cxV; }
+
+      const θ = rot * Math.PI / 180;
+      const halfW = sigW / 2, halfH = sigH / 2;
+      const x = px - halfW * Math.cos(θ) + halfH * Math.sin(θ);
+      const y = py - halfW * Math.sin(θ) - halfH * Math.cos(θ);
+
+      page.drawImage(png, {
+        x, y, width: sigW, height: sigH,
+        rotate: PDFLib.degrees(rot)
+      });
+
+      return await doc.save();
+    }
+
+    function suggestedName(suffix) {
+      const orig = $('pdfFile').files[0]?.name || 'document.pdf';
+      return orig.replace(/\.pdf$/i, '') + suffix;
+    }
+
+    $('save').onclick = async () => {
+      const saveBtn = $('save');
+      try {
+        saveBtn.disabled = true;
+        setStatus('Embedding signature…');
+        const bytes = await buildSignedPdf();
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = suggestedName('-signed.pdf');
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+        setStatus('Saved ✓', true);
+      } catch (e) {
+        console.error(e);
+        setStatus('Failed: ' + (e.message || e), false);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    };
+
+    $('print').onclick = async () => {
+      const btn = $('print');
+      try {
+        btn.disabled = true;
+        setStatus('Preparing print…');
+        const bytes = await buildSignedPdf();
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        // Open a hidden iframe and trigger its print dialog. Browsers that block
+        // cross-frame printing (e.g. Safari) get a normal new-tab fallback.
+        const frame = document.createElement('iframe');
+        frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+        frame.src = url;
+        document.body.appendChild(frame);
+        frame.onload = () => {
+          try {
+            frame.contentWindow.focus();
+            frame.contentWindow.print();
+            setStatus('Print dialog opened ✓', true);
+          } catch (err) {
+            window.open(url, '_blank', 'noopener');
+            setStatus('Opened in new tab — use the browser print button.', true);
+          }
+        };
+        // Clean up after a while
+        setTimeout(() => { try { frame.remove(); } catch {} URL.revokeObjectURL(url); }, 60_000);
+      } catch (e) {
+        console.error(e);
+        setStatus('Print failed: ' + (e.message || e), false);
+      } finally {
+        btn.disabled = !placement;
+      }
+    };
+
+    // Keep placement aligned when the preview reflows
+    let resizeT;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeT);
+      resizeT = setTimeout(() => { if (pdfjsDoc) renderPage(); }, 150);
+    });
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

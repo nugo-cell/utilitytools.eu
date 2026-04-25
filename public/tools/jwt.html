@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JWT Decoder — Free Online Tool · Utility Tools</title>
+  <meta name="description" content="Decode the header and payload of a JSON Web Token (JWT) safely in your browser. No data is sent to any server.">
+  <meta name="keywords" content="jwt decoder, json web token, jwt parser, decode jwt online">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/jwt">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="JWT Decoder — Utility Tools">
+  <meta property="og:description" content="Decode JWT header and payload locally in your browser.">
+  <meta property="og:url" content="/jwt">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>JWT Decoder</h1>
+      <p>Paste a JSON Web Token to inspect its header and payload. We never verify the signature server-side &mdash; everything is local.</p>
+    </div>
+
+    <div class="panel">
+      <label for="jwt">JWT</label>
+      <textarea id="jwt" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="min-height:120px"></textarea>
+      <div id="status" class="status"></div>
+    </div>
+
+    <div class="split">
+      <div class="panel">
+        <label>Header</label>
+        <div id="header" class="output"></div>
+      </div>
+      <div class="panel">
+        <label>Payload</label>
+        <div id="payload" class="output"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <label>Signature (raw, base64url)</label>
+      <div id="sig" class="output"></div>
+    </div>
+
+    <div class="panel" id="claimsPanel" hidden>
+      <label>Standard claims</label>
+      <div class="stat-grid" id="claims"></div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const status = $('status');
+    const set = (m, ok=true) => { status.textContent = m; status.className = 'status ' + (ok ? 'ok' : 'err'); };
+
+    function b64urlDecode(str){
+      str = str.replace(/-/g,'+').replace(/_/g,'/');
+      while (str.length % 4) str += '=';
+      const bin = atob(str);
+      try { return decodeURIComponent(escape(bin)); } catch { return bin; }
+    }
+
+    function pretty(obj){ try { return JSON.stringify(obj, null, 2); } catch { return String(obj); } }
+
+    function fmtTime(t){
+      if (typeof t !== 'number') return '';
+      const d = new Date(t * 1000);
+      return d.toISOString().replace('T',' ').slice(0,19) + ' UTC';
+    }
+
+    function decode(){
+      const v = $('jwt').value.trim();
+      if (!v) { $('header').textContent=''; $('payload').textContent=''; $('sig').textContent=''; $('claimsPanel').hidden=true; set(''); return; }
+      const parts = v.split('.');
+      if (parts.length < 2) { set('Not a JWT (need at least 2 dot-separated parts)', false); return; }
+      try {
+        const h = JSON.parse(b64urlDecode(parts[0]));
+        const p = JSON.parse(b64urlDecode(parts[1]));
+        $('header').textContent = pretty(h);
+        $('payload').textContent = pretty(p);
+        $('sig').textContent = parts[2] || '(none)';
+        const items = [];
+        const now = Math.floor(Date.now()/1000);
+        if ('iss' in p) items.push(['Issuer', p.iss]);
+        if ('sub' in p) items.push(['Subject', p.sub]);
+        if ('aud' in p) items.push(['Audience', Array.isArray(p.aud) ? p.aud.join(', ') : p.aud]);
+        if ('iat' in p) items.push(['Issued at', fmtTime(p.iat)]);
+        if ('nbf' in p) items.push(['Not before', fmtTime(p.nbf)]);
+        if ('exp' in p) items.push(['Expires', fmtTime(p.exp) + (p.exp < now ? ' (expired)' : '')]);
+        if (items.length) {
+          $('claims').innerHTML = items.map(([k,v]) => `<div class="stat"><div class="value" style="font-size:14px">${v}</div><div class="label">${k}</div></div>`).join('');
+          $('claimsPanel').hidden = false;
+        } else { $('claimsPanel').hidden = true; }
+        set('Decoded ✓');
+      } catch (e) {
+        set('Decode failed: ' + e.message, false);
+      }
+    }
+
+    $('jwt').addEventListener('input', decode);
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

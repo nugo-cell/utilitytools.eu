@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON / XML to Code — TypeScript, JavaScript, C#, Python, C · UtilityTools.eu</title>
+  <meta name="description" content="Convert JSON or XML into ready-to-use code for TypeScript interfaces, JavaScript JSDoc, C# classes, Python dataclasses, or C structs. Free, runs entirely in your browser.">
+  <meta name="keywords" content="json to typescript, json to c#, json to python, json to dataclass, xml to code, json to interface, json to struct, code generator">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/json-to-code">
+  <meta name="theme-color" content="#7c5cff">
+  <meta property="og:title" content="JSON / XML to Code Generator — TypeScript, C#, Python, JavaScript, C">
+  <meta property="og:description" content="Generate type-safe code from JSON or XML in 5 languages — free, in your browser.">
+  <meta property="og:url" content="/json-to-code">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .j2c-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+    @media (max-width: 900px) { .j2c-grid { grid-template-columns: 1fr; } }
+    .j2c-pane h2 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); display:flex; justify-content:space-between; align-items:center; }
+    .j2c-pane textarea, .j2c-pane pre {
+      width: 100%; min-height: 60vh; box-sizing: border-box;
+      font-family: var(--mono); font-size: 13px; line-height: 1.5;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); padding: 14px; margin: 0; overflow: auto; white-space: pre;
+    }
+    .j2c-pane textarea { resize: vertical; }
+    .j2c-toolbar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; align-items:center; }
+    .j2c-toolbar select { padding: 8px 10px; }
+    .j2c-toolbar .stat { color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span><span class="tld">.eu</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>JSON / XML &rarr; Code</h1>
+      <p>Paste JSON or XML, pick a language, get a ready-to-paste type definition. No upload — runs entirely in your browser.</p>
+    </div>
+
+    <div class="panel">
+      <div class="j2c-toolbar">
+        <label>Input</label>
+        <select id="inputType">
+          <option value="json">JSON</option>
+          <option value="xml">XML</option>
+        </select>
+        <label>Language</label>
+        <select id="lang">
+          <option value="ts">TypeScript (interfaces)</option>
+          <option value="js">JavaScript (JSDoc typedefs)</option>
+          <option value="cs">C# (records)</option>
+          <option value="py">Python (dataclasses)</option>
+          <option value="c">C (structs)</option>
+        </select>
+        <label>Root name</label>
+        <input id="rootName" type="text" value="Root" style="width:140px">
+        <button id="loadSample" class="secondary">Load sample</button>
+        <button id="copyOut">Copy output</button>
+        <span class="stat" id="stat"></span>
+      </div>
+
+      <div class="j2c-grid">
+        <div class="j2c-pane">
+          <h2>Input</h2>
+          <textarea id="src" spellcheck="false" placeholder='{"id":1,"name":"Ada","tags":["dev","math"]}'></textarea>
+        </div>
+        <div class="j2c-pane">
+          <h2>Output <span id="outLabel"></span></h2>
+          <pre id="out"></pre>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+
+    const SAMPLES = {
+      json: `{
+  "id": 42,
+  "name": "Ada Lovelace",
+  "active": true,
+  "score": 99.5,
+  "tags": ["math", "engineering"],
+  "address": {
+    "street": "1 Babbage Lane",
+    "city": "London",
+    "zip": "EC1A 1AA"
+  },
+  "projects": [
+    { "title": "Analytical Engine", "year": 1843, "lines": 1000 }
+  ]
+}`,
+      xml: `<user>
+  <id>42</id>
+  <name>Ada Lovelace</name>
+  <active>true</active>
+  <address>
+    <street>1 Babbage Lane</street>
+    <city>London</city>
+  </address>
+  <projects>
+    <project><title>Analytical Engine</title><year>1843</year></project>
+  </projects>
+</user>`
+    };
+
+    // ========== Type inference (returns a normalised "schema" tree) ==========
+    function infer(value) {
+      if (value === null) return { kind: 'null' };
+      if (Array.isArray(value)) {
+        if (value.length === 0) return { kind: 'array', of: { kind: 'unknown' } };
+        // Merge schemas of all elements
+        let merged = infer(value[0]);
+        for (let i = 1; i < value.length; i++) merged = mergeSchemas(merged, infer(value[i]));
+        return { kind: 'array', of: merged };
+      }
+      const t = typeof value;
+      if (t === 'string')  return { kind: 'string' };
+      if (t === 'boolean') return { kind: 'boolean' };
+      if (t === 'number')  return { kind: Number.isInteger(value) ? 'integer' : 'number' };
+      if (t === 'object') {
+        const fields = {};
+        for (const [k, v] of Object.entries(value)) fields[k] = infer(v);
+        return { kind: 'object', fields };
+      }
+      return { kind: 'unknown' };
+    }
+
+    function mergeSchemas(a, b) {
+      if (a.kind === 'null')    return { ...b, optional: true };
+      if (b.kind === 'null')    return { ...a, optional: true };
+      if (a.kind === 'unknown') return b;
+      if (b.kind === 'unknown') return a;
+      if (a.kind === 'integer' && b.kind === 'number') return { kind: 'number' };
+      if (b.kind === 'integer' && a.kind === 'number') return { kind: 'number' };
+      if (a.kind !== b.kind) return { kind: 'union', any: true };
+      if (a.kind === 'array')  return { kind: 'array', of: mergeSchemas(a.of, b.of) };
+      if (a.kind === 'object') {
+        const fields = {};
+        const keys = new Set([...Object.keys(a.fields), ...Object.keys(b.fields)]);
+        for (const k of keys) {
+          if (a.fields[k] && b.fields[k]) fields[k] = mergeSchemas(a.fields[k], b.fields[k]);
+          else fields[k] = { ...(a.fields[k] || b.fields[k]), optional: true };
+        }
+        return { kind: 'object', fields };
+      }
+      return a;
+    }
+
+    // ========== XML -> JSON value ==========
+    function xmlNodeToValue(node) {
+      const children = [...node.children];
+      if (children.length === 0) {
+        const text = node.textContent.trim();
+        if (text === '') return '';
+        if (/^(true|false)$/i.test(text)) return text.toLowerCase() === 'true';
+        if (/^-?\d+$/.test(text)) return parseInt(text, 10);
+        if (/^-?\d+\.\d+$/.test(text)) return parseFloat(text);
+        return text;
+      }
+      // group children by tag name
+      const byTag = {};
+      for (const c of children) (byTag[c.tagName] = byTag[c.tagName] || []).push(c);
+      const obj = {};
+      for (const [tag, list] of Object.entries(byTag)) {
+        if (list.length === 1) obj[tag] = xmlNodeToValue(list[0]);
+        else obj[tag] = list.map(xmlNodeToValue);
+      }
+      return obj;
+    }
+
+    function parseInput(src, type) {
+      if (type === 'json') return JSON.parse(src);
+      const doc = new DOMParser().parseFromString(src, 'text/xml');
+      const err = doc.querySelector('parsererror');
+      if (err) throw new Error('XML parse error: ' + err.textContent.split('\n')[0]);
+      const root = doc.documentElement;
+      return { [root.tagName]: xmlNodeToValue(root) };
+    }
+
+    // ========== Helpers ==========
+    function pascal(s) {
+      return s.replace(/(^\w|[_\-\s.]+\w)/g, m => m.replace(/[_\-\s.]/g, '').toUpperCase());
+    }
+    function snake(s) {
+      return s.replace(/([a-z0-9])([A-Z])/g, '$1_$2').replace(/[\-\s.]+/g, '_').toLowerCase();
+    }
+
+    // ========== Generators ==========
+    function genTS(rootName, schema) {
+      const out = [];
+      const seen = new Set();
+      function emit(name, s) {
+        if (s.kind !== 'object') return;
+        if (seen.has(name)) return;
+        seen.add(name);
+        const lines = [`export interface ${name} {`];
+        for (const [k, f] of Object.entries(s.fields)) {
+          const opt = f.optional ? '?' : '';
+          lines.push(`  ${k}${opt}: ${tsType(name, k, f)};`);
+        }
+        lines.push('}');
+        // emit children
+        for (const [k, f] of Object.entries(s.fields)) emitChildren(name, k, f);
+        out.push(lines.join('\n'));
+      }
+      function emitChildren(parent, k, f) {
+        if (f.kind === 'object') emit(pascal(k), f);
+        else if (f.kind === 'array') emitChildren(parent, singularise(k), f.of);
+      }
+      function tsType(parent, k, f) {
+        if (f.kind === 'string')  return 'string';
+        if (f.kind === 'boolean') return 'boolean';
+        if (f.kind === 'integer' || f.kind === 'number') return 'number';
+        if (f.kind === 'null' || f.kind === 'unknown')   return 'any';
+        if (f.kind === 'union')   return 'any';
+        if (f.kind === 'object')  return pascal(k);
+        if (f.kind === 'array')   return tsType(parent, singularise(k), f.of) + '[]';
+        return 'any';
+      }
+      emit(rootName, schema);
+      return out.reverse().join('\n\n');
+    }
+
+    function genJS(rootName, schema) {
+      const out = [];
+      const seen = new Set();
+      function emit(name, s) {
+        if (s.kind !== 'object' || seen.has(name)) return;
+        seen.add(name);
+        const lines = [`/**`, ` * @typedef {Object} ${name}`];
+        for (const [k, f] of Object.entries(s.fields)) {
+          lines.push(` * @property {${jsType(name, k, f)}} ${f.optional ? '[' + k + ']' : k}`);
+        }
+        lines.push(' */');
+        for (const [k, f] of Object.entries(s.fields)) emitChildren(k, f);
+        out.push(lines.join('\n'));
+      }
+      function emitChildren(k, f) {
+        if (f.kind === 'object') emit(pascal(k), f);
+        else if (f.kind === 'array') emitChildren(singularise(k), f.of);
+      }
+      function jsType(parent, k, f) {
+        if (f.kind === 'string')  return 'string';
+        if (f.kind === 'boolean') return 'boolean';
+        if (f.kind === 'integer' || f.kind === 'number') return 'number';
+        if (f.kind === 'null' || f.kind === 'unknown')   return '*';
+        if (f.kind === 'union')   return '*';
+        if (f.kind === 'object')  return pascal(k);
+        if (f.kind === 'array')   return jsType(parent, singularise(k), f.of) + '[]';
+        return '*';
+      }
+      emit(rootName, schema);
+      return out.reverse().join('\n\n');
+    }
+
+    function genCS(rootName, schema) {
+      const out = [];
+      const seen = new Set();
+      function emit(name, s) {
+        if (s.kind !== 'object' || seen.has(name)) return;
+        seen.add(name);
+        const lines = [`public class ${name}`, '{'];
+        for (const [k, f] of Object.entries(s.fields)) {
+          const propName = pascal(k);
+          lines.push(`    public ${csType(k, f)} ${propName} { get; set; }`);
+        }
+        lines.push('}');
+        for (const [k, f] of Object.entries(s.fields)) emitChildren(k, f);
+        out.push(lines.join('\n'));
+      }
+      function emitChildren(k, f) {
+        if (f.kind === 'object') emit(pascal(k), f);
+        else if (f.kind === 'array') emitChildren(singularise(k), f.of);
+      }
+      function csType(k, f) {
+        if (f.kind === 'string')  return 'string';
+        if (f.kind === 'boolean') return f.optional ? 'bool?' : 'bool';
+        if (f.kind === 'integer') return f.optional ? 'long?' : 'long';
+        if (f.kind === 'number')  return f.optional ? 'double?' : 'double';
+        if (f.kind === 'null' || f.kind === 'unknown' || f.kind === 'union') return 'object';
+        if (f.kind === 'object')  return pascal(k);
+        if (f.kind === 'array')   return `List<${csType(singularise(k), f.of)}>`;
+        return 'object';
+      }
+      emit(rootName, schema);
+      return 'using System.Collections.Generic;\n\n' + out.reverse().join('\n\n');
+    }
+
+    function genPy(rootName, schema) {
+      const out = [];
+      const seen = new Set();
+      function emit(name, s) {
+        if (s.kind !== 'object' || seen.has(name)) return;
+        seen.add(name);
+        const lines = [`@dataclass`, `class ${name}:`];
+        const entries = Object.entries(s.fields);
+        if (entries.length === 0) lines.push('    pass');
+        // required first, then optional
+        const required = entries.filter(([,f]) => !f.optional);
+        const optional = entries.filter(([,f]) => f.optional);
+        for (const [k, f] of required) lines.push(`    ${snake(k)}: ${pyType(k, f)}`);
+        for (const [k, f] of optional) lines.push(`    ${snake(k)}: Optional[${pyType(k, f)}] = None`);
+        for (const [k, f] of entries) emitChildren(k, f);
+        out.push(lines.join('\n'));
+      }
+      function emitChildren(k, f) {
+        if (f.kind === 'object') emit(pascal(k), f);
+        else if (f.kind === 'array') emitChildren(singularise(k), f.of);
+      }
+      function pyType(k, f) {
+        if (f.kind === 'string')  return 'str';
+        if (f.kind === 'boolean') return 'bool';
+        if (f.kind === 'integer') return 'int';
+        if (f.kind === 'number')  return 'float';
+        if (f.kind === 'null' || f.kind === 'unknown' || f.kind === 'union') return 'Any';
+        if (f.kind === 'object')  return pascal(k);
+        if (f.kind === 'array')   return `List[${pyType(singularise(k), f.of)}]`;
+        return 'Any';
+      }
+      emit(rootName, schema);
+      return 'from dataclasses import dataclass\nfrom typing import List, Optional, Any\n\n' + out.reverse().join('\n\n');
+    }
+
+    function genC(rootName, schema) {
+      // C: structs, no nesting of generics. Arrays = pointer + count. Strings = char*.
+      const out = [];
+      const seen = new Set();
+      function emit(name, s) {
+        if (s.kind !== 'object' || seen.has(name)) return;
+        seen.add(name);
+        const lines = [`typedef struct ${name} {`];
+        for (const [k, f] of Object.entries(s.fields)) {
+          const fname = snake(k);
+          if (f.kind === 'array') {
+            const inner = cType(singularise(k), f.of);
+            lines.push(`    ${inner}* ${fname};`);
+            lines.push(`    size_t ${fname}_count;`);
+          } else {
+            lines.push(`    ${cType(k, f)} ${fname};`);
+          }
+        }
+        lines.push(`} ${name};`);
+        for (const [k, f] of Object.entries(s.fields)) emitChildren(k, f);
+        out.push(lines.join('\n'));
+      }
+      function emitChildren(k, f) {
+        if (f.kind === 'object') emit(pascal(k), f);
+        else if (f.kind === 'array') emitChildren(singularise(k), f.of);
+      }
+      function cType(k, f) {
+        if (f.kind === 'string')  return 'char*';
+        if (f.kind === 'boolean') return 'bool';
+        if (f.kind === 'integer') return 'long';
+        if (f.kind === 'number')  return 'double';
+        if (f.kind === 'object')  return pascal(k);
+        if (f.kind === 'null' || f.kind === 'unknown' || f.kind === 'union') return 'void*';
+        if (f.kind === 'array')   return cType(singularise(k), f.of) + '*';
+        return 'void*';
+      }
+      emit(rootName, schema);
+      return '#include <stdbool.h>\n#include <stddef.h>\n\n' + out.reverse().join('\n\n');
+    }
+
+    function singularise(s) {
+      if (/ies$/.test(s)) return s.replace(/ies$/, 'y');
+      if (/ses$/.test(s)) return s.replace(/es$/, '');
+      if (/s$/.test(s) && !/ss$/.test(s)) return s.replace(/s$/, '');
+      return s + 'Item';
+    }
+
+    const GENERATORS = { ts: genTS, js: genJS, cs: genCS, py: genPy, c: genC };
+    const LABELS = { ts: 'TypeScript', js: 'JavaScript', cs: 'C#', py: 'Python', c: 'C' };
+
+    function regenerate() {
+      const src = $('src').value.trim();
+      if (!src) { $('out').textContent = ''; $('stat').textContent = ''; return; }
+      try {
+        const value = parseInput(src, $('inputType').value);
+        const schema = infer(value);
+        // Wrap non-object roots in a stub
+        const root = schema.kind === 'object' ? schema : { kind: 'object', fields: { value: schema } };
+        const code = GENERATORS[$('lang').value]($('rootName').value || 'Root', root);
+        $('out').textContent = code;
+        $('outLabel').textContent = '— ' + LABELS[$('lang').value];
+        $('stat').textContent = `${code.split('\n').length} lines · ${code.length} chars`;
+        $('stat').style.color = 'var(--success)';
+      } catch (e) {
+        $('out').textContent = '// ' + e.message;
+        $('stat').textContent = e.message;
+        $('stat').style.color = 'var(--danger)';
+      }
+    }
+
+    $('src').addEventListener('input', regenerate);
+    $('inputType').addEventListener('change', () => {
+      if (!$('src').value.trim()) $('src').value = SAMPLES[$('inputType').value];
+      regenerate();
+    });
+    $('lang').addEventListener('change', regenerate);
+    $('rootName').addEventListener('input', regenerate);
+    $('loadSample').onclick = () => { $('src').value = SAMPLES[$('inputType').value]; regenerate(); };
+    $('copyOut').onclick = async () => {
+      try { await navigator.clipboard.writeText($('out').textContent); $('stat').textContent = 'Copied ✓'; $('stat').style.color = 'var(--success)'; }
+      catch { $('stat').textContent = 'Copy failed'; $('stat').style.color = 'var(--danger)'; }
+    };
+
+    $('src').value = SAMPLES.json;
+    regenerate();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

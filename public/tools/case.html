@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Case Converter — Free Online Tool · Utility Tools</title>
+  <meta name="description" content="Convert text between upper, lower, title, sentence, camelCase, snake_case, kebab-case, PascalCase, and CONSTANT_CASE.">
+  <meta name="keywords" content="case converter, uppercase, lowercase, title case, camel case, snake case, kebab case">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/case">
+  <meta property="og:title" content="Case Converter — Utility Tools">
+  <meta property="og:description" content="Convert text between upper, lower, title, snake, camel, kebab case and more.">
+  <meta property="og:url" content="/case">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Case Converter</h1>
+      <p>Transform text between nine common cases. Great for renaming variables, cleaning filenames, or formatting titles.</p>
+    </div>
+
+    <div class="panel">
+      <label for="input">Text</label>
+      <textarea id="input" placeholder="The Quick Brown Fox jumps over the lazy dog"></textarea>
+
+      <div class="row" style="margin-top:12px;gap:8px">
+        <button data-case="upper">UPPER CASE</button>
+        <button data-case="lower" class="secondary">lower case</button>
+        <button data-case="title" class="secondary">Title Case</button>
+        <button data-case="sentence" class="secondary">Sentence case</button>
+        <button data-case="camel" class="secondary">camelCase</button>
+        <button data-case="pascal" class="secondary">PascalCase</button>
+        <button data-case="snake" class="secondary">snake_case</button>
+        <button data-case="kebab" class="secondary">kebab-case</button>
+        <button data-case="constant" class="secondary">CONSTANT_CASE</button>
+        <button data-case="alternating" class="secondary">aLtErNaTiNg</button>
+      </div>
+
+      <div style="margin-top:16px">
+        <label for="output">Output</label>
+        <textarea id="output" readonly></textarea>
+        <div class="row" style="margin-top:8px">
+          <button id="copyBtn" class="secondary">Copy output</button>
+          <button id="clearBtn" class="secondary">Clear</button>
+        </div>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+  </main>
+
+  <script>
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    const status = document.getElementById('status');
+    function setStatus(m,ok){ status.textContent=m; status.className='status '+(ok?'ok':'err'); }
+
+    function words(s) {
+      return s
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/[_\-]+/g, ' ')
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .split(/\s+/)
+        .filter(Boolean);
+    }
+
+    const transforms = {
+      upper:       s => s.toUpperCase(),
+      lower:       s => s.toLowerCase(),
+      title:       s => s.replace(/\w\S*/g, w => w[0].toUpperCase() + w.slice(1).toLowerCase()),
+      sentence:    s => s.toLowerCase().replace(/(^\s*|[.!?]\s+)([a-z])/g, (_,p,c) => p + c.toUpperCase()),
+      camel:       s => words(s).map((w,i) => i===0 ? w.toLowerCase() : w[0].toUpperCase() + w.slice(1).toLowerCase()).join(''),
+      pascal:      s => words(s).map(w => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(''),
+      snake:       s => words(s).map(w => w.toLowerCase()).join('_'),
+      kebab:       s => words(s).map(w => w.toLowerCase()).join('-'),
+      constant:    s => words(s).map(w => w.toUpperCase()).join('_'),
+      alternating: s => [...s].map((c,i) => i%2 ? c.toUpperCase() : c.toLowerCase()).join('')
+    };
+
+    document.querySelectorAll('button[data-case]').forEach(btn => {
+      btn.onclick = () => {
+        const fn = transforms[btn.dataset.case];
+        output.value = fn(input.value);
+        setStatus(`Converted to ${btn.dataset.case} ✓`, true);
+      };
+    });
+
+    document.getElementById('copyBtn').onclick = async () => {
+      if (!output.value) { setStatus('Nothing to copy', false); return; }
+      try { await navigator.clipboard.writeText(output.value); setStatus('Copied ✓', true); }
+      catch { setStatus('Copy failed', false); }
+    };
+    document.getElementById('clearBtn').onclick = () => {
+      input.value = ''; output.value = ''; setStatus('', true);
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>

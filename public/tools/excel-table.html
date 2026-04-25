@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excel to Table — Open & Print XLSX/CSV in Your Browser · UtilityTools.eu</title>
+  <meta name="description" content="Open Excel (.xlsx, .xls), CSV, or ODS files in your browser, view them as a clean searchable table, and print or save as PDF for sharing. No upload — your file never leaves your device.">
+  <meta name="keywords" content="excel viewer, xlsx viewer, open xlsx online, excel to html table, csv viewer, print excel, excel to pdf, share excel">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/excel-table">
+  <meta name="theme-color" content="#7c5cff">
+  <meta property="og:title" content="Excel to Table — Open & Print Spreadsheets in Your Browser">
+  <meta property="og:description" content="Free Excel/CSV viewer that runs entirely in your browser. Search, sort, print.">
+  <meta property="og:url" content="/excel-table">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .x-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    .x-controls select, .x-controls input[type=search] { padding: 8px 12px; }
+    .x-controls .stat { color: var(--muted); font-size: 13px; }
+    .x-meta { color: var(--muted); font-size: 13px; margin-bottom: 6px; }
+    .table-wrap { overflow: auto; max-height: 70vh; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); }
+    table.x-table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    table.x-table thead th {
+      position: sticky; top: 0; background: var(--panel-2); color: var(--text);
+      text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border-strong);
+      font-weight: 600; cursor: pointer; user-select: none; white-space: nowrap;
+    }
+    table.x-table thead th:hover { background: var(--panel); }
+    table.x-table thead th.sort-asc::after  { content: ' ▲'; color: var(--accent); }
+    table.x-table thead th.sort-desc::after { content: ' ▼'; color: var(--accent); }
+    table.x-table tbody td {
+      padding: 8px 12px; border-bottom: 1px solid var(--border);
+      vertical-align: top; white-space: pre-wrap;
+    }
+    table.x-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.018); }
+    table.x-table tbody tr:hover { background: rgba(124,92,255,0.07); }
+    .drop-zone {
+      border: 2px dashed var(--border-strong);
+      border-radius: 14px;
+      padding: 38px 18px;
+      text-align: center;
+      background: var(--panel);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .drop-zone.over { border-color: var(--accent); background: var(--panel-2); }
+    .drop-zone .big { font-size: 16px; font-weight: 600; }
+    .drop-zone .sub { color: var(--muted); font-size: 13px; margin-top: 6px; }
+    .drop-zone input { display: none; }
+    .empty-tip { text-align: center; color: var(--muted); padding: 30px 14px; }
+
+    /* Print styles - hide site chrome, show only the table */
+    @media print {
+      .topnav, footer.site-footer, .ad-slot, .x-controls, .drop-zone, .partners, .tool-header p, #status, .panel > h2 { display: none !important; }
+      body { background: #fff !important; color: #000 !important; }
+      .container, .panel { background: #fff !important; padding: 0 !important; max-width: none !important; box-shadow: none !important; border: 0 !important; }
+      .table-wrap { max-height: none; overflow: visible; border: none; background: #fff; }
+      table.x-table { font-size: 11px; color: #000; }
+      table.x-table thead th { background: #f1f1f1 !important; color: #000 !important; border-bottom: 1px solid #888; position: static; }
+      table.x-table tbody td { border-bottom: 1px solid #ddd; }
+      table.x-table tbody tr:nth-child(even) { background: #fafafa !important; }
+      .print-title { display: block !important; font-size: 16px; margin: 0 0 10px; }
+      h1 { font-size: 18px; margin: 0 0 6px; }
+    }
+    .print-title { display: none; }
+  </style>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span><span class="tld">.eu</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Excel &rarr; Table</h1>
+      <p>Open Excel (.xlsx / .xls), CSV, or ODS files in your browser. Search, sort, and print for sharing. Files are processed locally — nothing is uploaded.</p>
+    </div>
+
+    <div class="panel">
+      <label class="drop-zone" id="drop">
+        <input type="file" id="file" accept=".xlsx,.xls,.csv,.ods,.tsv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv">
+        <div class="big">Click to choose a spreadsheet (or drop here)</div>
+        <div class="sub">Supports .xlsx, .xls, .csv, .tsv and .ods</div>
+      </label>
+
+      <div id="meta" class="x-meta" style="margin-top:14px"></div>
+
+      <div class="x-controls" id="controls" style="display:none">
+        <label>Sheet</label>
+        <select id="sheet"></select>
+        <label><input type="checkbox" id="hasHeader" checked> First row is header</label>
+        <input type="search" id="filter" placeholder="Filter rows…" style="flex:1; min-width:180px">
+        <button id="print">🖨️ Print / Save as PDF</button>
+        <button id="download" class="secondary">⬇ Download as CSV</button>
+        <button id="clear" class="secondary">Clear</button>
+        <span class="stat" id="stat"></span>
+      </div>
+
+      <h2 class="print-title" id="printTitle"></h2>
+      <div id="tableWrap" class="table-wrap" style="display:none">
+        <table class="x-table" id="tbl"><thead></thead><tbody></tbody></table>
+      </div>
+      <div id="emptyTip" class="empty-tip">No file loaded yet. Pick or drop a spreadsheet to begin.</div>
+    </div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    let workbook = null;
+    let currentRows = [];           // 2-D array of current sheet (raw)
+    let currentName = '';
+    let sortCol = -1, sortDir = 1;  // -1 = none, 1=asc, -1=desc
+
+    async function handleFile(file) {
+      try {
+        $('meta').textContent = `Reading ${file.name}…`;
+        const buf = await file.arrayBuffer();
+        workbook = XLSX.read(buf, { type: 'array' });
+        currentName = file.name;
+        $('meta').textContent = `${file.name} — ${(file.size/1024).toFixed(1)} KB · ${workbook.SheetNames.length} sheet(s)`;
+        $('printTitle').textContent = file.name;
+        $('sheet').innerHTML = workbook.SheetNames.map(n => `<option value="${escape(n)}">${escape(n)}</option>`).join('');
+        $('controls').style.display = '';
+        $('emptyTip').style.display = 'none';
+        $('tableWrap').style.display = '';
+        loadSheet(workbook.SheetNames[0]);
+      } catch (e) {
+        $('meta').textContent = 'Failed to read file: ' + e.message;
+      }
+    }
+
+    function loadSheet(name) {
+      const sheet = workbook.Sheets[name];
+      currentRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', blankrows: false });
+      sortCol = -1; sortDir = 1;
+      render();
+    }
+
+    function render() {
+      let rows = [...currentRows];
+      const hasHeader = $('hasHeader').checked;
+      let header;
+      if (hasHeader && rows.length > 0) {
+        header = rows.shift().map(h => h === '' ? '' : String(h));
+      } else {
+        const cols = rows.reduce((m, r) => Math.max(m, r.length), 0);
+        header = Array.from({length: cols}, (_, i) => 'Col ' + (i + 1));
+      }
+      // Sorting
+      if (sortCol >= 0) {
+        rows.sort((a, b) => {
+          const av = a[sortCol] ?? '', bv = b[sortCol] ?? '';
+          const an = parseFloat(av), bn = parseFloat(bv);
+          if (!isNaN(an) && !isNaN(bn)) return (an - bn) * sortDir;
+          return String(av).localeCompare(String(bv)) * sortDir;
+        });
+      }
+      // Filter
+      const q = $('filter').value.trim().toLowerCase();
+      const filtered = q ? rows.filter(r => r.some(c => String(c).toLowerCase().includes(q))) : rows;
+
+      // Build header
+      const tHead = header.map((h, i) => {
+        const cls = i === sortCol ? (sortDir > 0 ? 'sort-asc' : 'sort-desc') : '';
+        return `<th class="${cls}" data-c="${i}">${escape(h)}</th>`;
+      }).join('');
+      $('tbl').querySelector('thead').innerHTML = `<tr>${tHead}</tr>`;
+
+      // Build body
+      const cap = 5000; // hard cap to avoid freezing the browser
+      const slice = filtered.slice(0, cap);
+      $('tbl').querySelector('tbody').innerHTML = slice.map(r => {
+        const cells = [];
+        for (let i = 0; i < header.length; i++) {
+          cells.push(`<td>${escape(r[i] ?? '')}</td>`);
+        }
+        return `<tr>${cells.join('')}</tr>`;
+      }).join('');
+
+      $('stat').textContent = `${filtered.length.toLocaleString()} row(s)${filtered.length > cap ? ` · showing first ${cap.toLocaleString()}` : ''}${q ? ` · filtered from ${rows.length.toLocaleString()}` : ''}`;
+    }
+
+    function escape(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // ---- File picker / drop zone ----
+    $('file').addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+    $('drop').addEventListener('dragover', e => { e.preventDefault(); $('drop').classList.add('over'); });
+    $('drop').addEventListener('dragleave', () => $('drop').classList.remove('over'));
+    $('drop').addEventListener('drop', e => {
+      e.preventDefault(); $('drop').classList.remove('over');
+      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+
+    // ---- Controls ----
+    $('sheet').addEventListener('change', e => loadSheet(e.target.value));
+    $('hasHeader').addEventListener('change', render);
+    $('filter').addEventListener('input', render);
+    $('tbl').addEventListener('click', e => {
+      const th = e.target.closest('th[data-c]'); if (!th) return;
+      const c = +th.dataset.c;
+      if (sortCol === c) sortDir = -sortDir; else { sortCol = c; sortDir = 1; }
+      render();
+    });
+    $('print').onclick = () => window.print();
+    $('clear').onclick = () => {
+      workbook = null; currentRows = []; currentName = '';
+      $('controls').style.display = 'none';
+      $('tableWrap').style.display = 'none';
+      $('emptyTip').style.display = '';
+      $('meta').textContent = '';
+      $('file').value = '';
+    };
+    $('download').onclick = () => {
+      if (!workbook) return;
+      const sheet = workbook.Sheets[$('sheet').value];
+      const csv = XLSX.utils.sheet_to_csv(sheet);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = currentName.replace(/\.[^.]+$/, '') + '-' + $('sheet').value + '.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

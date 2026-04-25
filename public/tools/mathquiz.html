@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Math Quiz for Kids — Add, Subtract, Multiply, Divide · Utility Tools</title>
+  <meta name="description" content="Free arithmetic quiz for kids. Pick operations and difficulty, see your score and accuracy. Runs in your browser.">
+  <meta name="keywords" content="math quiz for kids, arithmetic practice, addition quiz, multiplication quiz, mental math">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/mathquiz">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Math Quiz for Kids — Utility Tools">
+  <meta property="og:description" content="Free arithmetic practice with timer and score.">
+  <meta property="og:url" content="/mathquiz">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .question { font-size: 56px; text-align: center; font-family: var(--mono); color: var(--accent); padding: 20px; }
+    .answer-input { font-size: 32px !important; text-align: center; padding: 12px; font-family: var(--mono) !important; }
+    .feedback { text-align: center; font-size: 22px; min-height: 30px; margin-top: 8px; }
+    .ok { color: var(--success); }
+    .err { color: var(--danger); }
+  </style>
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container container-narrow">
+    <div class="tool-header">
+      <h1>Math Quiz for Kids</h1>
+      <p>Pick which operations to practice and how hard. Press <strong>Enter</strong> after each answer.</p>
+    </div>
+
+    <div class="panel" id="setup">
+      <label>Operations</label>
+      <div class="row" style="margin-bottom:12px">
+        <label class="checkbox"><input type="checkbox" class="op" value="+" checked> Add (+)</label>
+        <label class="checkbox"><input type="checkbox" class="op" value="-" checked> Subtract (−)</label>
+        <label class="checkbox"><input type="checkbox" class="op" value="*" checked> Multiply (×)</label>
+        <label class="checkbox"><input type="checkbox" class="op" value="/"> Divide (÷)</label>
+      </div>
+
+      <label for="level">Difficulty</label>
+      <select id="level">
+        <option value="easy">Easy (1–10)</option>
+        <option value="medium" selected>Medium (1–20)</option>
+        <option value="hard">Hard (1–50)</option>
+      </select>
+
+      <div class="stat-grid" style="margin-top:14px">
+        <div><label for="qcount">Questions</label><input id="qcount" type="number" min="5" max="100" value="10"></div>
+        <div><label for="qtime">Time per question (sec)</label><input id="qtime" type="number" min="0" max="60" value="0"><div style="font-size:11px;color:var(--muted)">0 = no timer</div></div>
+      </div>
+
+      <div class="row" style="margin-top:18px">
+        <button id="startBtn">Start quiz</button>
+      </div>
+    </div>
+
+    <div class="panel" id="game" hidden>
+      <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:13px">
+        <span>Question <span id="qNum">1</span> / <span id="qTot">10</span></span>
+        <span>Score: <span id="score">0</span></span>
+        <span id="timerWrap" hidden>⏱ <span id="timer">0</span>s</span>
+      </div>
+      <div class="question" id="question"></div>
+      <input id="answer" type="number" class="answer-input" autocomplete="off" inputmode="numeric">
+      <div class="feedback" id="fb"></div>
+      <div class="row" style="justify-content:center;margin-top:10px">
+        <button id="skipBtn" class="secondary">Skip</button>
+        <button id="quitBtn" class="secondary">Quit</button>
+      </div>
+    </div>
+
+    <div class="panel" id="result" hidden>
+      <h2 style="margin-top:0">Done! 🎉</h2>
+      <div class="stat-grid">
+        <div class="stat"><div class="value" id="finalScore">0</div><div class="label">Correct</div></div>
+        <div class="stat"><div class="value" id="finalAcc">0%</div><div class="label">Accuracy</div></div>
+        <div class="stat"><div class="value" id="finalTime">0s</div><div class="label">Time</div></div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button id="againBtn">Play again</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let qs = [], idx = 0, score = 0, total = 0, startTime = 0, qTimer = null, qSecs = 0;
+
+    const ranges = { easy:[1,10], medium:[1,20], hard:[1,50] };
+    const rand = (lo,hi) => lo + Math.floor(Math.random()*(hi-lo+1));
+
+    function makeQuestion(){
+      const ops = [...document.querySelectorAll('.op:checked')].map(c => c.value);
+      if (!ops.length) return null;
+      const op = ops[Math.floor(Math.random()*ops.length)];
+      const [lo,hi] = ranges[$('level').value];
+      let a = rand(lo,hi), b = rand(lo,hi), ans;
+      if (op === '+') ans = a + b;
+      else if (op === '-') { if (b > a) [a,b] = [b,a]; ans = a - b; }
+      else if (op === '*') ans = a * b;
+      else { ans = rand(lo,hi); a = ans * b; if (b===0){ b=1; a=ans; } }
+      return { a, b, op, ans, text: `${a} ${({'+':'+','-':'−','*':'×','/':'÷'})[op]} ${b} = ?` };
+    }
+
+    function showQuestion(){
+      const q = qs[idx];
+      $('question').textContent = q.text;
+      $('answer').value = ''; $('answer').focus();
+      $('fb').textContent = '';
+      $('qNum').textContent = idx+1;
+      if (qSecs > 0){
+        let left = qSecs;
+        $('timer').textContent = left;
+        $('timerWrap').hidden = false;
+        clearInterval(qTimer);
+        qTimer = setInterval(() => {
+          left--; $('timer').textContent = left;
+          if (left <= 0){ clearInterval(qTimer); submit(true); }
+        }, 1000);
+      } else { $('timerWrap').hidden = true; }
+    }
+
+    function submit(timeout=false){
+      const q = qs[idx];
+      const v = parseFloat($('answer').value);
+      const correct = !timeout && v === q.ans;
+      if (correct) { score++; $('fb').innerHTML = '<span class="ok">✓ Correct!</span>'; }
+      else $('fb').innerHTML = `<span class="err">${timeout?'⏱ Time!':'✗'} Answer was ${q.ans}</span>`;
+      $('score').textContent = score;
+      clearInterval(qTimer);
+      setTimeout(() => {
+        idx++;
+        if (idx >= qs.length) finish(); else showQuestion();
+      }, 700);
+    }
+
+    function finish(){
+      $('game').hidden = true; $('result').hidden = false;
+      $('finalScore').textContent = `${score} / ${qs.length}`;
+      $('finalAcc').textContent = Math.round(score / qs.length * 100) + '%';
+      $('finalTime').textContent = Math.round((Date.now()-startTime)/1000) + 's';
+    }
+
+    $('startBtn').onclick = () => {
+      total = Math.max(1, parseInt($('qcount').value)||10);
+      qSecs = Math.max(0, parseInt($('qtime').value)||0);
+      qs = []; for (let i=0;i<total;i++){ const q = makeQuestion(); if (q) qs.push(q); }
+      if (!qs.length){ alert('Pick at least one operation.'); return; }
+      idx = 0; score = 0; startTime = Date.now();
+      $('qTot').textContent = qs.length; $('score').textContent = 0;
+      $('setup').hidden = true; $('result').hidden = true; $('game').hidden = false;
+      showQuestion();
+    };
+    $('answer').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    $('skipBtn').onclick = () => submit(true);
+    $('quitBtn').onclick = () => { clearInterval(qTimer); $('game').hidden = true; $('setup').hidden = false; };
+    $('againBtn').onclick = () => { $('result').hidden = true; $('setup').hidden = false; };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

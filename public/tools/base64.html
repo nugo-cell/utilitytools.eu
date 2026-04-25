@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Base64 Encode/Decode — Free Online Tool · Utility Tools</title>
+  <meta name="description" content="Free online Base64 encoder and decoder. UTF-8 safe, runs fully in your browser.">
+  <meta name="keywords" content="base64 encode, base64 decode, base64 converter">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/base64">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Base64 Encode/Decode — Utility Tools">
+  <meta property="og:description" content="Free online Base64 encoder and decoder. UTF-8 safe, runs fully in your browser.">
+  <meta property="og:url" content="/base64">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>Base64 Encode / Decode</h1>
+      <p>UTF-8 safe. Converts text to and from Base64.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px">
+        <button id="encodeBtn">Encode →</button>
+        <button id="decodeBtn" class="secondary">← Decode</button>
+        <button id="swapBtn" class="secondary">Swap</button>
+        <button id="copyBtn" class="secondary">Copy output</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+
+      <div class="split">
+        <div>
+          <label for="input">Plain text</label>
+          <textarea id="input" placeholder="Hello, world!"></textarea>
+        </div>
+        <div>
+          <label for="output">Base64</label>
+          <textarea id="output" placeholder="SGVsbG8sIHdvcmxkIQ=="></textarea>
+        </div>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <script>
+    const input  = document.getElementById('input');
+    const output = document.getElementById('output');
+    const status = document.getElementById('status');
+
+    function setStatus(msg, ok) {
+      status.textContent = msg;
+      status.className = 'status ' + (ok ? 'ok' : 'err');
+    }
+
+    // UTF-8 safe encode/decode
+    function encode(str) {
+      return btoa(unescape(encodeURIComponent(str)));
+    }
+    function decode(b64) {
+      return decodeURIComponent(escape(atob(b64.replace(/\s+/g, ''))));
+    }
+
+    document.getElementById('encodeBtn').onclick = () => {
+      try {
+        output.value = encode(input.value);
+        setStatus('Encoded ✓', true);
+      } catch (e) { setStatus('Encode failed: ' + e.message, false); }
+    };
+
+    document.getElementById('decodeBtn').onclick = () => {
+      try {
+        input.value = decode(output.value);
+        setStatus('Decoded ✓', true);
+      } catch (e) { setStatus('Decode failed — is it valid Base64?', false); }
+    };
+
+    document.getElementById('swapBtn').onclick = () => {
+      const a = input.value; input.value = output.value; output.value = a;
+      setStatus('', true);
+    };
+
+    document.getElementById('copyBtn').onclick = async () => {
+      if (!output.value) { setStatus('Nothing to copy', false); return; }
+      try { await navigator.clipboard.writeText(output.value); setStatus('Copied ✓', true); }
+      catch { setStatus('Copy failed', false); }
+    };
+
+    document.getElementById('clearBtn').onclick = () => {
+      input.value = ''; output.value = ''; setStatus('', true);
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>

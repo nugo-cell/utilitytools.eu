@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pomodoro Timer — Focus Sessions · Utility Tools</title>
+  <meta name="description" content="A simple, distraction-free Pomodoro timer with configurable focus and break lengths.">
+  <meta name="keywords" content="pomodoro timer, focus timer, productivity, study timer">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/pomodoro">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Pomodoro Timer — Utility Tools">
+  <meta property="og:description" content="Free distraction-free Pomodoro timer in your browser.">
+  <meta property="og:url" content="/pomodoro">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .timer { font-size: 88px; font-family: var(--mono); text-align: center; padding: 18px; color: var(--accent); }
+    .phase { text-align:center; color: var(--muted); font-size: 14px; text-transform: uppercase; letter-spacing: 2px; }
+    .progress { height: 8px; background: var(--panel-2); border-radius: 999px; overflow: hidden; margin: 12px 0 0; }
+    .progress > div { height: 100%; background: var(--accent); transition: width 0.5s linear; }
+  </style>
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container container-narrow">
+    <div class="tool-header">
+      <h1>Pomodoro Timer</h1>
+      <p>25-minute focus blocks with short and long breaks. Stays accurate even when the tab is hidden.</p>
+    </div>
+
+    <div class="panel">
+      <div class="phase" id="phase">Focus</div>
+      <div class="timer" id="timer">25:00</div>
+      <div class="progress"><div id="bar" style="width:0%"></div></div>
+      <div class="row" style="justify-content:center;margin-top:18px">
+        <button id="startBtn">Start</button>
+        <button id="pauseBtn" class="secondary" disabled>Pause</button>
+        <button id="resetBtn" class="secondary">Reset</button>
+        <button id="skipBtn" class="secondary">Skip</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="stat-grid">
+        <div><label for="focusMin">Focus (min)</label><input id="focusMin" type="number" min="1" max="180" value="25"></div>
+        <div><label for="shortMin">Short break</label><input id="shortMin" type="number" min="1" max="60" value="5"></div>
+        <div><label for="longMin">Long break</label><input id="longMin" type="number" min="1" max="120" value="15"></div>
+        <div><label for="rounds">Rounds before long</label><input id="rounds" type="number" min="1" max="12" value="4"></div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <label class="checkbox"><input type="checkbox" id="sound" checked> Beep on phase change</label>
+        <label class="checkbox"><input type="checkbox" id="autoNext" checked> Auto-start next phase</label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="stat-grid">
+        <div class="stat"><div class="value" id="completed">0</div><div class="label">Focus blocks done</div></div>
+        <div class="stat"><div class="value" id="totalMin">0</div><div class="label">Total focus minutes</div></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const PHASES = { focus:'Focus', short:'Short break', long:'Long break' };
+
+    let phase='focus', endAt=null, remaining=0, running=false, completed=0, totalMin=0, roundCount=0, tickT=null;
+
+    function phaseLen(){ return ({focus:+$('focusMin').value, short:+$('shortMin').value, long:+$('longMin').value})[phase]*60*1000; }
+
+    function fmt(ms){
+      ms = Math.max(0, ms);
+      const s = Math.ceil(ms/1000);
+      return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+    }
+
+    function render(){
+      const ms = endAt ? endAt - Date.now() : remaining;
+      $('timer').textContent = fmt(ms);
+      $('phase').textContent = PHASES[phase];
+      const total = phaseLen();
+      const done = total - Math.max(0, ms);
+      $('bar').style.width = Math.min(100, (done/total)*100) + '%';
+      document.title = (running ? '▶ ' : '') + fmt(ms) + ' · ' + PHASES[phase] + ' — Pomodoro';
+      $('completed').textContent = completed;
+      $('totalMin').textContent = totalMin;
+    }
+
+    function beep(){
+      if (!$('sound').checked) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.frequency.value = 880; o.connect(g); g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.001, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        o.start(); o.stop(ctx.currentTime + 0.5);
+      } catch {}
+    }
+
+    function nextPhase(){
+      if (phase === 'focus'){
+        completed++; totalMin += +$('focusMin').value; roundCount++;
+        phase = (roundCount % +$('rounds').value === 0) ? 'long' : 'short';
+      } else {
+        phase = 'focus';
+      }
+      remaining = phaseLen();
+      endAt = null;
+      beep();
+      if ($('autoNext').checked) start();
+      else { running=false; $('startBtn').disabled=false; $('pauseBtn').disabled=true; }
+      render();
+    }
+
+    function tick(){
+      if (!running) return;
+      if (Date.now() >= endAt){ stopTick(); nextPhase(); return; }
+      render();
+    }
+    function startTick(){ stopTick(); tickT = setInterval(tick, 250); }
+    function stopTick(){ if (tickT){ clearInterval(tickT); tickT=null; } }
+
+    function start(){
+      if (!remaining) remaining = phaseLen();
+      endAt = Date.now() + remaining;
+      remaining = 0;
+      running = true;
+      $('startBtn').disabled = true; $('pauseBtn').disabled = false;
+      startTick(); render();
+    }
+    function pause(){
+      if (!running) return;
+      remaining = endAt - Date.now();
+      endAt = null; running = false;
+      $('startBtn').disabled = false; $('pauseBtn').disabled = true;
+      stopTick(); render();
+    }
+    function reset(){
+      pause(); phase='focus'; remaining = phaseLen(); render();
+    }
+
+    $('startBtn').onclick = start;
+    $('pauseBtn').onclick = pause;
+    $('resetBtn').onclick = reset;
+    $('skipBtn').onclick = () => { pause(); nextPhase(); };
+    ['focusMin','shortMin','longMin','rounds'].forEach(id => $(id).addEventListener('input', () => {
+      if (!running) { remaining = phaseLen(); render(); }
+    }));
+
+    remaining = phaseLen(); render();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hash Generator — Free Online Tool · Utility Tools</title>
+  <meta name="description" content="Compute SHA-1, SHA-256, SHA-384, and SHA-512 hashes of text in your browser.">
+  <meta name="keywords" content="sha256 generator, sha1 hash, hash calculator, web crypto">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/hash">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Hash Generator — Utility Tools">
+  <meta property="og:description" content="Compute SHA-1, SHA-256, SHA-384, and SHA-512 hashes of text in your browser.">
+  <meta property="og:url" content="/hash">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>Hash Generator</h1>
+      <p>Compute SHA-1, SHA-256, SHA-384, and SHA-512 hashes of text using the browser's Web Crypto API.</p>
+    </div>
+
+    <div class="panel">
+      <label for="input">Input text</label>
+      <textarea id="input" placeholder="Type or paste text here…"></textarea>
+
+      <div class="row" style="margin-top:12px">
+        <button id="computeBtn">Compute hashes</button>
+        <label class="checkbox" style="margin-left:12px">
+          <input type="checkbox" id="live" checked> Live (compute as I type)
+        </label>
+        <button id="clearBtn" class="secondary" style="margin-left:auto">Clear</button>
+      </div>
+
+      <div style="margin-top:20px">
+        <div class="stat" style="text-align:left;margin-bottom:10px">
+          <div class="label">SHA-1</div>
+          <div class="mono" id="sha1" style="word-break:break-all;margin-top:4px">—</div>
+        </div>
+        <div class="stat" style="text-align:left;margin-bottom:10px">
+          <div class="label">SHA-256</div>
+          <div class="mono" id="sha256" style="word-break:break-all;margin-top:4px">—</div>
+        </div>
+        <div class="stat" style="text-align:left;margin-bottom:10px">
+          <div class="label">SHA-384</div>
+          <div class="mono" id="sha384" style="word-break:break-all;margin-top:4px">—</div>
+        </div>
+        <div class="stat" style="text-align:left">
+          <div class="label">SHA-512</div>
+          <div class="mono" id="sha512" style="word-break:break-all;margin-top:4px">—</div>
+        </div>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <script>
+    const input = document.getElementById('input');
+    const status = document.getElementById('status');
+    const liveEl = document.getElementById('live');
+
+    function setStatus(msg, ok) {
+      status.textContent = msg;
+      status.className = 'status ' + (ok ? 'ok' : 'err');
+    }
+
+    async function hash(algo, str) {
+      const buf = new TextEncoder().encode(str);
+      const d = await crypto.subtle.digest(algo, buf);
+      return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+
+    async function computeAll() {
+      const s = input.value;
+      if (!s) {
+        ['sha1','sha256','sha384','sha512'].forEach(id => document.getElementById(id).textContent = '—');
+        setStatus('', true);
+        return;
+      }
+      try {
+        const [a, b, c, d] = await Promise.all([
+          hash('SHA-1',   s),
+          hash('SHA-256', s),
+          hash('SHA-384', s),
+          hash('SHA-512', s)
+        ]);
+        document.getElementById('sha1').textContent   = a;
+        document.getElementById('sha256').textContent = b;
+        document.getElementById('sha384').textContent = c;
+        document.getElementById('sha512').textContent = d;
+        setStatus('Computed ✓', true);
+      } catch (e) { setStatus('Hashing failed: ' + e.message, false); }
+    }
+
+    document.getElementById('computeBtn').onclick = computeAll;
+    document.getElementById('clearBtn').onclick = () => {
+      input.value = ''; computeAll();
+    };
+    input.addEventListener('input', () => { if (liveEl.checked) computeAll(); });
+
+    // Let users click a hash to copy it
+    document.querySelectorAll('.stat .mono').forEach(el => {
+      el.style.cursor = 'pointer';
+      el.title = 'Click to copy';
+      el.addEventListener('click', async () => {
+        if (el.textContent === '—') return;
+        try { await navigator.clipboard.writeText(el.textContent); setStatus('Copied ✓', true); }
+        catch { setStatus('Copy failed', false); }
+      });
+    });
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>

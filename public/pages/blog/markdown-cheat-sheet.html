@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Markdown Cheat Sheet for Beginners — Utility Tools</title>
+  <meta name="description" content="A one-page Markdown cheat sheet covering headings, lists, links, images, code blocks and tables — with a live editor to try it.">
+  <meta name="keywords" content="markdown cheat sheet, markdown syntax, learn markdown, markdown for beginners">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/blog/markdown-cheat-sheet">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Markdown Cheat Sheet for Beginners">
+  <meta property="og:description" content="The 90% of Markdown you'll actually use, on one page.">
+  <meta property="og:url" content="/blog/markdown-cheat-sheet">
+  <meta property="article:published_time" content="2026-04-20">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"Markdown Cheat Sheet for Beginners","datePublished":"2026-04-20","author":{"@type":"Organization","name":"Utility Tools"}}
+  </script>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog" class="active">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container-narrow">
+    <article class="prose">
+      <h1>Markdown cheat sheet for beginners</h1>
+      <p class="meta">April 20, 2026 · 4 min read</p>
+
+      <p>Markdown is a tiny set of typing conventions that become formatted text. It powers READMEs on GitHub, notes in Obsidian, posts on Reddit, messages in Discord, and countless docs sites. You can learn 90% of it in five minutes — this is that five minutes.</p>
+
+      <h2>Headings</h2>
+      <p>Use <code>#</code> for headings. One <code>#</code> = biggest, six = smallest.</p>
+      <pre><code># H1
+## H2
+### H3</code></pre>
+
+      <h2>Bold and italic</h2>
+      <pre><code>*italic*  or  _italic_
+**bold**  or  __bold__
+***bold italic***</code></pre>
+
+      <h2>Lists</h2>
+      <p>Bullets use <code>-</code> (or <code>*</code>). Numbered lists use <code>1.</code> — and you can write all of them as <code>1.</code>; the renderer numbers them in order.</p>
+      <pre><code>- Apples
+- Pears
+- Plums
+
+1. Wash
+1. Chop
+1. Cook</code></pre>
+
+      <h2>Links and images</h2>
+      <pre><code>[Visible text](https://example.com)
+![Alt text for accessibility](image.jpg)</code></pre>
+
+      <h2>Code</h2>
+      <p>Backticks for inline code, triple backticks (often with a language) for a block:</p>
+      <pre><code>Use the `git status` command first.
+
+```js
+function hello(name) {
+  return `Hi, ${name}`;
+}
+```</code></pre>
+
+      <h2>Quotes and rules</h2>
+      <pre><code>&gt; A blockquote.
+
+---  (three dashes = horizontal rule)</code></pre>
+
+      <h2>Tables</h2>
+      <p>Pipes and dashes. The colons in the separator row control alignment.</p>
+      <pre><code>| Tool      | Use         |
+| --------- | ----------- |
+| Markdown  | Writing     |
+| JSON      | APIs        |</code></pre>
+
+      <h2>Things people forget</h2>
+      <ul>
+        <li><strong>Blank lines matter.</strong> Two newlines = a new paragraph. One newline is usually ignored unless you end the line with two spaces.</li>
+        <li><strong>Indent code blocks four spaces</strong> if you don't want to use triple backticks.</li>
+        <li><strong>Escape special characters</strong> with a backslash: <code>\*not italic\*</code>.</li>
+        <li><strong>Task lists</strong> (GitHub-flavoured): <code>- [ ] todo</code> and <code>- [x] done</code>.</li>
+      </ul>
+
+      <h2>Try it now</h2>
+      <p>The fastest way to learn is to type. Open our <a href="/markdown">Markdown Preview tool</a> and play. It shows the rendered output side-by-side as you type and lets you copy or download the HTML when you're done.</p>
+
+      <h2>Where Markdown shines (and where it doesn't)</h2>
+      <p>It's perfect for technical writing, READMEs, blog posts, and notes. It's <em>not</em> great for layouts that need precise positioning, complex tables, or rich design — for those, reach for HTML, a proper word processor, or a design tool.</p>
+
+      <p>That's it. You now know enough Markdown to write a clean README. Go and write one.</p>
+    </article>
+  </main>
+
+  <script src="/site.js"></script>
+</body>
+</html>
+

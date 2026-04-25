@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XML Formatter — Pretty-Print, Minify & Validate · UtilityTools.eu</title>
+  <meta name="description" content="Free XML formatter that pretty-prints, minifies, and validates XML in your browser. Runs entirely client-side — your XML never leaves your device.">
+  <meta name="keywords" content="xml formatter, xml beautifier, xml pretty print, xml minify, xml validator, format xml online, free xml tool">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/xml">
+  <meta name="theme-color" content="#7c5cff">
+  <meta property="og:title" content="XML Formatter — Pretty-Print, Minify & Validate">
+  <meta property="og:description" content="Beautify, minify and validate XML in your browser. No upload.">
+  <meta property="og:url" content="/xml">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .xml-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+    @media (max-width: 900px) { .xml-grid { grid-template-columns: 1fr; } }
+    .xml-pane h2 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); display: flex; justify-content: space-between; }
+    .xml-pane textarea, .xml-pane pre {
+      width: 100%; min-height: 60vh; box-sizing: border-box;
+      font-family: var(--mono); font-size: 13px; line-height: 1.5;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); padding: 14px; margin: 0; overflow: auto; white-space: pre;
+    }
+    .xml-pane textarea { resize: vertical; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    .toolbar select { padding: 8px 10px; }
+  </style>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span><span class="tld">.eu</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>XML Formatter</h1>
+      <p>Pretty-print, minify, and validate XML — runs entirely in your browser, never uploaded anywhere.</p>
+    </div>
+
+    <div class="panel">
+      <div class="toolbar">
+        <button id="prettyBtn">Pretty-print</button>
+        <button id="minifyBtn">Minify</button>
+        <button id="validateBtn" class="secondary">Validate only</button>
+        <label>Indent</label>
+        <select id="indent">
+          <option value="2" selected>2 spaces</option>
+          <option value="4">4 spaces</option>
+          <option value="\t">Tab</option>
+        </select>
+        <button id="copyBtn" class="secondary">Copy output</button>
+        <button id="sampleBtn" class="secondary">Load sample</button>
+        <span class="status" id="status"></span>
+      </div>
+
+      <div class="xml-grid">
+        <div class="xml-pane">
+          <h2>Input</h2>
+          <textarea id="src" spellcheck="false" placeholder="<root><child attr='1'>hello</child></root>"></textarea>
+        </div>
+        <div class="xml-pane">
+          <h2>Output <span id="outMeta" style="color:var(--muted);font-weight:normal"></span></h2>
+          <pre id="out"></pre>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const status = (msg, ok = true) => { $('status').textContent = msg; $('status').className = 'status ' + (ok ? 'ok' : 'err'); };
+
+    const SAMPLE =
+`<?xml version="1.0" encoding="UTF-8"?>
+<library updated="2026-04-25">
+  <book id="1" lang="en">
+    <title>The Art of Computer Programming</title>
+    <author>Donald Knuth</author>
+    <year>1968</year>
+    <tags><tag>algorithms</tag><tag>classic</tag></tags>
+  </book>
+  <book id="2" lang="en">
+    <title>Structure and Interpretation of Computer Programs</title>
+    <author>Abelson</author>
+    <author>Sussman</author>
+    <year>1985</year>
+  </book>
+</library>`;
+
+    function parseXml(src) {
+      const doc = new DOMParser().parseFromString(src, 'application/xml');
+      const err = doc.querySelector('parsererror');
+      if (err) {
+        // Try the friendlier message
+        const msg = (err.querySelector('div')?.textContent || err.textContent).trim();
+        throw new Error(msg.replace(/\s+/g, ' '));
+      }
+      return doc;
+    }
+
+    function getIndent() {
+      const v = $('indent').value;
+      return v === '\\t' ? '\t' : ' '.repeat(parseInt(v, 10) || 2);
+    }
+
+    // Custom pretty-printer: walk DOM, emit indented XML.
+    function prettyXml(src, indent) {
+      const doc = parseXml(src);
+      const out = [];
+      // Preserve XML declaration if the source had one.
+      const decl = src.match(/^\s*<\?xml[^?]*\?>/);
+      if (decl) out.push(decl[0].trim());
+      function escapeText(t) {
+        return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+      function escapeAttr(v) {
+        return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+      }
+      function attrs(el) {
+        return [...el.attributes].map(a => ` ${a.name}="${escapeAttr(a.value)}"`).join('');
+      }
+      function walk(node, depth) {
+        const pad = indent.repeat(depth);
+        for (const child of node.childNodes) {
+          switch (child.nodeType) {
+            case 1: { // Element
+              const el = child;
+              // Determine whether children are only inline text/CDATA -> single-line.
+              const onlyText = [...el.childNodes].every(c =>
+                c.nodeType === 3 || c.nodeType === 4 || (c.nodeType === 8)) &&
+                el.childNodes.length > 0 &&
+                el.textContent.length < 80 &&
+                !/[\r\n]/.test(el.textContent);
+              if (el.childNodes.length === 0) {
+                out.push(`${pad}<${el.nodeName}${attrs(el)}/>`);
+              } else if (onlyText) {
+                let inner = '';
+                for (const c of el.childNodes) {
+                  if (c.nodeType === 4) inner += `<![CDATA[${c.nodeValue}]]>`;
+                  else if (c.nodeType === 8) inner += `<!--${c.nodeValue}-->`;
+                  else inner += escapeText(c.nodeValue);
+                }
+                out.push(`${pad}<${el.nodeName}${attrs(el)}>${inner.trim()}</${el.nodeName}>`);
+              } else {
+                out.push(`${pad}<${el.nodeName}${attrs(el)}>`);
+                walk(el, depth + 1);
+                out.push(`${pad}</${el.nodeName}>`);
+              }
+              break;
+            }
+            case 3: { // Text
+              const t = child.nodeValue.trim();
+              if (t) out.push(pad + escapeText(t));
+              break;
+            }
+            case 4: // CDATA
+              out.push(`${pad}<![CDATA[${child.nodeValue}]]>`);
+              break;
+            case 7: // Processing instruction
+              out.push(`${pad}<?${child.nodeName} ${child.nodeValue}?>`);
+              break;
+            case 8: // Comment
+              out.push(`${pad}<!--${child.nodeValue}-->`);
+              break;
+          }
+        }
+      }
+      walk(doc, 0);
+      return out.join('\n');
+    }
+
+    function minifyXml(src) {
+      const doc = parseXml(src);
+      const ser = new XMLSerializer().serializeToString(doc);
+      // Remove whitespace between tags but preserve text inside leaf elements.
+      return ser.replace(/>\s+</g, '><').trim();
+    }
+
+    function pretty() {
+      try {
+        const out = prettyXml($('src').value, getIndent());
+        $('out').textContent = out;
+        $('outMeta').textContent = `· ${out.split('\n').length} lines · ${out.length.toLocaleString()} chars`;
+        status('Valid XML ✓');
+      } catch (e) {
+        $('out').textContent = '';
+        $('outMeta').textContent = '';
+        status(e.message, false);
+      }
+    }
+
+    function minify() {
+      try {
+        const out = minifyXml($('src').value);
+        $('out').textContent = out;
+        $('outMeta').textContent = `· minified · ${out.length.toLocaleString()} chars`;
+        status('Valid XML ✓');
+      } catch (e) {
+        $('out').textContent = '';
+        $('outMeta').textContent = '';
+        status(e.message, false);
+      }
+    }
+
+    function validate() {
+      try {
+        parseXml($('src').value);
+        $('out').textContent = '✓ XML is well-formed.';
+        $('outMeta').textContent = '';
+        status('Valid XML ✓');
+      } catch (e) {
+        $('out').textContent = e.message;
+        $('outMeta').textContent = '';
+        status(e.message, false);
+      }
+    }
+
+    $('prettyBtn').onclick = pretty;
+    $('minifyBtn').onclick = minify;
+    $('validateBtn').onclick = validate;
+    $('indent').onchange = () => { if ($('out').textContent) pretty(); };
+    $('sampleBtn').onclick = () => { $('src').value = SAMPLE; pretty(); };
+    $('copyBtn').onclick = async () => {
+      try { await navigator.clipboard.writeText($('out').textContent); status('Copied ✓'); }
+      catch { status('Copy failed', false); }
+    };
+    $('src').addEventListener('input', () => { if ($('src').value.trim()) pretty(); else { $('out').textContent=''; $('outMeta').textContent=''; status(''); } });
+
+    // Start with the sample so the page is useful on first load.
+    $('src').value = SAMPLE;
+    pretty();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

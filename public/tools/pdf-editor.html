@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Free PDF Editor — Reorder, Rotate, Delete &amp; Merge Pages · UtilityTools.eu</title>
+  <meta name="description" content="Free PDF editor that runs entirely in your browser. Reorder, rotate, and delete pages, merge multiple PDFs into one, and download the result. No upload — your file never leaves your computer.">
+  <meta name="keywords" content="pdf editor, pdf merger, rotate pdf, delete pdf pages, reorder pdf, free pdf tool, browser pdf editor">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/pdf-editor">
+  <meta name="theme-color" content="#7c5cff">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .drop-zone {
+      border: 2px dashed var(--border-strong);
+      border-radius: 14px;
+      padding: 38px 18px;
+      text-align: center;
+      background: var(--panel);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .drop-zone.over { border-color: var(--accent); background: var(--panel-2); }
+    .drop-zone input { display: none; }
+    .drop-zone .big { font-size: 16px; font-weight: 600; }
+    .drop-zone .sub { color: var(--muted); font-size: 13px; margin-top: 6px; }
+    .pages {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .page-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+    .page-card.dragging { opacity: 0.4; }
+    .page-card.dragover { border-color: var(--accent); }
+    .page-thumb {
+      background: #fff;
+      color: #222;
+      aspect-ratio: 0.707;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 14px;
+      margin-bottom: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+    .page-thumb canvas { max-width: 100%; max-height: 100%; }
+    .page-thumb .num { position: absolute; bottom: 6px; right: 8px; background: rgba(0,0,0,0.55); color:#fff; font-size:11px; padding:2px 6px; border-radius:4px; }
+    .page-card .page-actions { display: flex; gap: 4px; flex-wrap: wrap; }
+    .page-card .page-actions button { flex: 1 1 auto; padding: 5px 8px; font-size: 12px; }
+    .file-row { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px; }
+    .file-row .meta { color: var(--muted); font-size: 12.5px; margin-left: 10px; }
+    .toolbar { display:flex; gap:10px; flex-wrap:wrap; margin: 18px 0; align-items:center; }
+  </style>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span><span class="tld">.eu</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>PDF Editor</h1>
+      <p>Reorder, rotate, delete pages, and merge multiple PDFs — all in your browser. Files are processed locally; nothing is uploaded anywhere.</p>
+    </div>
+
+    <div class="panel">
+      <label class="drop-zone" id="drop">
+        <input type="file" id="file" accept="application/pdf" multiple>
+        <div class="big">Click to choose PDF files (or drop here)</div>
+        <div class="sub">Add one PDF to edit, or several to merge them in the order you add them.</div>
+      </label>
+
+      <div id="files" style="margin-top:14px"></div>
+
+      <div class="toolbar">
+        <button id="save" disabled>💾 Save merged PDF</button>
+        <button id="clear" class="secondary">Clear</button>
+        <span id="status" class="status"></span>
+      </div>
+
+      <div id="pages" class="pages"></div>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    const $ = id => document.getElementById(id);
+    const status = (msg, ok=true) => { $('status').textContent = msg; $('status').className = 'status ' + (ok?'ok':'err'); };
+
+    // pages = [{ srcDocIndex, srcPageIndex, rotation, fileName }]
+    let docs = [];   // pdf-lib documents (one per uploaded file)
+    let names = [];  // original filenames
+    let pages = [];  // ordered list of pages currently in the workspace
+
+    async function addFiles(fileList) {
+      for (const f of fileList) {
+        if (f.type !== 'application/pdf') continue;
+        try {
+          const buf = await f.arrayBuffer();
+          const doc = await PDFLib.PDFDocument.load(buf);
+          const idx = docs.length;
+          docs.push(doc);
+          names.push(f.name);
+          // Render thumbnails via pdf.js
+          const pdfjsDoc = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+          for (let i = 0; i < doc.getPageCount(); i++) {
+            pages.push({
+              srcDocIndex: idx, srcPageIndex: i, rotation: 0, fileName: f.name,
+              thumbDataUrl: await renderThumb(pdfjsDoc, i + 1)
+            });
+          }
+        } catch (e) {
+          status('Failed to read ' + f.name + ': ' + e.message, false);
+        }
+      }
+      renderFiles();
+      renderPages();
+      $('save').disabled = pages.length === 0;
+    }
+
+    async function renderThumb(pdfjsDoc, pageNum) {
+      try {
+        const page = await pdfjsDoc.getPage(pageNum);
+        const vp = page.getViewport({ scale: 1 });
+        const scale = 200 / vp.width;
+        const v = page.getViewport({ scale });
+        const c = document.createElement('canvas');
+        c.width = v.width; c.height = v.height;
+        await page.render({ canvasContext: c.getContext('2d'), viewport: v }).promise;
+        return c.toDataURL('image/jpeg', 0.7);
+      } catch { return null; }
+    }
+
+    function renderFiles() {
+      $('files').innerHTML = names.map((n, i) => {
+        const count = pages.filter(p => p.srcDocIndex === i).length;
+        return `<div class="file-row">
+          <div><strong>${escape(n)}</strong><span class="meta">${docs[i].getPageCount()} pages — ${count} kept</span></div>
+        </div>`;
+      }).join('');
+    }
+
+    function renderPages() {
+      $('pages').innerHTML = pages.map((p, i) => `
+        <div class="page-card" draggable="true" data-i="${i}">
+          <div class="page-thumb">
+            ${p.thumbDataUrl
+              ? `<canvas data-thumb="${i}" style="transform: rotate(${p.rotation}deg)"></canvas>`
+              : `<div>Page ${p.srcPageIndex + 1}</div>`}
+            <div class="num">${i + 1}</div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escape(p.fileName)}">${escape(p.fileName)} · p.${p.srcPageIndex + 1}</div>
+          <div class="page-actions">
+            <button class="secondary" data-act="left"  data-i="${i}" title="Rotate left">⟲</button>
+            <button class="secondary" data-act="right" data-i="${i}" title="Rotate right">⟳</button>
+            <button class="secondary" data-act="up"    data-i="${i}" title="Move earlier">←</button>
+            <button class="secondary" data-act="down"  data-i="${i}" title="Move later">→</button>
+            <button class="danger"    data-act="del"   data-i="${i}" title="Delete page">✕</button>
+          </div>
+        </div>`).join('');
+      // Paint canvases
+      pages.forEach((p, i) => {
+        if (!p.thumbDataUrl) return;
+        const c = document.querySelector(`canvas[data-thumb="${i}"]`); if (!c) return;
+        const img = new Image();
+        img.onload = () => { c.width = img.width; c.height = img.height; c.getContext('2d').drawImage(img, 0, 0); };
+        img.src = p.thumbDataUrl;
+      });
+    }
+
+    function escape(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    // ---- Page actions ----
+    $('pages').addEventListener('click', e => {
+      const btn = e.target.closest('button[data-act]'); if (!btn) return;
+      const i = +btn.dataset.i, act = btn.dataset.act;
+      if (act === 'left')  pages[i].rotation = (pages[i].rotation + 270) % 360;
+      if (act === 'right') pages[i].rotation = (pages[i].rotation +  90) % 360;
+      if (act === 'up'   && i > 0)               [pages[i-1], pages[i]] = [pages[i], pages[i-1]];
+      if (act === 'down' && i < pages.length-1)  [pages[i+1], pages[i]] = [pages[i], pages[i+1]];
+      if (act === 'del')  pages.splice(i, 1);
+      renderPages(); renderFiles();
+      $('save').disabled = pages.length === 0;
+    });
+
+    // ---- Drag-and-drop reordering ----
+    let dragFrom = null;
+    $('pages').addEventListener('dragstart', e => {
+      const card = e.target.closest('.page-card'); if (!card) return;
+      dragFrom = +card.dataset.i;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    $('pages').addEventListener('dragend', e => {
+      const card = e.target.closest('.page-card'); if (card) card.classList.remove('dragging');
+      document.querySelectorAll('.page-card').forEach(c => c.classList.remove('dragover'));
+    });
+    $('pages').addEventListener('dragover', e => {
+      e.preventDefault();
+      const card = e.target.closest('.page-card');
+      document.querySelectorAll('.page-card').forEach(c => c.classList.remove('dragover'));
+      if (card) card.classList.add('dragover');
+    });
+    $('pages').addEventListener('drop', e => {
+      e.preventDefault();
+      const card = e.target.closest('.page-card'); if (!card || dragFrom === null) return;
+      let to = +card.dataset.i;
+      // Decide whether to drop before or after the target based on cursor x.
+      const r = card.getBoundingClientRect();
+      const after = (e.clientX - r.left) > r.width / 2;
+      if (after) to += 1;
+      // After removing dragFrom, indexes >= dragFrom shift down by 1.
+      const [moved] = pages.splice(dragFrom, 1);
+      const insertAt = to > dragFrom ? to - 1 : to;
+      pages.splice(Math.max(0, Math.min(pages.length, insertAt)), 0, moved);
+      dragFrom = null;
+      renderPages();
+    });
+
+    // ---- File picker / drop zone ----
+    $('file').addEventListener('change', e => addFiles(e.target.files));
+    $('drop').addEventListener('dragover', e => { e.preventDefault(); $('drop').classList.add('over'); });
+    $('drop').addEventListener('dragleave', () => $('drop').classList.remove('over'));
+    $('drop').addEventListener('drop', e => {
+      e.preventDefault(); $('drop').classList.remove('over');
+      addFiles(e.dataTransfer.files);
+    });
+    $('clear').onclick = () => { docs = []; names = []; pages = []; renderFiles(); renderPages(); $('save').disabled = true; status(''); };
+
+    // ---- Save merged/edited PDF ----
+    $('save').onclick = async () => {
+      if (!pages.length) return;
+      const btn = $('save');
+      btn.disabled = true;
+      status('Building PDF…');
+      try {
+        const out = await PDFLib.PDFDocument.create();
+        for (const p of pages) {
+          const [copied] = await out.copyPages(docs[p.srcDocIndex], [p.srcPageIndex]);
+          if (p.rotation) copied.setRotation(PDFLib.degrees((copied.getRotation().angle + p.rotation) % 360));
+          out.addPage(copied);
+        }
+        const bytes = await out.save();
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = (names.length === 1 ? names[0].replace(/\.pdf$/i, '') : 'merged') + '-edited.pdf';
+        a.click();
+        URL.revokeObjectURL(a.href);
+        status('Saved ✓');
+      } catch (e) {
+        status('Failed: ' + e.message, false);
+      } finally {
+        btn.disabled = pages.length === 0;
+      }
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

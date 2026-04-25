@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unix Timestamp Converter — Free Online Tool · Utility Tools</title>
+  <meta name="description" content="Convert Unix timestamps to and from human-readable dates. Relative time and live clock included.">
+  <meta name="keywords" content="unix timestamp, epoch converter, date to timestamp, timestamp to date">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/timestamp">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Unix Timestamp Converter — Utility Tools">
+  <meta property="og:description" content="Convert Unix timestamps to and from human-readable dates. Relative time and live clock included.">
+  <meta property="og:url" content="/timestamp">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>Unix Timestamp Converter</h1>
+      <p>Convert between Unix timestamps (seconds or milliseconds) and human-readable dates.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px">
+        <button id="nowBtn">Now</button>
+        <span id="live" class="mono" style="color:var(--muted)"></span>
+      </div>
+
+      <div class="split">
+        <div>
+          <label for="ts">Unix timestamp</label>
+          <input type="text" id="ts" placeholder="e.g. 1714140000 or 1714140000000">
+          <div class="row" style="margin-top:10px">
+            <label class="checkbox"><input type="radio" name="unit" value="auto" checked> Auto-detect</label>
+            <label class="checkbox"><input type="radio" name="unit" value="s"> Seconds</label>
+            <label class="checkbox"><input type="radio" name="unit" value="ms"> Milliseconds</label>
+          </div>
+          <button id="fromTsBtn" style="margin-top:12px">Convert →</button>
+        </div>
+        <div>
+          <label for="dt">Date / time (local)</label>
+          <input type="text" id="dt" placeholder="e.g. 2026-04-24 15:30:00">
+          <div style="color:var(--muted);font-size:12px;margin-top:6px">Accepts ISO 8601 or most common date strings.</div>
+          <button id="fromDtBtn" style="margin-top:12px">← Convert</button>
+        </div>
+      </div>
+
+      <div style="margin-top:20px" class="stat-grid" id="details" hidden>
+        <div class="stat"><div class="value mono" id="vLocal">—</div><div class="label">Local time</div></div>
+        <div class="stat"><div class="value mono" id="vUtc">—</div><div class="label">UTC</div></div>
+        <div class="stat"><div class="value mono" id="vIso">—</div><div class="label">ISO 8601</div></div>
+        <div class="stat"><div class="value mono" id="vSec">—</div><div class="label">Unix (s)</div></div>
+        <div class="stat"><div class="value mono" id="vMs">—</div><div class="label">Unix (ms)</div></div>
+        <div class="stat"><div class="value mono" id="vRel">—</div><div class="label">Relative</div></div>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <script>
+    const tsEl = document.getElementById('ts');
+    const dtEl = document.getElementById('dt');
+    const status = document.getElementById('status');
+    const details = document.getElementById('details');
+
+    function setStatus(msg, ok) {
+      status.textContent = msg;
+      status.className = 'status ' + (ok ? 'ok' : 'err');
+    }
+
+    function pad(n){ return n.toString().padStart(2,'0'); }
+    function fmtLocal(d){
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    function relative(d){
+      const diff = (d - Date.now()) / 1000;
+      const abs = Math.abs(diff);
+      const units = [['year',31536000],['month',2592000],['day',86400],['hour',3600],['minute',60],['second',1]];
+      for (const [name, sec] of units) {
+        if (abs >= sec) {
+          const v = Math.round(diff / sec);
+          return new Intl.RelativeTimeFormat('en', { numeric:'auto' }).format(v, name);
+        }
+      }
+      return 'just now';
+    }
+
+    function renderDate(d) {
+      if (isNaN(d.getTime())) { setStatus('Invalid date/timestamp', false); details.hidden = true; return; }
+      details.hidden = false;
+      document.getElementById('vLocal').textContent = fmtLocal(d);
+      document.getElementById('vUtc').textContent = d.toUTCString();
+      document.getElementById('vIso').textContent = d.toISOString();
+      document.getElementById('vSec').textContent = Math.floor(d.getTime()/1000);
+      document.getElementById('vMs').textContent = d.getTime();
+      document.getElementById('vRel').textContent = relative(d);
+      setStatus('Converted ✓', true);
+    }
+
+    function parseTs() {
+      const raw = tsEl.value.trim();
+      if (!raw) return null;
+      const n = Number(raw);
+      if (!isFinite(n)) return null;
+      const unit = document.querySelector('input[name="unit"]:checked').value;
+      let ms;
+      if (unit === 's') ms = n * 1000;
+      else if (unit === 'ms') ms = n;
+      else ms = (raw.length >= 12 || Math.abs(n) > 1e12) ? n : n * 1000;
+      return new Date(ms);
+    }
+
+    document.getElementById('fromTsBtn').onclick = () => {
+      const d = parseTs();
+      if (!d) { setStatus('Enter a numeric timestamp', false); return; }
+      renderDate(d);
+      dtEl.value = fmtLocal(d);
+    };
+
+    document.getElementById('fromDtBtn').onclick = () => {
+      const raw = dtEl.value.trim();
+      if (!raw) { setStatus('Enter a date', false); return; }
+      // Try ISO / native first, then relaxed
+      let d = new Date(raw);
+      if (isNaN(d.getTime())) d = new Date(raw.replace(' ', 'T'));
+      if (isNaN(d.getTime())) { setStatus('Could not parse date', false); return; }
+      tsEl.value = Math.floor(d.getTime()/1000);
+      renderDate(d);
+    };
+
+    document.getElementById('nowBtn').onclick = () => {
+      const d = new Date();
+      tsEl.value = Math.floor(d.getTime()/1000);
+      dtEl.value = fmtLocal(d);
+      renderDate(d);
+    };
+
+    // Live clock
+    setInterval(() => {
+      const d = new Date();
+      document.getElementById('live').textContent = `Now: ${Math.floor(d.getTime()/1000)} (s) · ${fmtLocal(d)}`;
+    }, 1000);
+
+    document.getElementById('nowBtn').click();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>

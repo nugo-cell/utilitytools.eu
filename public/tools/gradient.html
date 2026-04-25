@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSS Gradient Generator — Linear &amp; Radial · Utility Tools</title>
+  <meta name="description" content="Visually build CSS linear and radial gradients. Copy ready-to-use CSS to clipboard.">
+  <meta name="keywords" content="css gradient generator, linear gradient, radial gradient, css background">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/gradient">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="CSS Gradient Generator — Utility Tools">
+  <meta property="og:description" content="Free visual CSS gradient builder.">
+  <meta property="og:url" content="/gradient">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .preview-box { width: 100%; height: 280px; border-radius: 10px; border: 1px solid var(--border); }
+    .stop-row { display: grid; grid-template-columns: 50px 1fr 70px auto; gap: 10px; align-items: center; margin-bottom: 8px; }
+    .stop-row input[type=color] { width: 50px; height: 36px; padding: 0; border-radius: 6px; border: 1px solid var(--border); background: var(--panel-2); cursor: pointer; }
+  </style>
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>CSS Gradient Generator</h1>
+      <p>Build a gradient visually and copy the CSS.</p>
+    </div>
+
+    <div class="panel">
+      <div id="preview" class="preview-box"></div>
+    </div>
+
+    <div class="split">
+      <div class="panel">
+        <div class="row" style="margin-bottom:12px">
+          <label class="checkbox"><input type="radio" name="kind" value="linear" checked> Linear</label>
+          <label class="checkbox"><input type="radio" name="kind" value="radial"> Radial</label>
+        </div>
+        <div id="angleRow">
+          <label for="angle">Angle: <span id="angleVal">90</span>°</label>
+          <input id="angle" type="range" min="0" max="360" value="90">
+        </div>
+        <div id="shapeRow" hidden>
+          <label for="shape">Shape</label>
+          <select id="shape">
+            <option value="circle">Circle</option>
+            <option value="ellipse" selected>Ellipse</option>
+          </select>
+        </div>
+
+        <label style="margin-top:14px">Color stops</label>
+        <div id="stops"></div>
+        <button id="addStop" class="secondary small">+ Add stop</button>
+        <button id="randomBtn" class="secondary small">🎲 Random</button>
+      </div>
+
+      <div class="panel">
+        <label>CSS</label>
+        <textarea id="css" readonly style="min-height:120px"></textarea>
+        <div class="row" style="margin-top:10px">
+          <button id="copyBtn">Copy CSS</button>
+          <button id="copyValBtn" class="secondary">Copy gradient value</button>
+        </div>
+        <div id="status" class="status"></div>
+
+        <label style="margin-top:14px">Tailwind arbitrary value</label>
+        <textarea id="tw" readonly style="min-height:50px"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const status = $('status');
+    const set = (m, ok=true) => { status.textContent = m; status.className = 'status ' + (ok ? 'ok' : 'err'); };
+
+    let stops = [
+      { color: '#6ea8ff', pos: 0 },
+      { color: '#9b6eff', pos: 100 }
+    ];
+
+    function renderStops(){
+      $('stops').innerHTML = stops.map((s,i) => `
+        <div class="stop-row">
+          <input type="color" value="${s.color}" data-i="${i}" data-k="color">
+          <input type="range" min="0" max="100" value="${s.pos}" data-i="${i}" data-k="pos">
+          <input type="number" min="0" max="100" value="${s.pos}" data-i="${i}" data-k="posn">
+          <button class="secondary small" data-rm="${i}" ${stops.length<=2?'disabled':''}>×</button>
+        </div>
+      `).join('');
+      $('stops').querySelectorAll('input').forEach(el => el.addEventListener('input', e => {
+        const i = +e.target.dataset.i, k = e.target.dataset.k;
+        if (k === 'color') stops[i].color = e.target.value;
+        else if (k === 'pos') stops[i].pos = +e.target.value;
+        else if (k === 'posn') stops[i].pos = Math.max(0, Math.min(100, +e.target.value));
+        renderStops(); update();
+      }));
+      $('stops').querySelectorAll('[data-rm]').forEach(b => b.onclick = () => {
+        const i = +b.dataset.rm; if (stops.length<=2) return;
+        stops.splice(i,1); renderStops(); update();
+      });
+    }
+
+    function gradientValue(){
+      const kind = document.querySelector('input[name=kind]:checked').value;
+      const sorted = [...stops].sort((a,b)=>a.pos-b.pos);
+      const stopsCss = sorted.map(s => `${s.color} ${s.pos}%`).join(', ');
+      if (kind === 'linear'){
+        return `linear-gradient(${$('angle').value}deg, ${stopsCss})`;
+      } else {
+        return `radial-gradient(${$('shape').value} at center, ${stopsCss})`;
+      }
+    }
+
+    function update(){
+      const v = gradientValue();
+      $('preview').style.background = v;
+      $('css').value = `background: ${v};`;
+      $('tw').value = `bg-[${v.replace(/\s/g,'_')}]`;
+      $('angleVal').textContent = $('angle').value;
+    }
+
+    document.querySelectorAll('input[name=kind]').forEach(r => r.addEventListener('change', () => {
+      const linear = document.querySelector('input[name=kind]:checked').value === 'linear';
+      $('angleRow').hidden = !linear; $('shapeRow').hidden = linear; update();
+    }));
+    $('angle').addEventListener('input', update);
+    $('shape').addEventListener('change', update);
+
+    $('addStop').onclick = () => {
+      stops.push({ color: '#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'), pos: 50 });
+      renderStops(); update();
+    };
+    $('randomBtn').onclick = () => {
+      const n = 2 + Math.floor(Math.random()*3);
+      stops = Array.from({length:n}, (_,i) => ({
+        color: '#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'),
+        pos: Math.round(i*100/(n-1))
+      }));
+      $('angle').value = Math.floor(Math.random()*360);
+      renderStops(); update();
+    };
+
+    $('copyBtn').onclick = async () => {
+      try { await navigator.clipboard.writeText($('css').value); set('Copied ✓'); }
+      catch { set('Copy failed', false); }
+    };
+    $('copyValBtn').onclick = async () => {
+      try { await navigator.clipboard.writeText(gradientValue()); set('Copied gradient value ✓'); }
+      catch { set('Copy failed', false); }
+    };
+
+    renderStops(); update();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

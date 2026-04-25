@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL Encode/Decode — Free Online Tool · Utility Tools</title>
+  <meta name="description" content="Percent-encode or decode URLs and query string components instantly in your browser.">
+  <meta name="keywords" content="url encoder, url decoder, percent encoding, encodeuricomponent">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/url">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="URL Encode/Decode — Utility Tools">
+  <meta property="og:description" content="Percent-encode or decode URLs and query string components instantly in your browser.">
+  <meta property="og:url" content="/url">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>URL Encode / Decode</h1>
+      <p>Percent-encode or decode strings for safe use in URLs.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px">
+        <button id="encodeBtn">Encode →</button>
+        <button id="decodeBtn" class="secondary">← Decode</button>
+        <label class="checkbox" style="margin-left:12px">
+          <input type="checkbox" id="componentMode" checked>
+          Use encodeURIComponent (stricter)
+        </label>
+        <button id="copyBtn" class="secondary" style="margin-left:auto">Copy output</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+
+      <div class="split">
+        <div>
+          <label for="input">Plain text</label>
+          <textarea id="input" placeholder="hello world?foo=bar&baz=1"></textarea>
+        </div>
+        <div>
+          <label for="output">Encoded</label>
+          <textarea id="output" placeholder="hello%20world%3Ffoo%3Dbar%26baz%3D1"></textarea>
+        </div>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <script>
+    const input  = document.getElementById('input');
+    const output = document.getElementById('output');
+    const status = document.getElementById('status');
+    const mode   = document.getElementById('componentMode');
+
+    function setStatus(msg, ok) {
+      status.textContent = msg;
+      status.className = 'status ' + (ok ? 'ok' : 'err');
+    }
+
+    document.getElementById('encodeBtn').onclick = () => {
+      try {
+        output.value = mode.checked ? encodeURIComponent(input.value) : encodeURI(input.value);
+        setStatus('Encoded ✓', true);
+      } catch (e) { setStatus('Encode failed: ' + e.message, false); }
+    };
+
+    document.getElementById('decodeBtn').onclick = () => {
+      try {
+        input.value = mode.checked ? decodeURIComponent(output.value) : decodeURI(output.value);
+        setStatus('Decoded ✓', true);
+      } catch (e) { setStatus('Decode failed: malformed URI sequence', false); }
+    };
+
+    document.getElementById('copyBtn').onclick = async () => {
+      if (!output.value) { setStatus('Nothing to copy', false); return; }
+      try { await navigator.clipboard.writeText(output.value); setStatus('Copied ✓', true); }
+      catch { setStatus('Copy failed', false); }
+    };
+
+    document.getElementById('clearBtn').onclick = () => {
+      input.value = ''; output.value = ''; setStatus('', true);
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>

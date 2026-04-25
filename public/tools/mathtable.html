@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multiplication Table Printer — Free Online Tool · Utility Tools</title>
+  <meta name="description" content="Free printable multiplication tables for kids. Choose any range, print clean worksheets. Great for classrooms and home practice.">
+  <meta name="keywords" content="multiplication table, printable times table, math worksheet, kids math, times table printable">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/mathtable">
+  <meta property="og:title" content="Multiplication Table Printer">
+  <meta property="og:description" content="Free printable multiplication tables for kids and classrooms.">
+  <meta property="og:url" content="/mathtable">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .math-grid { display:grid; gap:2px; background:var(--border); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+    .math-cell { background:var(--panel-2); color:var(--text); padding:10px; text-align:center; font-family:var(--mono); font-size:15px; }
+    .math-cell.header { background:var(--panel); color:var(--accent); font-weight:700; }
+    .math-cell.blank { background:var(--panel); }
+    @media print {
+      body, html { background:#fff; color:#000; }
+      .math-grid { background:#ddd; border-color:#ddd; }
+      .math-cell { background:#fff !important; color:#000 !important; }
+      .math-cell.header { background:#eee !important; color:#000 !important; font-weight:700; }
+      .math-cell.blank { background:#eee !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Multiplication Table Printer</h1>
+      <p>Free printable times tables. Pick a range, print a worksheet, practice with the kids.</p>
+    </div>
+
+    <div class="panel no-print">
+      <div class="row">
+        <label style="display:inline">From:</label>
+        <input type="number" id="from" value="1" min="1" max="30" style="width:90px">
+        <label style="display:inline">To:</label>
+        <input type="number" id="to" value="12" min="1" max="30" style="width:90px">
+        <label class="checkbox" style="margin-left:12px"><input type="checkbox" id="blanks"> Show blanks (quiz mode)</label>
+        <button id="renderBtn">Update</button>
+        <button id="printBtn" class="secondary">Print</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div id="tableHost"></div>
+    </div>
+  </main>
+
+  <script>
+    const host = document.getElementById('tableHost');
+    function render() {
+      const from = Math.max(1, Math.min(30, +document.getElementById('from').value || 1));
+      const to   = Math.max(from, Math.min(30, +document.getElementById('to').value || 12));
+      const blanks = document.getElementById('blanks').checked;
+      const n = to - from + 2;
+      const cols = `repeat(${n}, minmax(40px, 1fr))`;
+      let html = `<div class="math-grid" style="grid-template-columns:${cols}">`;
+      html += `<div class="math-cell blank">×</div>`;
+      for (let c = from; c <= to; c++) html += `<div class="math-cell header">${c}</div>`;
+      for (let r = from; r <= to; r++) {
+        html += `<div class="math-cell header">${r}</div>`;
+        for (let c = from; c <= to; c++) {
+          html += `<div class="math-cell">${blanks ? '' : (r*c)}</div>`;
+        }
+      }
+      html += `</div>`;
+      host.innerHTML = html;
+    }
+    document.getElementById('renderBtn').onclick = render;
+    document.getElementById('printBtn').onclick = () => window.print();
+    ['from','to','blanks'].forEach(id => document.getElementById(id).addEventListener('input', render));
+    render();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>

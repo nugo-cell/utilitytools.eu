@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disclaimer — Utility Tools</title>
+  <meta name="description" content="Disclaimer for Utility Tools. Information about use at your own risk, accuracy of results, and limitation of liability.">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/disclaimer">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container-narrow">
+    <article class="prose">
+      <h1>Disclaimer</h1>
+      <p class="meta">Last updated: <span id="today"></span></p>
+
+      <h2>General information</h2>
+      <p>The information and tools provided on Utility Tools (the "Service") are for general informational and practical use only. All tools are offered "as is", without warranty of any kind, either express or implied.</p>
+
+      <h2>Accuracy of output</h2>
+      <p>We make reasonable efforts to ensure the tools produce correct output (e.g., that JSON is correctly formatted, that hashes are computed according to published specifications, that conversions are mathematically sound). However, we make no guarantee that any output is error-free, complete, or suitable for any particular purpose. You are responsible for verifying results before relying on them in production systems, legal documents, financial decisions, or other consequential contexts.</p>
+
+      <h2>Use at your own risk</h2>
+      <p>You use this Service at your own risk. We are not liable for any direct, indirect, incidental, consequential, or punitive damages arising out of your access to, or use of, the Service. This includes (without limitation) loss of data, lost profits, misdelivered messages, security incidents, or reliance on tool output.</p>
+
+      <h2>Not professional advice</h2>
+      <p>Nothing provided on this Service — including any calculator, budget tool, template (such as CVs), or article — constitutes legal, financial, medical, or other professional advice. For important decisions, consult a qualified professional.</p>
+
+      <h2>Third-party content</h2>
+      <p>Some tools load external libraries from public content delivery networks (for example, mammoth.js for DOCX parsing or QR code libraries). Those libraries are governed by their respective licenses. We do not warrant or endorse their functionality.</p>
+
+      <h2>Generated content</h2>
+      <p>Output produced by generator tools (passwords, UUIDs, lorem ipsum, scrambled words, QR codes, CVs, budgets) is created locally in your browser. You own any content you create and are responsible for how it is used.</p>
+
+      <h2>Changes to this disclaimer</h2>
+      <p>We may update this disclaimer from time to time. Continued use of the Service after changes means you accept the updated version.</p>
+
+      <h2>Contact</h2>
+      <p>For questions about this disclaimer, please reach out via the contact details on the <a href="/about">About</a> page.</p>
+    </article>
+  </main>
+
+  <script>document.getElementById('today').textContent = new Date().toISOString().slice(0,10);</script>
+  <script src="/site.js"></script>
+</body>
+</html>

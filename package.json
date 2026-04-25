@@ -1,0 +1,24 @@
+{
+  "name": "utility-tools",
+  "version": "1.0.0",
+  "description": "A suite of everyday web-based utility tools (JSON formatter, Base64, UUID, password gen, hash, regex, color, timestamp, URL encoder, text counter).",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "utilities",
+    "tools",
+    "json",
+    "base64",
+    "uuid",
+    "hash",
+    "regex"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lorem Ipsum Generator — Free Online Tool · Utility Tools</title>
+  <meta name="description" content="Generate lorem ipsum placeholder text by paragraphs, sentences, or words. Free, fast, and browser-based.">
+  <meta name="keywords" content="lorem ipsum, lorem ipsum generator, placeholder text, dummy text, mockup text">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/lorem">
+  <meta property="og:title" content="Lorem Ipsum Generator">
+  <meta property="og:description" content="Generate lorem ipsum placeholder text by paragraphs, sentences, or words.">
+  <meta property="og:url" content="/lorem">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Lorem Ipsum Generator</h1>
+      <p>Classic placeholder text for designs, mockups, and layouts.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px">
+        <label for="count" style="display:inline;margin-right:6px">How many:</label>
+        <input type="number" id="count" value="3" min="1" max="500" style="width:100px">
+        <select id="unit" style="width:auto">
+          <option value="paragraphs">Paragraphs</option>
+          <option value="sentences">Sentences</option>
+          <option value="words">Words</option>
+        </select>
+        <label class="checkbox" style="margin-left:12px"><input type="checkbox" id="startLorem" checked> Start with "Lorem ipsum…"</label>
+        <button id="genBtn">Generate</button>
+        <button id="copyBtn" class="secondary">Copy</button>
+      </div>
+      <textarea id="output" readonly style="min-height:280px"></textarea>
+      <div id="status" class="status"></div>
+    </div>
+  </main>
+
+  <script>
+    const WORDS = "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequat duis aute irure in reprehenderit voluptate velit esse cillum fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt culpa qui officia deserunt mollit anim id est laborum at vero eos accusamus iusto odio dignissimos ducimus blanditiis praesentium voluptatum deleniti atque corrupti quos dolores quas molestias excepturi occaecati provident similique sunt culpa".split(' ');
+
+    function rand(n){ return Math.floor(Math.random()*n); }
+    function pick(){ return WORDS[rand(WORDS.length)]; }
+
+    function makeSentence(n) {
+      const len = n || (6 + rand(10));
+      const words = [];
+      for (let i = 0; i < len; i++) words.push(pick());
+      words[0] = words[0][0].toUpperCase() + words[0].slice(1);
+      // insert commas occasionally
+      if (len > 6 && Math.random() < 0.6) words[2 + rand(3)] += ',';
+      return words.join(' ') + '.';
+    }
+    function makeParagraph() {
+      const n = 3 + rand(4);
+      const s = [];
+      for (let i = 0; i < n; i++) s.push(makeSentence());
+      return s.join(' ');
+    }
+
+    document.getElementById('genBtn').onclick = () => {
+      const count = Math.min(500, Math.max(1, parseInt(document.getElementById('count').value, 10) || 3));
+      const unit = document.getElementById('unit').value;
+      const startLorem = document.getElementById('startLorem').checked;
+      let out = '';
+      if (unit === 'paragraphs') {
+        const arr = [];
+        for (let i = 0; i < count; i++) arr.push(makeParagraph());
+        out = arr.join('\n\n');
+      } else if (unit === 'sentences') {
+        const arr = [];
+        for (let i = 0; i < count; i++) arr.push(makeSentence());
+        out = arr.join(' ');
+      } else {
+        const arr = [];
+        for (let i = 0; i < count; i++) arr.push(pick());
+        out = arr.join(' ');
+      }
+      if (startLorem) {
+        out = out.replace(/^./, m => 'L') // no-op fallback
+                 .replace(/^[A-Z][^.]*\./, 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.');
+      }
+      document.getElementById('output').value = out;
+    };
+
+    document.getElementById('copyBtn').onclick = async () => {
+      const out = document.getElementById('output').value;
+      if (!out) return;
+      try { await navigator.clipboard.writeText(out); document.getElementById('status').textContent = 'Copied ✓'; document.getElementById('status').className = 'status ok'; }
+      catch { document.getElementById('status').textContent = 'Copy failed'; document.getElementById('status').className = 'status err'; }
+    };
+
+    document.getElementById('genBtn').click();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>

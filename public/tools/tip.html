@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tip &amp; Bill Splitter — Free Calculator · Utility Tools</title>
+  <meta name="description" content="Calculate the tip and split a bill among any number of people. Quick, simple, mobile-friendly.">
+  <meta name="keywords" content="tip calculator, bill splitter, split the bill, restaurant tip">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/tip">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Tip & Bill Splitter — Utility Tools">
+  <meta property="og:description" content="Free online tip calculator and bill splitter.">
+  <meta property="og:url" content="/tip">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container container-narrow">
+    <div class="tool-header">
+      <h1>Tip &amp; Bill Splitter</h1>
+      <p>Quickly calculate tip and split the total among friends.</p>
+    </div>
+
+    <div class="panel">
+      <div class="stat-grid">
+        <div><label for="bill">Bill amount</label><input id="bill" type="number" min="0" step="0.01" value="50.00"></div>
+        <div><label for="tipPct">Tip %</label><input id="tipPct" type="number" min="0" step="1" value="15"></div>
+        <div><label for="people">People</label><input id="people" type="number" min="1" step="1" value="2"></div>
+        <div><label for="currency">Currency</label>
+          <select id="currency">
+            <option>$</option><option>€</option><option>£</option><option>¥</option><option>₹</option><option>A$</option><option>kr</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:14px">
+        <span style="color:var(--muted);font-size:13px">Quick tip:</span>
+        <button class="secondary small" data-tip="10">10%</button>
+        <button class="secondary small" data-tip="15">15%</button>
+        <button class="secondary small" data-tip="18">18%</button>
+        <button class="secondary small" data-tip="20">20%</button>
+        <button class="secondary small" data-tip="25">25%</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="stat-grid">
+        <div class="stat"><div class="value" id="tipAmt">$0.00</div><div class="label">Tip total</div></div>
+        <div class="stat"><div class="value" id="grandTotal">$0.00</div><div class="label">Grand total</div></div>
+        <div class="stat"><div class="value" id="perPerson">$0.00</div><div class="label">Per person</div></div>
+        <div class="stat"><div class="value" id="tipPerPerson">$0.00</div><div class="label">Tip per person</div></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    function calc(){
+      const bill = Math.max(0, parseFloat($('bill').value) || 0);
+      const pct = Math.max(0, parseFloat($('tipPct').value) || 0);
+      const people = Math.max(1, parseInt($('people').value) || 1);
+      const cur = $('currency').value;
+      const tip = bill * pct / 100;
+      const total = bill + tip;
+      const fmt = n => cur + n.toFixed(2);
+      $('tipAmt').textContent = fmt(tip);
+      $('grandTotal').textContent = fmt(total);
+      $('perPerson').textContent = fmt(total / people);
+      $('tipPerPerson').textContent = fmt(tip / people);
+    }
+    ['bill','tipPct','people','currency'].forEach(id => $(id).addEventListener('input', calc));
+    document.querySelectorAll('[data-tip]').forEach(b => b.onclick = () => { $('tipPct').value = b.dataset.tip; calc(); });
+    calc();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

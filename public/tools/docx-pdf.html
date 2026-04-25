@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DOCX to PDF Converter — Free Online Tool · Utility Tools</title>
+  <meta name="description" content="Convert Word (.docx) documents to PDF for free. Runs entirely in your browser — your files never leave your device.">
+  <meta name="keywords" content="docx to pdf, word to pdf, free pdf converter, convert word online, private docx converter">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/docx-pdf">
+  <meta property="og:title" content="DOCX to PDF Converter — Utility Tools">
+  <meta property="og:description" content="Convert Word (.docx) documents to PDF privately in your browser.">
+  <meta property="og:url" content="/docx-pdf">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .dropzone.drag { border-color: var(--accent); background: var(--panel-2); color: var(--text); }
+    .docx-preview {
+      background: #fff;
+      color: #222;
+      padding: 50px 60px;
+      border-radius: 8px;
+      min-height: 400px;
+      font-family: "Calibri", Georgia, serif;
+      line-height: 1.5;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+    }
+    .docx-preview h1, .docx-preview h2, .docx-preview h3 { color: #111; }
+    .docx-preview p { margin: 0 0 10px; color: #222; }
+    @media print {
+      body > *:not(#previewPanel) { display: none !important; }
+      #previewPanel { display: block !important; }
+      .docx-preview { box-shadow: none; padding: 0; background: #fff; }
+      @page { margin: 15mm; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>DOCX to PDF Converter</h1>
+      <p>Drop a Word document (.docx), preview it, and save it as PDF using your browser's print dialog. Files never leave your device.</p>
+    </div>
+
+    <div class="panel no-print">
+      <div id="dropzone" class="dropzone">
+        <div><strong>Drop a .docx file here</strong> or click to choose</div>
+        <input type="file" id="file" accept=".docx" hidden>
+      </div>
+      <div class="row" style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+        <button id="downloadBtn" disabled>💾 Download PDF</button>
+        <button id="printBtn" class="secondary" disabled>Print / Save via browser</button>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)">
+          Page size
+          <select id="pageSize">
+            <option value="a4" selected>A4</option>
+            <option value="letter">Letter</option>
+            <option value="legal">Legal</option>
+          </select>
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)">
+          Orientation
+          <select id="orientation">
+            <option value="portrait" selected>Portrait</option>
+            <option value="landscape">Landscape</option>
+          </select>
+        </label>
+        <span id="fileInfo" style="color:var(--muted);font-size:13px"></span>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+
+    <div class="panel" id="previewPanel" style="display:none">
+      <div class="docx-preview" id="preview"></div>
+    </div>
+  </main>
+
+  <script>
+    const dz = document.getElementById('dropzone');
+    const fileInput = document.getElementById('file');
+    const preview = document.getElementById('preview');
+    const printBtn = document.getElementById('printBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const info = document.getElementById('fileInfo');
+    const status = document.getElementById('status');
+    const previewPanel = document.getElementById('previewPanel');
+    let lastFileName = '';
+
+    function setStatus(m, ok) { status.textContent = m; status.className = 'status ' + (ok ? 'ok' : 'err'); }
+
+    function handleFile(file) {
+      if (!file) return;
+      if (!/\.docx$/i.test(file.name)) { setStatus('Please drop a .docx file', false); return; }
+      lastFileName = file.name;
+      info.textContent = file.name + ' · ' + Math.round(file.size / 1024) + ' KB';
+      const reader = new FileReader();
+      reader.onload = e => {
+        mammoth.convertToHtml({ arrayBuffer: e.target.result })
+          .then(result => {
+            preview.innerHTML = result.value || '<em>(document appears empty)</em>';
+            previewPanel.style.display = 'block';
+            printBtn.disabled = false;
+            downloadBtn.disabled = false;
+            setStatus(result.messages.length ? `Converted with ${result.messages.length} notes ✓` : 'Converted ✓', true);
+          })
+          .catch(err => setStatus('Conversion failed: ' + err.message, false));
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    dz.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+    ['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => {
+      e.preventDefault(); e.stopPropagation(); dz.classList.add('drag');
+    }));
+    ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => {
+      e.preventDefault(); e.stopPropagation(); dz.classList.remove('drag');
+    }));
+    dz.addEventListener('drop', e => handleFile(e.dataTransfer.files[0]));
+
+    printBtn.onclick = () => window.print();
+
+    downloadBtn.onclick = async () => {
+      if (!preview.innerHTML.trim()) return;
+      downloadBtn.disabled = true;
+      setStatus('Generating PDF…', true);
+      try {
+        const filename = (lastFileName || 'document').replace(/\.docx$/i, '') + '.pdf';
+        await html2pdf().from(preview).set({
+          margin: [12, 12, 12, 12],
+          filename,
+          image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+          jsPDF: {
+            unit: 'mm',
+            format: document.getElementById('pageSize').value,
+            orientation: document.getElementById('orientation').value
+          },
+          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        }).save();
+        setStatus('PDF saved ✓', true);
+      } catch (err) {
+        setStatus('PDF generation failed: ' + err.message, false);
+      } finally {
+        downloadBtn.disabled = false;
+      }
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>

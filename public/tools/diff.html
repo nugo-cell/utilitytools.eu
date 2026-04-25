@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Text Diff Checker — Free Online Tool · Utility Tools</title>
+  <meta name="description" content="Compare two pieces of text line by line and see additions, removals, and unchanged lines. Runs in your browser.">
+  <meta name="keywords" content="text diff, compare text, diff checker, online diff">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/diff">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Text Diff Checker — Utility Tools">
+  <meta property="og:description" content="Free online text diff tool with line-by-line comparison.">
+  <meta property="og:url" content="/diff">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .diff-out { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 0; font-family: var(--mono); font-size: 13px; max-height: 520px; overflow:auto; }
+    .diff-line { padding: 2px 12px; white-space: pre-wrap; word-break: break-word; }
+    .diff-add { background: rgba(74,222,128,0.12); color: #c8f7d8; }
+    .diff-add::before { content: "+ "; color: var(--success); }
+    .diff-del { background: rgba(248,113,113,0.12); color: #ffd7d7; }
+    .diff-del::before { content: "- "; color: var(--danger); }
+    .diff-eq { color: var(--muted); }
+    .diff-eq::before { content: "  "; }
+  </style>
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>Text Diff Checker</h1>
+      <p>Line-by-line comparison. Green = added, red = removed.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px">
+        <button id="runBtn">Compare</button>
+        <button id="swapBtn" class="secondary">Swap</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+        <label class="checkbox"><input type="checkbox" id="ignoreWs"> Ignore whitespace</label>
+        <label class="checkbox"><input type="checkbox" id="ignoreCase"> Ignore case</label>
+      </div>
+      <div class="split">
+        <div>
+          <label for="a">Original</label>
+          <textarea id="a" placeholder="Old text..." style="min-height:200px"></textarea>
+        </div>
+        <div>
+          <label for="b">Changed</label>
+          <textarea id="b" placeholder="New text..." style="min-height:200px"></textarea>
+        </div>
+      </div>
+      <div id="status" class="status"></div>
+      <label style="margin-top:14px">Result</label>
+      <div id="out" class="diff-out"></div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const status = $('status'), out = $('out');
+    const set = (m, ok=true) => { status.textContent = m; status.className = 'status ' + (ok ? 'ok' : 'err'); };
+
+    function norm(line){
+      let s = line;
+      if ($('ignoreWs').checked) s = s.replace(/\s+/g,' ').trim();
+      if ($('ignoreCase').checked) s = s.toLowerCase();
+      return s;
+    }
+
+    // Standard LCS-based line diff
+    function diff(a, b){
+      const an = a.map(norm), bn = b.map(norm);
+      const m = an.length, n = bn.length;
+      const dp = Array.from({length:m+1},()=>new Uint32Array(n+1));
+      for (let i=m-1;i>=0;i--){
+        for (let j=n-1;j>=0;j--){
+          dp[i][j] = an[i]===bn[j] ? dp[i+1][j+1]+1 : Math.max(dp[i+1][j], dp[i][j+1]);
+        }
+      }
+      const ops = []; let i=0,j=0;
+      while (i<m && j<n){
+        if (an[i]===bn[j]) { ops.push(['eq',a[i]]); i++; j++; }
+        else if (dp[i+1][j] >= dp[i][j+1]) { ops.push(['del',a[i]]); i++; }
+        else { ops.push(['add',b[j]]); j++; }
+      }
+      while (i<m) ops.push(['del',a[i++]]);
+      while (j<n) ops.push(['add',b[j++]]);
+      return ops;
+    }
+
+    function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+
+    function run(){
+      const a = $('a').value.split('\n');
+      const b = $('b').value.split('\n');
+      const ops = diff(a,b);
+      let adds=0, dels=0;
+      const html = ops.map(([op,line]) => {
+        if (op==='add') adds++; else if (op==='del') dels++;
+        return `<div class="diff-line diff-${op}">${escapeHtml(line)||'&nbsp;'}</div>`;
+      }).join('');
+      out.innerHTML = html || '<div class="diff-line diff-eq">(empty)</div>';
+      set(`Done: +${adds} / -${dels}`);
+    }
+
+    $('runBtn').onclick = run;
+    $('swapBtn').onclick = () => { const t = $('a').value; $('a').value = $('b').value; $('b').value = t; run(); };
+    $('clearBtn').onclick = () => { $('a').value=''; $('b').value=''; out.innerHTML=''; set(''); };
+    $('a').addEventListener('input', run);
+    $('b').addEventListener('input', run);
+    $('ignoreWs').onchange = run;
+    $('ignoreCase').onchange = run;
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

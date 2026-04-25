@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BMI Calculator — Metric &amp; Imperial · Utility Tools</title>
+  <meta name="description" content="Free Body Mass Index (BMI) calculator. Switch between metric and imperial units.">
+  <meta name="keywords" content="bmi calculator, body mass index, metric bmi, imperial bmi">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/bmi">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="BMI Calculator — Utility Tools">
+  <meta property="og:description" content="Calculate your Body Mass Index in metric or imperial units.">
+  <meta property="og:url" content="/bmi">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container container-narrow">
+    <div class="tool-header">
+      <h1>BMI Calculator</h1>
+      <p>Body Mass Index = weight (kg) ÷ height (m)². Educational only — not medical advice.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px">
+        <label class="checkbox"><input type="radio" name="unit" value="metric" checked> Metric (kg, cm)</label>
+        <label class="checkbox"><input type="radio" name="unit" value="imperial"> Imperial (lb, ft/in)</label>
+      </div>
+
+      <div id="metric">
+        <div class="stat-grid">
+          <div><label for="kg">Weight (kg)</label><input id="kg" type="number" min="1" step="0.1" value="70"></div>
+          <div><label for="cm">Height (cm)</label><input id="cm" type="number" min="1" step="0.1" value="175"></div>
+        </div>
+      </div>
+      <div id="imperial" hidden>
+        <div class="stat-grid">
+          <div><label for="lb">Weight (lb)</label><input id="lb" type="number" min="1" step="0.1" value="155"></div>
+          <div><label for="ft">Height (ft)</label><input id="ft" type="number" min="0" step="1" value="5"></div>
+          <div><label for="in">Height (in)</label><input id="in" type="number" min="0" step="0.1" value="9"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="stat-grid">
+        <div class="stat"><div class="value" id="bmi">—</div><div class="label">BMI</div></div>
+        <div class="stat"><div class="value" id="cat" style="font-size:16px">—</div><div class="label">Category</div></div>
+        <div class="stat"><div class="value" id="ideal" style="font-size:14px">—</div><div class="label">Healthy weight range</div></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    function category(b){
+      if (b < 18.5) return ['Underweight','#fbbf24'];
+      if (b < 25)   return ['Normal','#4ade80'];
+      if (b < 30)   return ['Overweight','#fbbf24'];
+      if (b < 35)   return ['Obese class I','#f87171'];
+      if (b < 40)   return ['Obese class II','#f87171'];
+      return ['Obese class III','#f87171'];
+    }
+    function calc(){
+      const unit = document.querySelector('input[name=unit]:checked').value;
+      let w, h, ideal;
+      if (unit === 'metric'){
+        w = parseFloat($('kg').value); h = parseFloat($('cm').value)/100;
+        ideal = h > 0 ? `${(18.5*h*h).toFixed(1)}–${(24.9*h*h).toFixed(1)} kg` : '—';
+      } else {
+        w = parseFloat($('lb').value) * 0.45359237;
+        h = (parseFloat($('ft').value)*12 + parseFloat($('in').value)) * 0.0254;
+        ideal = h > 0 ? `${(18.5*h*h/0.45359237).toFixed(1)}–${(24.9*h*h/0.45359237).toFixed(1)} lb` : '—';
+      }
+      if (!w || !h || w<=0 || h<=0) { $('bmi').textContent='—'; $('cat').textContent='—'; $('ideal').textContent='—'; return; }
+      const bmi = w / (h*h);
+      $('bmi').textContent = bmi.toFixed(1);
+      const [c, color] = category(bmi);
+      $('cat').textContent = c;
+      $('cat').style.color = color;
+      $('ideal').textContent = ideal;
+    }
+    document.querySelectorAll('input').forEach(i => i.addEventListener('input', calc));
+    document.querySelectorAll('input[name=unit]').forEach(r => r.addEventListener('change', () => {
+      $('metric').hidden = r.value !== 'metric' || !r.checked;
+      $('imperial').hidden = r.value !== 'imperial' || !r.checked;
+      // simpler:
+      $('metric').hidden = document.querySelector('input[name=unit]:checked').value !== 'metric';
+      $('imperial').hidden = document.querySelector('input[name=unit]:checked').value !== 'imperial';
+      calc();
+    }));
+    calc();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

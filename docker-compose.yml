@@ -1,0 +1,14 @@
+services:
+  utility-tools:
+    build: .
+    image: utility-tools:latest
+    container_name: utility-tools
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # Set this to your public origin in production
+      SITE_URL: https://utilitytools.eu
+

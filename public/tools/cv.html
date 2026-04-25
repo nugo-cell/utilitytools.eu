@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Free CV / Resume Maker — 5 Templates, ATS-Friendly, Print to PDF · Utility Tools</title>
+  <meta name="description" content="Build a polished, ATS-friendly CV / resume for free. Five templates, structured editor, photo, social links, projects, languages, autosave, JSON import/export. Print to PDF — no signup, all in your browser.">
+  <meta name="keywords" content="free CV maker, free resume builder, CV template, resume online, ATS friendly CV, print CV to PDF, two column resume, professional CV">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/cv">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Free CV / Resume Maker — Utility Tools">
+  <meta property="og:description" content="5 templates, ATS-friendly, structured editor, autosave. Print to PDF, no signup.">
+  <meta property="og:url" content="/cv">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    /* ---- Editor chrome ---- */
+    .cv-layout { display: grid; grid-template-columns: minmax(440px, 480px) 1fr; gap: 24px; align-items: start; }
+    @media (max-width: 1100px) { .cv-layout { grid-template-columns: 1fr; } }
+    .cv-form { padding-right: 4px; }
+    .cv-form .section { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    .cv-form .section h3 { margin: 0 0 10px; font-size: 14px; color: var(--text); display:flex; justify-content:space-between; align-items:center; }
+    .cv-form .section h3 .toggle { font-size:11px; color: var(--muted); cursor:pointer; user-select:none; }
+    .cv-form .row-2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .cv-form input, .cv-form select, .cv-form textarea { font-size: 13px; padding: 8px 10px; width: 100%; box-sizing: border-box; min-width: 0; }
+    .cv-form .row-2 > * { min-width: 0; }
+    .cv-form .row-2 .row-2 > * { min-width: 0; }
+    .cv-form input[type="color"] { padding: 2px; height: 36px; }
+    .cv-form input[type="file"]  { padding: 2px; }
+    .cv-form label { font-size: 12px; margin-bottom: 4px; margin-top: 6px; }
+    .cv-form button.small { padding: 4px 8px; font-size:12px; }
+    .item { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin-bottom: 8px; }
+    .item .item-bar { display:flex; gap:6px; justify-content:flex-end; margin-bottom:6px; }
+    .item .item-bar button { padding: 2px 8px; font-size:11px; }
+    .add-btn { width: 100%; margin-top: 4px; }
+    .photo-prev { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border:1px solid var(--border); background:#fff; }
+
+    /* ---- Preview canvas ---- */
+    .cv-preview {
+      background: #fff;
+      color: #222;
+      border-radius: 8px;
+      min-height: 800px;
+      padding: 40px 44px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      font-family: Georgia, "Times New Roman", serif;
+      line-height: 1.5;
+      --accent: #1e3a8a;
+      font-size: 14px;
+    }
+    .cv-preview.density-compact { padding: 28px 36px; line-height: 1.35; font-size: 12.5px; }
+    .cv-preview.density-large   { padding: 52px 48px; line-height: 1.6;  font-size: 15.5px; }
+    .cv-preview h1 { color:#000; margin: 0 0 4px; font-size: 26px; letter-spacing: 0.5px; }
+    .cv-preview .role { color:#444; font-size: 15px; margin: 0 0 6px; }
+    .cv-preview .contact { color:#555; font-size: 12.5px; margin:0 0 14px; }
+    .cv-preview .contact a { color:#444; text-decoration: none; }
+    .cv-preview h2 {
+      margin: 18px 0 6px;
+      color: var(--accent);
+      font-size: 14px;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+    }
+    .cv-preview .item-row { margin-bottom: 12px; page-break-inside: avoid; }
+    .cv-preview .item-head { display:flex; justify-content:space-between; font-weight:700; font-size:13.5px; gap:10px; }
+    .cv-preview .item-sub { color:#555; font-size:12.5px; font-style: italic; margin: 1px 0 4px; }
+    .cv-preview ul { margin: 4px 0 0 18px; padding: 0; }
+    .cv-preview li { margin-bottom: 2px; font-size: 13px; }
+    .cv-preview .skill-tags { display:flex; flex-wrap:wrap; gap:6px; }
+    .cv-preview .skill-tags span { background:#f0f1f4; border:1px solid #e1e3e8; padding: 3px 9px; border-radius: 999px; font-size: 12px; color:#222; }
+    .cv-preview .lang-row { display:flex; justify-content:space-between; font-size:13px; padding: 2px 0; }
+    .cv-preview .lang-row span:last-child { color:#555; font-size:12px; }
+
+    /* ---- Modern template ---- */
+    .cv-preview.modern { font-family: "Helvetica Neue", Arial, sans-serif; }
+    .cv-preview.modern h1 { color: var(--accent); }
+    .cv-preview.modern h2 { border-bottom: 2px solid var(--accent); }
+
+    /* ---- Minimal template ---- */
+    .cv-preview.minimal { font-family: -apple-system, "Segoe UI", Arial, sans-serif; }
+    .cv-preview.minimal h2 { border: none; padding-bottom: 0; font-size:11px; color:#666; letter-spacing:2.5px; }
+
+    /* ---- Compact template ---- */
+    .cv-preview.compact { font-family: "Helvetica Neue", Arial, sans-serif; padding: 28px 36px; line-height: 1.35; font-size: 12.5px; }
+    .cv-preview.compact h1 { font-size: 22px; }
+    .cv-preview.compact h2 { font-size: 12px; margin: 12px 0 4px; }
+    .cv-preview.compact .item-row { margin-bottom: 8px; }
+
+    /* ---- Sidebar (two-column) template ---- */
+    .cv-preview.sidebar { padding: 0; display: grid; grid-template-columns: 220px 1fr; min-height: 800px; font-family: "Helvetica Neue", Arial, sans-serif; }
+    .cv-preview.sidebar .side { background: var(--accent); color: #fff; padding: 36px 22px; }
+    .cv-preview.sidebar .side h1 { color: #fff; font-size: 22px; }
+    .cv-preview.sidebar .side .role { color: rgba(255,255,255,0.85); }
+    .cv-preview.sidebar .side .contact { color: rgba(255,255,255,0.85); }
+    .cv-preview.sidebar .side .contact a { color: rgba(255,255,255,0.85); }
+    .cv-preview.sidebar .side h2 { color: #fff; border-bottom: 1px solid rgba(255,255,255,0.4); }
+    .cv-preview.sidebar .side .skill-tags span { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; }
+    .cv-preview.sidebar .side .lang-row span:last-child { color: rgba(255,255,255,0.75); }
+    .cv-preview.sidebar .main { padding: 36px 30px; }
+    .cv-preview.sidebar .main h2:first-child { margin-top: 0; }
+    .cv-preview.sidebar .photo-cv { display:block; width:110px; height:110px; border-radius:50%; object-fit:cover; margin: 0 auto 14px; border: 3px solid rgba(255,255,255,0.4); }
+
+    /* Photo for non-sidebar templates */
+    .cv-preview .photo-cv { width: 84px; height: 84px; border-radius: 50%; object-fit: cover; float: right; margin-left: 16px; border: 1px solid #ddd; }
+
+    /* ---- Print ---- */
+    @media print {
+      .topnav, footer.site-footer, .no-print { display: none !important; }
+      body, html { background: #fff; }
+      .container, .container-narrow { padding: 0; max-width: none; }
+      .panel { background: #fff; border: none; padding: 0; box-shadow: none; margin: 0; }
+      .cv-layout { display: block; }
+      .cv-preview { box-shadow: none; border-radius: 0; }
+      @page { size: A4; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topnav no-print">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header no-print">
+      <h1>Free CV / Resume Maker</h1>
+      <p>Five templates, structured editor, autosave. Your data never leaves your browser. Print or "Save as PDF" when you're done.</p>
+    </div>
+
+    <div class="panel">
+      <div class="cv-layout">
+        <!-- ========================= EDITOR ========================= -->
+        <div class="cv-form no-print">
+          <!-- Toolbar -->
+          <div class="section">
+            <h3>Design</h3>
+            <div class="row-2">
+              <div>
+                <label>Template</label>
+                <select id="template">
+                  <option value="classic">Classic</option>
+                  <option value="modern">Modern</option>
+                  <option value="minimal">Minimal</option>
+                  <option value="compact">Compact</option>
+                  <option value="sidebar">Sidebar (2-col)</option>
+                </select>
+              </div>
+              <div>
+                <label>Density</label>
+                <select id="density">
+                  <option value="">Normal</option>
+                  <option value="density-compact">Compact</option>
+                  <option value="density-large">Large</option>
+                </select>
+              </div>
+            </div>
+            <div class="row-2" style="margin-top:6px">
+              <div>
+                <label>Accent color</label>
+                <input type="color" id="accent" value="#1e3a8a" style="height:36px;padding:2px">
+              </div>
+              <div>
+                <label>Show photo</label>
+                <select id="showPhoto">
+                  <option value="no">No</option>
+                  <option value="yes" selected>Yes</option>
+                </select>
+              </div>
+            </div>
+            <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:6px">
+              <button id="printBtn">Print / Save as PDF</button>
+              <button id="exportBtn" class="secondary small">Export JSON</button>
+              <button id="importBtn" class="secondary small">Import JSON</button>
+              <button id="clearBtn"  class="secondary small">Reset</button>
+              <input id="importFile" type="file" accept="application/json,.json" hidden>
+            </div>
+          </div>
+
+          <!-- Personal -->
+          <div class="section">
+            <h3>Personal info</h3>
+            <div class="row-2">
+              <div><label>Full name</label><input id="f_name" type="text"></div>
+              <div><label>Headline / role</label><input id="f_role" type="text"></div>
+            </div>
+            <div class="row-2">
+              <div><label>Email</label><input id="f_email" type="email"></div>
+              <div><label>Phone</label><input id="f_phone" type="text"></div>
+            </div>
+            <div class="row-2">
+              <div><label>Location</label><input id="f_loc" type="text"></div>
+              <div><label>Website</label><input id="f_site" type="url" placeholder="https://"></div>
+            </div>
+            <div class="row-2">
+              <div><label>LinkedIn</label><input id="f_linkedin" type="url" placeholder="https://linkedin.com/in/..."></div>
+              <div><label>GitHub / portfolio</label><input id="f_github" type="url" placeholder="https://github.com/..."></div>
+            </div>
+            <label style="margin-top:8px">Photo (optional)</label>
+            <div class="row" style="align-items:center;gap:10px">
+              <img id="photoPrev" class="photo-prev" alt="">
+              <input id="photoFile" type="file" accept="image/*" style="font-size:11px">
+              <button id="photoClear" class="secondary small">Clear</button>
+            </div>
+          </div>
+
+          <!-- Summary -->
+          <div class="section">
+            <h3>Professional summary <span class="toggle" data-section="summary">hide</span></h3>
+            <textarea id="f_summary" rows="3" placeholder="2–3 sentences about who you are and what you bring."></textarea>
+          </div>
+
+          <!-- Experience -->
+          <div class="section">
+            <h3>Experience <span class="toggle" data-section="exp">hide</span></h3>
+            <div id="exp_list"></div>
+            <button class="secondary small add-btn" data-add="exp">+ Add experience</button>
+          </div>
+
+          <!-- Education -->
+          <div class="section">
+            <h3>Education <span class="toggle" data-section="edu">hide</span></h3>
+            <div id="edu_list"></div>
+            <button class="secondary small add-btn" data-add="edu">+ Add education</button>
+          </div>
+
+          <!-- Projects -->
+          <div class="section">
+            <h3>Projects <span class="toggle" data-section="proj">hide</span></h3>
+            <div id="proj_list"></div>
+            <button class="secondary small add-btn" data-add="proj">+ Add project</button>
+          </div>
+
+          <!-- Skills -->
+          <div class="section">
+            <h3>Skills <span class="toggle" data-section="skills">hide</span></h3>
+            <label>Comma-separated</label>
+            <textarea id="f_skills" rows="2" placeholder="JavaScript, React, SQL, ..."></textarea>
+          </div>
+
+          <!-- Languages -->
+          <div class="section">
+            <h3>Languages <span class="toggle" data-section="lang">hide</span></h3>
+            <div id="lang_list"></div>
+            <button class="secondary small add-btn" data-add="lang">+ Add language</button>
+          </div>
+
+          <!-- Certifications -->
+          <div class="section">
+            <h3>Certifications <span class="toggle" data-section="cert">hide</span></h3>
+            <div id="cert_list"></div>
+            <button class="secondary small add-btn" data-add="cert">+ Add certification</button>
+          </div>
+
+          <!-- Hobbies / Interests -->
+          <div class="section">
+            <h3>Interests <span class="toggle" data-section="hobby">hide</span></h3>
+            <label>Comma-separated</label>
+            <input id="f_hobbies" type="text" placeholder="Hiking, Open source, Cooking">
+          </div>
+
+          <div id="status" class="status" style="margin-top:6px"></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">Autosaved to your browser. Tip: export JSON before clearing browser data.</div>
+        </div>
+
+        <!-- ========================= PREVIEW ========================= -->
+        <div class="cv-preview classic" id="preview"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const status = $('status');
+    const setStatus = (m, ok=true) => { status.textContent = m; status.className = 'status ' + (ok?'ok':'err'); setTimeout(() => { if (status.textContent===m) status.textContent=''; }, 2500); };
+    const STORE_KEY = 'utilitytools.cv.v2';
+
+    // -------- State model --------
+    const DEFAULTS = {
+      design: { template: 'classic', density: '', accent: '#1e3a8a', showPhoto: 'yes' },
+      hidden: {},
+      photo: '',
+      personal: {
+        name: 'Jane Doe', role: 'Senior Marketing Manager',
+        email: 'jane@example.com', phone: '+1 555 123 4567', loc: 'Oslo, Norway',
+        site: 'https://janedoe.com', linkedin: 'https://linkedin.com/in/janedoe', github: ''
+      },
+      summary: 'Marketing leader with 8+ years driving growth at fast-moving consumer brands. Specialist in digital campaigns, content strategy, and cross-functional team leadership.',
+      exp: [
+        { title:'Senior Marketing Manager', company:'Acme Co', loc:'Oslo', start:'2022', end:'Present',
+          bullets:'Led a team of 6 across content, paid and lifecycle.\nGrew organic traffic 140% in 12 months.\nLaunched 3 product campaigns hitting $4M attributed pipeline.' },
+        { title:'Marketing Lead', company:'Northstar', loc:'Remote', start:'2019', end:'2022',
+          bullets:'Scaled paid acquisition across 4 markets.\nDoubled MQLs year over year while keeping CAC flat.\nBuilt the marketing analytics stack from scratch.' },
+        { title:'Content Strategist', company:'Brandlabs', loc:'Oslo', start:'2017', end:'2019',
+          bullets:'Owned editorial calendar across blog, email and social.\nGrew newsletter from 2k to 50k subscribers.' }
+      ],
+      edu: [
+        { degree:'MSc Marketing', inst:'University of Oslo', loc:'Oslo', start:'2015', end:'2017', notes:'Thesis: Brand resonance in DTC e-commerce.' },
+        { degree:'BA Communication', inst:'NTNU', loc:'Trondheim', start:'2012', end:'2015', notes:'' }
+      ],
+      proj: [
+        { name:'Open-source SEO toolkit', url:'https://github.com/example/seo-toolkit', desc:'A small CLI for crawling, lighthouse runs and weekly diff reports. 1.2k GitHub stars.' }
+      ],
+      skills: 'SEO, Paid media, Analytics, Content strategy, Team leadership, A/B testing, Lifecycle, HubSpot, Looker',
+      lang: [
+        { name:'English', level:'Native' },
+        { name:'Norwegian', level:'Fluent' },
+        { name:'Spanish', level:'Conversational' }
+      ],
+      cert: [
+        { name:'Google Analytics 4', issuer:'Google', year:'2024' }
+      ],
+      hobbies: 'Trail running, Long-form writing, Pottery'
+    };
+
+    let state = load() || JSON.parse(JSON.stringify(DEFAULTS));
+
+    function save() {
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch {}
+    }
+    function load() {
+      try { const v = localStorage.getItem(STORE_KEY); return v ? JSON.parse(v) : null; } catch { return null; }
+    }
+
+    // -------- Editor helpers --------
+    function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function escapeAttr(s){ return escapeHtml(s); }
+
+    const TEMPLATES = {
+      exp:  () => ({ title:'New role', company:'Company', loc:'', start:'2024', end:'Present', bullets:'Achievement one.\nAchievement two.' }),
+      edu:  () => ({ degree:'Degree', inst:'Institution', loc:'', start:'', end:'', notes:'' }),
+      proj: () => ({ name:'Project name', url:'', desc:'Short description.' }),
+      lang: () => ({ name:'Language', level:'Fluent' }),
+      cert: () => ({ name:'Certification', issuer:'Issuer', year:'2025' })
+    };
+
+    // Build editable item form for each list type
+    function renderItem(type, idx, it) {
+      const i = idx;
+      const remove = `<div class="item-bar">
+        <button class="secondary" data-act="up" data-type="${type}" data-i="${i}" title="Move up">&uarr;</button>
+        <button class="secondary" data-act="down" data-type="${type}" data-i="${i}" title="Move down">&darr;</button>
+        <button class="danger"    data-act="rm"   data-type="${type}" data-i="${i}" title="Remove">&times;</button>
+      </div>`;
+      if (type === 'exp') return `<div class="item">${remove}
+        <div class="row-2"><div><label>Title</label><input data-t="${type}" data-f="title" data-i="${i}" value="${escapeAttr(it.title)}"></div>
+        <div><label>Company</label><input data-t="${type}" data-f="company" data-i="${i}" value="${escapeAttr(it.company)}"></div></div>
+        <div class="row-2"><div><label>Location</label><input data-t="${type}" data-f="loc" data-i="${i}" value="${escapeAttr(it.loc)}"></div>
+        <div><label>Dates</label><div class="row-2"><input data-t="${type}" data-f="start" data-i="${i}" value="${escapeAttr(it.start)}" placeholder="2022">
+        <input data-t="${type}" data-f="end" data-i="${i}" value="${escapeAttr(it.end)}" placeholder="Present"></div></div></div>
+        <label>Bullets (one per line)</label>
+        <textarea rows="3" data-t="${type}" data-f="bullets" data-i="${i}">${escapeHtml(it.bullets)}</textarea>
+      </div>`;
+      if (type === 'edu') return `<div class="item">${remove}
+        <div class="row-2"><div><label>Degree</label><input data-t="${type}" data-f="degree" data-i="${i}" value="${escapeAttr(it.degree)}"></div>
+        <div><label>Institution</label><input data-t="${type}" data-f="inst" data-i="${i}" value="${escapeAttr(it.inst)}"></div></div>
+        <div class="row-2"><div><label>Location</label><input data-t="${type}" data-f="loc" data-i="${i}" value="${escapeAttr(it.loc)}"></div>
+        <div><label>Dates</label><div class="row-2"><input data-t="${type}" data-f="start" data-i="${i}" value="${escapeAttr(it.start)}" placeholder="2015">
+        <input data-t="${type}" data-f="end" data-i="${i}" value="${escapeAttr(it.end)}" placeholder="2017"></div></div></div>
+        <label>Notes (optional)</label>
+        <input data-t="${type}" data-f="notes" data-i="${i}" value="${escapeAttr(it.notes)}">
+      </div>`;
+      if (type === 'proj') return `<div class="item">${remove}
+        <div class="row-2"><div><label>Name</label><input data-t="${type}" data-f="name" data-i="${i}" value="${escapeAttr(it.name)}"></div>
+        <div><label>URL</label><input data-t="${type}" data-f="url" data-i="${i}" value="${escapeAttr(it.url)}" placeholder="https://"></div></div>
+        <label>Description</label>
+        <textarea rows="2" data-t="${type}" data-f="desc" data-i="${i}">${escapeHtml(it.desc)}</textarea>
+      </div>`;
+      if (type === 'lang') return `<div class="item">${remove}
+        <div class="row-2"><div><label>Language</label><input data-t="${type}" data-f="name" data-i="${i}" value="${escapeAttr(it.name)}"></div>
+        <div><label>Level</label><select data-t="${type}" data-f="level" data-i="${i}">
+          ${['Native','Fluent','Advanced','Intermediate','Basic'].map(l => `<option ${l===it.level?'selected':''}>${l}</option>`).join('')}
+        </select></div></div>
+      </div>`;
+      if (type === 'cert') return `<div class="item">${remove}
+        <div class="row-2"><div><label>Name</label><input data-t="${type}" data-f="name" data-i="${i}" value="${escapeAttr(it.name)}"></div>
+        <div><label>Issuer</label><input data-t="${type}" data-f="issuer" data-i="${i}" value="${escapeAttr(it.issuer)}"></div></div>
+        <label>Year</label><input data-t="${type}" data-f="year" data-i="${i}" value="${escapeAttr(it.year)}">
+      </div>`;
+      return '';
+    }
+
+    function renderEditor() {
+      // simple fields
+      $('f_name').value     = state.personal.name;
+      $('f_role').value     = state.personal.role;
+      $('f_email').value    = state.personal.email;
+      $('f_phone').value    = state.personal.phone;
+      $('f_loc').value      = state.personal.loc;
+      $('f_site').value     = state.personal.site;
+      $('f_linkedin').value = state.personal.linkedin;
+      $('f_github').value   = state.personal.github;
+      $('f_summary').value  = state.summary;
+      $('f_skills').value   = state.skills;
+      $('f_hobbies').value  = state.hobbies;
+      // design
+      $('template').value   = state.design.template;
+      $('density').value    = state.design.density;
+      $('accent').value     = state.design.accent;
+      $('showPhoto').value  = state.design.showPhoto;
+      $('photoPrev').src    = state.photo || '';
+      $('photoPrev').style.display = state.photo ? 'block' : 'none';
+      // dynamic lists
+      ['exp','edu','proj','lang','cert'].forEach(type => {
+        const list = $(type + '_list');
+        list.innerHTML = state[type].map((it,i) => renderItem(type,i,it)).join('');
+      });
+    }
+
+    function renderPreview() {
+      const p = state.personal, d = state.design, h = state.hidden;
+      const showPhoto = d.showPhoto === 'yes' && state.photo;
+      const accent = d.accent || '#1e3a8a';
+      const preview = $('preview');
+      preview.className = 'cv-preview ' + d.template + (d.density ? ' ' + d.density : '');
+      preview.style.setProperty('--accent', accent);
+
+      const contactBits = [];
+      if (p.email) contactBits.push(`<a href="mailto:${escapeAttr(p.email)}">${escapeHtml(p.email)}</a>`);
+      if (p.phone) contactBits.push(escapeHtml(p.phone));
+      if (p.loc)   contactBits.push(escapeHtml(p.loc));
+      if (p.site)  contactBits.push(`<a href="${escapeAttr(p.site)}">${escapeHtml(p.site.replace(/^https?:\/\//,''))}</a>`);
+      if (p.linkedin) contactBits.push(`<a href="${escapeAttr(p.linkedin)}">LinkedIn</a>`);
+      if (p.github) contactBits.push(`<a href="${escapeAttr(p.github)}">${escapeHtml(p.github.includes('github')?'GitHub':'Portfolio')}</a>`);
+
+      const headHtml = `
+        ${showPhoto ? `<img class="photo-cv" src="${escapeAttr(state.photo)}" alt="">` : ''}
+        <h1>${escapeHtml(p.name)||'&nbsp;'}</h1>
+        ${p.role ? `<p class="role">${escapeHtml(p.role)}</p>` : ''}
+        ${contactBits.length ? `<p class="contact">${contactBits.join(' &nbsp;·&nbsp; ')}</p>` : ''}`;
+
+      const skillsList  = state.skills.split(',').map(s=>s.trim()).filter(Boolean);
+      const hobbiesList = state.hobbies.split(',').map(s=>s.trim()).filter(Boolean);
+
+      const sec = {
+        summary: () => (!h.summary && state.summary) ? `<h2>Summary</h2><p>${escapeHtml(state.summary)}</p>` : '',
+        exp: () => (!h.exp && state.exp.length) ? `<h2>Experience</h2>` + state.exp.map(e => `
+          <div class="item-row">
+            <div class="item-head"><span>${escapeHtml(e.title)} &mdash; ${escapeHtml(e.company)}</span><span>${escapeHtml(joinDates(e.start,e.end))}</span></div>
+            ${e.loc ? `<div class="item-sub">${escapeHtml(e.loc)}</div>` : ''}
+            ${bulletsHtml(e.bullets)}
+          </div>`).join('') : '',
+        edu: () => (!h.edu && state.edu.length) ? `<h2>Education</h2>` + state.edu.map(e => `
+          <div class="item-row">
+            <div class="item-head"><span>${escapeHtml(e.degree)} &mdash; ${escapeHtml(e.inst)}</span><span>${escapeHtml(joinDates(e.start,e.end))}</span></div>
+            ${e.loc ? `<div class="item-sub">${escapeHtml(e.loc)}</div>` : ''}
+            ${e.notes ? `<div style="font-size:12.5px;color:#444">${escapeHtml(e.notes)}</div>` : ''}
+          </div>`).join('') : '',
+        proj: () => (!h.proj && state.proj.length) ? `<h2>Projects</h2>` + state.proj.map(pr => `
+          <div class="item-row">
+            <div class="item-head"><span>${escapeHtml(pr.name)}${pr.url?` &mdash; <a href="${escapeAttr(pr.url)}" style="color:#444;text-decoration:none">${escapeHtml(pr.url.replace(/^https?:\/\//,''))}</a>`:''}</span><span></span></div>
+            ${pr.desc ? `<div style="font-size:13px;color:#333;margin-top:2px">${escapeHtml(pr.desc)}</div>` : ''}
+          </div>`).join('') : '',
+        skills: () => (!h.skills && skillsList.length) ? `<h2>Skills</h2><div class="skill-tags">${skillsList.map(s=>`<span>${escapeHtml(s)}</span>`).join('')}</div>` : '',
+        lang: () => (!h.lang && state.lang.length) ? `<h2>Languages</h2>` + state.lang.map(l => `<div class="lang-row"><span>${escapeHtml(l.name)}</span><span>${escapeHtml(l.level)}</span></div>`).join('') : '',
+        cert: () => (!h.cert && state.cert.length) ? `<h2>Certifications</h2>` + state.cert.map(c => `
+          <div class="item-row" style="margin-bottom:6px">
+            <div class="item-head"><span>${escapeHtml(c.name)}${c.issuer?' — '+escapeHtml(c.issuer):''}</span><span>${escapeHtml(c.year)}</span></div>
+          </div>`).join('') : '',
+        hobby: () => (!h.hobby && hobbiesList.length) ? `<h2>Interests</h2><p>${hobbiesList.map(escapeHtml).join(' &nbsp;·&nbsp; ')}</p>` : ''
+      };
+
+      if (d.template === 'sidebar') {
+        // Sidebar layout: header, summary, skills, languages, certs in side; experience, education, projects, hobbies in main
+        preview.innerHTML = `
+          <div class="side">
+            ${headHtml}
+            ${sec.summary()}
+            ${sec.skills()}
+            ${sec.lang()}
+            ${sec.cert()}
+          </div>
+          <div class="main">
+            ${sec.exp()}
+            ${sec.proj()}
+            ${sec.edu()}
+            ${sec.hobby()}
+          </div>`;
+      } else {
+        preview.innerHTML = headHtml + sec.summary() + sec.exp() + sec.proj() + sec.edu() + sec.skills() + sec.lang() + sec.cert() + sec.hobby();
+      }
+    }
+
+    function joinDates(a,b){ return [a,b].filter(Boolean).join(' – '); }
+    function bulletsHtml(text){
+      if (!text) return '';
+      const lines = text.split('\n').map(l => l.replace(/^[-*•]\s*/, '').trim()).filter(Boolean);
+      if (lines.length <= 1) return lines[0] ? `<div style="font-size:13px;margin-top:2px">${escapeHtml(lines[0])}</div>` : '';
+      return `<ul>${lines.map(l => `<li>${escapeHtml(l)}</li>`).join('')}</ul>`;
+    }
+
+    function renderAll() { renderEditor(); renderPreview(); save(); }
+    function renderJustPreview() { renderPreview(); save(); }
+
+    // -------- Wire up events --------
+    // Personal & summary & skills & hobbies
+    const simple = ['name','role','email','phone','loc','site','linkedin','github'];
+    simple.forEach(k => $('f_'+k).addEventListener('input', e => { state.personal[k] = e.target.value; renderJustPreview(); }));
+    $('f_summary').addEventListener('input', e => { state.summary = e.target.value; renderJustPreview(); });
+    $('f_skills').addEventListener('input',  e => { state.skills  = e.target.value; renderJustPreview(); });
+    $('f_hobbies').addEventListener('input', e => { state.hobbies = e.target.value; renderJustPreview(); });
+
+    // Design
+    $('template').addEventListener('change',  e => { state.design.template = e.target.value;  renderJustPreview(); });
+    $('density').addEventListener('change',   e => { state.design.density = e.target.value;   renderJustPreview(); });
+    $('accent').addEventListener('input',     e => { state.design.accent = e.target.value;    renderJustPreview(); });
+    $('showPhoto').addEventListener('change', e => { state.design.showPhoto = e.target.value; renderJustPreview(); });
+
+    // Photo upload
+    $('photoFile').addEventListener('change', e => {
+      const f = e.target.files[0]; if (!f) return;
+      if (f.size > 1.5*1024*1024) { setStatus('Photo too large (max ~1.5MB)', false); return; }
+      const r = new FileReader();
+      r.onload = ev => { state.photo = ev.target.result; renderAll(); setStatus('Photo loaded ✓'); };
+      r.readAsDataURL(f);
+    });
+    $('photoClear').onclick = () => { state.photo=''; renderAll(); };
+
+    // Section toggles (hide/show in preview)
+    document.querySelectorAll('.toggle').forEach(el => el.onclick = () => {
+      const k = el.dataset.section;
+      state.hidden[k] = !state.hidden[k];
+      el.textContent = state.hidden[k] ? 'show' : 'hide';
+      renderJustPreview();
+    });
+
+    // Add / remove / reorder list items (event delegation)
+    document.querySelector('.cv-form').addEventListener('click', e => {
+      const add = e.target.closest('[data-add]');
+      if (add) { const t = add.dataset.add; state[t].push(TEMPLATES[t]()); renderAll(); return; }
+      const act = e.target.closest('[data-act]');
+      if (!act) return;
+      const t = act.dataset.type, i = +act.dataset.i;
+      if (act.dataset.act === 'rm')   state[t].splice(i,1);
+      if (act.dataset.act === 'up' && i>0)                       [state[t][i-1], state[t][i]] = [state[t][i], state[t][i-1]];
+      if (act.dataset.act === 'down' && i < state[t].length-1)   [state[t][i+1], state[t][i]] = [state[t][i], state[t][i+1]];
+      renderAll();
+    });
+
+    // Edit list items (event delegation)
+    document.querySelector('.cv-form').addEventListener('input', e => {
+      const t = e.target.dataset.t, f = e.target.dataset.f, i = +e.target.dataset.i;
+      if (!t || !f || isNaN(i)) return;
+      state[t][i][f] = e.target.value;
+      renderJustPreview();
+    });
+
+    // Toolbar buttons
+    $('printBtn').onclick = () => window.print();
+    $('exportBtn').onclick = () => {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = (state.personal.name || 'cv').toLowerCase().replace(/\s+/g,'-') + '-cv.json';
+      a.click(); URL.revokeObjectURL(a.href);
+      setStatus('Exported ✓');
+    };
+    $('importBtn').onclick = () => $('importFile').click();
+    $('importFile').onchange = e => {
+      const f = e.target.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = ev => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          // shallow merge with defaults so missing keys don't break things
+          state = Object.assign({}, JSON.parse(JSON.stringify(DEFAULTS)), data);
+          // ensure nested objects exist
+          state.design = Object.assign({}, DEFAULTS.design, data.design || {});
+          state.personal = Object.assign({}, DEFAULTS.personal, data.personal || {});
+          state.hidden = data.hidden || {};
+          ['exp','edu','proj','lang','cert'].forEach(k => { if (!Array.isArray(state[k])) state[k] = []; });
+          renderAll();
+          setStatus('Imported ✓');
+        } catch (err) { setStatus('Import failed: ' + err.message, false); }
+      };
+      r.readAsText(f);
+      e.target.value = '';
+    };
+    $('clearBtn').onclick = () => {
+      if (!confirm('Reset everything to the sample CV? Your current data will be lost.')) return;
+      state = JSON.parse(JSON.stringify(DEFAULTS));
+      renderAll(); setStatus('Reset ✓');
+    };
+
+    // Initial render
+    renderAll();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

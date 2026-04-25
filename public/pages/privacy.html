@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Utility Tools</title>
+  <meta name="description" content="Privacy policy for Utility Tools. No tracking cookies, no analytics, no data collection. Everything runs in your browser.">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/privacy">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container-narrow">
+    <article class="prose">
+      <h1>Privacy Policy</h1>
+      <p class="meta">Last updated: <span id="today"></span></p>
+
+      <h2>Our core privacy principle</h2>
+      <p>We believe utility tools should respect your privacy. Every tool on this site runs entirely inside your browser. When you format JSON, generate a password, build a CV, or convert a document, the data <strong>never leaves your device</strong>.</p>
+
+      <h2>What data we collect</h2>
+      <p>By default, this Service does not use tracking cookies, third-party analytics, ad networks, fingerprinting, or any form of user identification. We do not build user profiles.</p>
+      <p>Basic server access logs may be collected by the hosting provider (e.g., IP addresses, timestamps, browser type) for the sole purpose of security and availability. These logs are not linked to any user account and are rotated on a short schedule.</p>
+
+      <h2>Local storage</h2>
+      <p>Some tools may use the browser's <code>localStorage</code> to remember your preferences (e.g., your most recent CV draft). This data stays on your device and can be cleared at any time by clearing your browser storage.</p>
+
+      <h2>Third-party libraries</h2>
+      <p>Certain tools load JavaScript libraries from public content delivery networks (CDNs). The CDN provider may log your IP address when you fetch the script. We do not share any personal information with these CDNs; they only see a request for a public file.</p>
+
+      <h2>Cookies</h2>
+      <p>This Service does not set cookies for tracking, advertising, or analytics purposes. If cookies are introduced later (for example, to remember a theme preference), they will be strictly necessary and described here.</p>
+
+      <h2>Your data, your control</h2>
+      <p>Because we do not collect personal data, there is no personal data to request, export, or delete. If you feel otherwise, please contact us and we will investigate.</p>
+
+      <h2>Children's privacy</h2>
+      <p>This Service is intended for general audiences and does not knowingly collect personal information from children.</p>
+
+      <h2>Changes</h2>
+      <p>We may update this policy from time to time. The "Last updated" date above reflects the most recent change.</p>
+    </article>
+  </main>
+
+  <script>document.getElementById('today').textContent = new Date().toISOString().slice(0,10);</script>
+  <script src="/site.js"></script>
+</body>
+</html>

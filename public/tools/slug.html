@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slugify — URL-Safe Slug Generator · Utility Tools</title>
+  <meta name="description" content="Convert any text into a clean URL-friendly slug. Strips accents, punctuation, and emojis.">
+  <meta name="keywords" content="slugify, url slug, slug generator, seo slug">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/slug">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Slugify — Utility Tools">
+  <meta property="og:description" content="Free online text-to-slug converter.">
+  <meta property="og:url" content="/slug">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>Slugify</h1>
+      <p>Turn any text into a clean, lowercase, URL-safe slug.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px">
+        <label class="checkbox"><input type="checkbox" id="lower" checked> Lowercase</label>
+        <label class="checkbox"><input type="checkbox" id="strip" checked> Strip accents</label>
+        <label class="checkbox"><input type="checkbox" id="collapse" checked> Collapse separators</label>
+        <label style="margin:0">Separator
+          <select id="sep" style="width:auto;display:inline-block;margin-left:6px">
+            <option value="-">- (dash)</option>
+            <option value="_">_ (underscore)</option>
+            <option value=".">. (dot)</option>
+            <option value="">(none)</option>
+          </select>
+        </label>
+        <button id="copyBtn" class="secondary">Copy</button>
+      </div>
+      <label for="input">Text</label>
+      <textarea id="input" placeholder="My Awesome Article Title!"></textarea>
+      <label style="margin-top:14px" for="output">Slug</label>
+      <input id="output" type="text" readonly class="mono">
+      <div id="status" class="status"></div>
+    </div>
+
+    <div class="panel">
+      <label>Bulk mode (one item per line)</label>
+      <textarea id="bulk" placeholder="One title per line..." style="min-height:120px"></textarea>
+      <label style="margin-top:14px">Slugged output</label>
+      <div id="bulkOut" class="output"></div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const status = $('status');
+    const set = (m, ok=true) => { status.textContent = m; status.className = 'status ' + (ok ? 'ok' : 'err'); };
+
+    function slugify(s){
+      const sep = $('sep').value;
+      if ($('strip').checked) s = s.normalize('NFKD').replace(/[\u0300-\u036f]/g,'');
+      if ($('lower').checked) s = s.toLowerCase();
+      s = s.replace(/[^a-zA-Z0-9]+/g, sep || ' ');
+      if (sep) {
+        const re = new RegExp('^' + sep.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '+|' + sep.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '+$', 'g');
+        s = s.replace(re, '');
+        if ($('collapse').checked) {
+          const re2 = new RegExp(sep.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '+', 'g');
+          s = s.replace(re2, sep);
+        }
+      } else {
+        s = s.replace(/\s+/g,'');
+      }
+      return s;
+    }
+
+    function run(){
+      $('output').value = slugify($('input').value);
+      $('bulkOut').textContent = $('bulk').value.split('\n').map(slugify).join('\n');
+    }
+
+    ['input','bulk','sep','lower','strip','collapse'].forEach(id => $(id).addEventListener('input', run));
+    document.querySelectorAll('input[type=checkbox]').forEach(c => c.addEventListener('change', run));
+
+    $('copyBtn').onclick = async () => {
+      if (!$('output').value) { set('Nothing to copy', false); return; }
+      try { await navigator.clipboard.writeText($('output').value); set('Copied ✓'); }
+      catch { set('Copy failed', false); }
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

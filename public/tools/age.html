@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Age Calculator — Years, Months, Days · Utility Tools</title>
+  <meta name="description" content="Calculate exact age (or any date difference) in years, months, days, weeks, hours and seconds.">
+  <meta name="keywords" content="age calculator, date difference, days between dates">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/age">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Age Calculator — Utility Tools">
+  <meta property="og:description" content="Free online age and date difference calculator.">
+  <meta property="og:url" content="/age">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container container-narrow">
+    <div class="tool-header">
+      <h1>Age Calculator</h1>
+      <p>How old are you, exactly? Or how far apart are two dates?</p>
+    </div>
+
+    <div class="panel">
+      <div class="stat-grid">
+        <div><label for="from">Birth date / Start</label><input id="from" type="date"></div>
+        <div><label for="to">As of / End</label><input id="to" type="date"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="stat-grid">
+        <div class="stat"><div class="value" id="ymd" style="font-size:18px">—</div><div class="label">Years / Months / Days</div></div>
+        <div class="stat"><div class="value" id="totDays">—</div><div class="label">Total days</div></div>
+        <div class="stat"><div class="value" id="totWeeks">—</div><div class="label">Total weeks</div></div>
+        <div class="stat"><div class="value" id="totHours">—</div><div class="label">Total hours</div></div>
+        <div class="stat"><div class="value" id="totMinutes">—</div><div class="label">Total minutes</div></div>
+        <div class="stat"><div class="value" id="nextBday" style="font-size:14px">—</div><div class="label">Next birthday in</div></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const isoToday = today.toISOString().slice(0,10);
+    $('to').value = isoToday;
+    $('from').value = (new Date(today.getFullYear()-30, today.getMonth(), today.getDate())).toISOString().slice(0,10);
+
+    function calc(){
+      const f = new Date($('from').value);
+      const t = new Date($('to').value);
+      if (isNaN(f) || isNaN(t)) return;
+      let a = f, b = t, sign = 1;
+      if (a > b) { [a,b] = [b,a]; sign = -1; }
+      let y = b.getFullYear() - a.getFullYear();
+      let m = b.getMonth() - a.getMonth();
+      let d = b.getDate() - a.getDate();
+      if (d < 0){ m -= 1; const prev = new Date(b.getFullYear(), b.getMonth(), 0); d += prev.getDate(); }
+      if (m < 0){ y -= 1; m += 12; }
+      const ms = b - a;
+      $('ymd').textContent = `${y}y ${m}mo ${d}d`;
+      $('totDays').textContent = Math.floor(ms / 86400000).toLocaleString();
+      $('totWeeks').textContent = Math.floor(ms / (86400000*7)).toLocaleString();
+      $('totHours').textContent = Math.floor(ms / 3600000).toLocaleString();
+      $('totMinutes').textContent = Math.floor(ms / 60000).toLocaleString();
+      // Next birthday from "from" date relative to today
+      const now = new Date(); now.setHours(0,0,0,0);
+      let next = new Date(now.getFullYear(), f.getMonth(), f.getDate());
+      if (next < now) next.setFullYear(next.getFullYear()+1);
+      const days = Math.round((next - now) / 86400000);
+      $('nextBday').textContent = days === 0 ? 'Today 🎉' : `${days} day${days===1?'':'s'} (${next.toDateString()})`;
+    }
+    $('from').addEventListener('input', calc);
+    $('to').addEventListener('input', calc);
+    calc();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON Formatter — Free Online Tool · Utility Tools</title>
+  <meta name="description" content="Pretty-print, minify, and validate JSON online. Free, secure, browser-only.">
+  <meta name="keywords" content="json formatter, json validator, json minifier, json pretty print">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/json">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="JSON Formatter — Utility Tools">
+  <meta property="og:description" content="Pretty-print, minify, and validate JSON online. Free, secure, browser-only.">
+  <meta property="og:url" content="/json">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>JSON Formatter</h1>
+      <p>Pretty-print, minify, and validate JSON. Runs entirely in your browser.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px">
+        <button id="prettyBtn">Pretty print</button>
+        <button id="minifyBtn" class="secondary">Minify</button>
+        <button id="validateBtn" class="secondary">Validate</button>
+        <button id="copyBtn" class="secondary">Copy output</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+        <div style="margin-left:auto">
+          <label for="indent" style="display:inline;margin-right:6px;">Indent:</label>
+          <select id="indent" style="width:auto;display:inline-block;">
+            <option value="2" selected>2 spaces</option>
+            <option value="4">4 spaces</option>
+            <option value="\t">Tab</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="split">
+        <div>
+          <label for="input">Input</label>
+          <textarea id="input" placeholder='{"hello":"world","items":[1,2,3]}'></textarea>
+        </div>
+        <div>
+          <label for="output">Output</label>
+          <textarea id="output" readonly></textarea>
+        </div>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <script>
+    const input    = document.getElementById('input');
+    const output   = document.getElementById('output');
+    const indentEl = document.getElementById('indent');
+    const status   = document.getElementById('status');
+
+    function setStatus(msg, ok) {
+      status.textContent = msg;
+      status.className = 'status ' + (ok ? 'ok' : 'err');
+    }
+
+    function indentValue() {
+      const v = indentEl.value;
+      return v === '\\t' ? '\t' : parseInt(v, 10);
+    }
+
+    function parseInput() {
+      try {
+        return { ok: true, data: JSON.parse(input.value) };
+      } catch (e) {
+        return { ok: false, error: e.message };
+      }
+    }
+
+    document.getElementById('prettyBtn').onclick = () => {
+      const r = parseInput();
+      if (!r.ok) { setStatus('Invalid JSON: ' + r.error, false); return; }
+      output.value = JSON.stringify(r.data, null, indentValue());
+      setStatus('Formatted ✓', true);
+    };
+
+    document.getElementById('minifyBtn').onclick = () => {
+      const r = parseInput();
+      if (!r.ok) { setStatus('Invalid JSON: ' + r.error, false); return; }
+      output.value = JSON.stringify(r.data);
+      setStatus('Minified ✓', true);
+    };
+
+    document.getElementById('validateBtn').onclick = () => {
+      const r = parseInput();
+      if (!r.ok) { setStatus('Invalid JSON: ' + r.error, false); return; }
+      setStatus('Valid JSON ✓', true);
+    };
+
+    document.getElementById('copyBtn').onclick = async () => {
+      if (!output.value) { setStatus('Nothing to copy', false); return; }
+      try {
+        await navigator.clipboard.writeText(output.value);
+        setStatus('Copied to clipboard ✓', true);
+      } catch { setStatus('Copy failed', false); }
+    };
+
+    document.getElementById('clearBtn').onclick = () => {
+      input.value = ''; output.value = ''; setStatus('', true);
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>

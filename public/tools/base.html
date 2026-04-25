@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Number Base Converter — Bin / Oct / Dec / Hex · Utility Tools</title>
+  <meta name="description" content="Convert numbers between binary, octal, decimal, and hexadecimal. Supports very large integers.">
+  <meta name="keywords" content="number base converter, binary to decimal, hex to decimal, base converter">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/base">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Number Base Converter — Utility Tools">
+  <meta property="og:description" content="Convert between binary, octal, decimal, and hex bases.">
+  <meta property="og:url" content="/base">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>Number Base Converter</h1>
+      <p>Type into any field. Uses BigInt — handles huge numbers.</p>
+    </div>
+
+    <div class="panel">
+      <div class="stat-grid">
+        <div><label for="bin">Binary (2)</label><input id="bin" type="text" class="mono" placeholder="1010"></div>
+        <div><label for="oct">Octal (8)</label><input id="oct" type="text" class="mono" placeholder="12"></div>
+        <div><label for="dec">Decimal (10)</label><input id="dec" type="text" class="mono" placeholder="10"></div>
+        <div><label for="hex">Hex (16)</label><input id="hex" type="text" class="mono" placeholder="A"></div>
+      </div>
+      <div id="status" class="status"></div>
+
+      <label style="margin-top:18px" for="custom">Custom base (2–36)</label>
+      <div class="row">
+        <input id="customBase" type="number" min="2" max="36" value="36" style="max-width:120px">
+        <input id="customVal" type="text" class="mono" placeholder="Value in custom base">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const status = $('status');
+    const set = (m, ok=true) => { status.textContent = m; status.className = 'status ' + (ok ? 'ok' : 'err'); };
+
+    function parseBase(str, base){
+      str = String(str).trim().replace(/^0[bB]|^0[oO]|^0[xX]/, '').replace(/_/g,'');
+      if (!str) return null;
+      const neg = str.startsWith('-');
+      if (neg) str = str.slice(1);
+      const digits = '0123456789abcdefghijklmnopqrstuvwxyz';
+      let n = 0n;
+      const b = BigInt(base);
+      for (const ch of str.toLowerCase()){
+        const v = digits.indexOf(ch);
+        if (v < 0 || v >= base) throw new Error('Invalid digit "' + ch + '" for base ' + base);
+        n = n * b + BigInt(v);
+      }
+      return neg ? -n : n;
+    }
+
+    function toBase(n, base){
+      if (n === null || n === undefined) return '';
+      const digits = '0123456789abcdefghijklmnopqrstuvwxyz';
+      const b = BigInt(base);
+      let neg = n < 0n; if (neg) n = -n;
+      if (n === 0n) return '0';
+      let s = '';
+      while (n > 0n){ s = digits[Number(n % b)] + s; n /= b; }
+      return (neg ? '-' : '') + s;
+    }
+
+    let updating = false;
+    function syncFrom(src, base){
+      if (updating) return;
+      updating = true;
+      try {
+        const v = src.value.trim();
+        if (!v) { ['bin','oct','dec','hex'].forEach(i => { if (i!==src.id) $(i).value=''; }); $('customVal').value=''; set(''); updating=false; return; }
+        const n = parseBase(v, base);
+        if (src.id !== 'bin') $('bin').value = toBase(n, 2);
+        if (src.id !== 'oct') $('oct').value = toBase(n, 8);
+        if (src.id !== 'dec') $('dec').value = toBase(n, 10);
+        if (src.id !== 'hex') $('hex').value = toBase(n, 16).toUpperCase();
+        const cb = parseInt($('customBase').value,10);
+        if (cb >= 2 && cb <= 36 && src.id !== 'customVal') $('customVal').value = toBase(n, cb);
+        set('OK');
+      } catch (e) { set(e.message, false); }
+      updating = false;
+    }
+
+    $('bin').addEventListener('input', e => syncFrom(e.target, 2));
+    $('oct').addEventListener('input', e => syncFrom(e.target, 8));
+    $('dec').addEventListener('input', e => syncFrom(e.target, 10));
+    $('hex').addEventListener('input', e => syncFrom(e.target, 16));
+    $('customVal').addEventListener('input', e => {
+      const cb = parseInt($('customBase').value,10);
+      if (cb < 2 || cb > 36) { set('Custom base must be 2–36', false); return; }
+      syncFrom(e.target, cb);
+    });
+    $('customBase').addEventListener('input', () => {
+      const cb = parseInt($('customBase').value,10);
+      if (cb >= 2 && cb <= 36 && $('dec').value) {
+        try { $('customVal').value = toBase(parseBase($('dec').value,10), cb); } catch {}
+      }
+    });
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Markdown Preview — Free Online Editor · Utility Tools</title>
+  <meta name="description" content="Free online Markdown editor with live HTML preview. Runs entirely in your browser.">
+  <meta name="keywords" content="markdown preview, markdown editor, md to html, online markdown">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/markdown">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Markdown Preview — Utility Tools">
+  <meta property="og:description" content="Live Markdown preview with copy-to-HTML.">
+  <meta property="og:url" content="/markdown">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .md-preview { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; min-height: 360px; overflow:auto; }
+    .md-preview h1, .md-preview h2, .md-preview h3 { color: var(--text); margin-top: 16px; }
+    .md-preview code { background: var(--bg); padding: 2px 5px; border-radius: 4px; font-family: var(--mono); font-size: 13px; }
+    .md-preview pre { background: var(--bg); padding: 12px; border-radius: 6px; overflow-x: auto; }
+    .md-preview blockquote { border-left: 3px solid var(--accent); margin: 0; padding-left: 12px; color: var(--muted); }
+    .md-preview table { border-collapse: collapse; }
+    .md-preview th, .md-preview td { border: 1px solid var(--border); padding: 6px 10px; }
+  </style>
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>Markdown Preview</h1>
+      <p>Type Markdown on the left, see rendered HTML on the right.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px">
+        <button id="copyHtmlBtn">Copy HTML</button>
+        <button id="downloadBtn" class="secondary">Download .html</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+        <button id="sampleBtn" class="secondary">Load sample</button>
+      </div>
+      <div class="split">
+        <div>
+          <label for="input">Markdown</label>
+          <textarea id="input" placeholder="# Hello&#10;&#10;Type some **markdown** here." style="min-height:380px"></textarea>
+        </div>
+        <div>
+          <label>Preview</label>
+          <div id="preview" class="md-preview"></div>
+        </div>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+  <script>
+    const input = document.getElementById('input');
+    const preview = document.getElementById('preview');
+    const status = document.getElementById('status');
+    const set = (m, ok=true) => { status.textContent = m; status.className = 'status ' + (ok ? 'ok' : 'err'); };
+
+    function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+
+    function fallbackRender(md) {
+      // Tiny fallback if CDN is blocked
+      let h = escapeHtml(md);
+      h = h.replace(/^### (.+)$/gm,'<h3>$1</h3>')
+           .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+           .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+           .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+           .replace(/\*(.+?)\*/g,'<em>$1</em>')
+           .replace(/`([^`]+)`/g,'<code>$1</code>')
+           .replace(/\n\n/g,'</p><p>');
+      return '<p>' + h + '</p>';
+    }
+
+    function render() {
+      const md = input.value;
+      try {
+        if (window.marked) {
+          preview.innerHTML = window.marked.parse(md, { breaks: true, gfm: true });
+        } else {
+          preview.innerHTML = fallbackRender(md);
+        }
+      } catch (e) { set('Render error: ' + e.message, false); }
+    }
+
+    input.addEventListener('input', render);
+
+    document.getElementById('copyHtmlBtn').onclick = async () => {
+      try { await navigator.clipboard.writeText(preview.innerHTML); set('HTML copied ✓'); }
+      catch { set('Copy failed', false); }
+    };
+    document.getElementById('downloadBtn').onclick = () => {
+      const blob = new Blob([
+        '<!DOCTYPE html><meta charset="utf-8"><title>Markdown export</title>',
+        preview.innerHTML
+      ], { type: 'text/html' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'markdown.html';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      set('Downloaded ✓');
+    };
+    document.getElementById('clearBtn').onclick = () => { input.value=''; render(); set(''); };
+    document.getElementById('sampleBtn').onclick = () => {
+      input.value = `# Markdown demo\n\nA **simple** sample with *italics*, \`inline code\`, and a list:\n\n- one\n- two\n- three\n\n> A blockquote.\n\n\`\`\`js\nconst x = 1;\n\`\`\`\n\n[Link](https://example.com)\n`;
+      render();
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

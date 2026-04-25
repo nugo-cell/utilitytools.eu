@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Free Calorie Calculator (BMR, TDEE & Macros) · UtilityTools.eu</title>
+  <meta name="description" content="Free calorie calculator using the Mifflin-St Jeor formula. Calculate your BMR, TDEE, daily calorie target, and macronutrient split for losing, maintaining or gaining weight. Metric or imperial. Privacy-friendly, runs in your browser.">
+  <meta name="keywords" content="calorie calculator, BMR calculator, TDEE calculator, daily calorie needs, macronutrient calculator, weight loss calculator, fitness calculator, Mifflin-St Jeor">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/calories">
+  <meta name="theme-color" content="#7c5cff">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Free Calorie Calculator — BMR, TDEE & Macros">
+  <meta property="og:description" content="Get your daily calorie target and macros — free, private, runs in your browser.">
+  <meta property="og:url" content="/calories">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .cal-grid { display: grid; grid-template-columns: minmax(360px, 460px) 1fr; gap: 24px; align-items: start; }
+    @media (max-width: 900px) { .cal-grid { grid-template-columns: 1fr; } }
+    .cal-form .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
+    .cal-form label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+    .cal-form input, .cal-form select { width: 100%; padding: 9px 11px; box-sizing: border-box; }
+    .seg { display: inline-flex; background: var(--panel-2); border: 1px solid var(--border); border-radius: 999px; padding: 2px; }
+    .seg button { background: transparent; border: none; color: var(--muted); padding: 6px 14px; border-radius: 999px; box-shadow: none; }
+    .seg button.active { background: var(--grad); color: #fff; }
+    .result-card { background: var(--panel-2); border: 1px solid var(--border); border-radius: 14px; padding: 22px; margin-bottom: 14px; }
+    .result-card h2 { margin: 0 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
+    .result-card .big { font-size: 38px; font-weight: 700; background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .result-card .small { color: var(--muted); font-size: 13px; }
+    .macro-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+    .macro { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px; text-align: center; }
+    .macro .name { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+    .macro .val { font-size: 22px; font-weight: 700; margin: 2px 0; }
+    .macro.c .val { color: var(--accent-cyan); }
+    .macro.p .val { color: var(--accent-pink); }
+    .macro.f .val { color: var(--warn); }
+    .macro .grams { font-size: 12px; color: var(--muted); }
+    .target-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+    .target-row .pill { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; transition: border-color 0.15s; }
+    .target-row .pill:hover { border-color: var(--accent); }
+    .target-row .pill.active { border-color: var(--accent); background: var(--grad-soft); }
+    .target-row .pill .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+    .target-row .pill .num { font-size: 17px; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span><span class="tld">.eu</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Calorie Calculator</h1>
+      <p>Daily calorie and macronutrient targets based on the Mifflin-St Jeor formula. Private — nothing is sent anywhere.</p>
+    </div>
+
+    <div class="panel">
+      <div class="cal-grid">
+        <!-- ============ FORM ============ -->
+        <div class="cal-form">
+          <div style="margin-bottom:14px">
+            <label>Units</label>
+            <div class="seg" id="units">
+              <button data-u="metric" class="active">Metric (kg / cm)</button>
+              <button data-u="imperial">Imperial (lb / in)</button>
+            </div>
+          </div>
+
+          <div style="margin-bottom:14px">
+            <label>Sex</label>
+            <div class="seg" id="sex">
+              <button data-s="male" class="active">Male</button>
+              <button data-s="female">Female</button>
+            </div>
+          </div>
+
+          <div class="row">
+            <div><label>Age (years)</label><input type="number" id="age" value="30" min="14" max="100"></div>
+            <div><label>Weight (<span class="u-w">kg</span>)</label><input type="number" id="weight" value="75" step="0.1"></div>
+          </div>
+
+          <div class="row" style="grid-template-columns:1fr">
+            <div><label>Height (<span class="u-h">cm</span>)</label><input type="number" id="height" value="178" step="0.1"></div>
+          </div>
+
+          <div style="margin-bottom:14px">
+            <label>Activity level</label>
+            <select id="activity">
+              <option value="1.2">Sedentary — desk job, little exercise</option>
+              <option value="1.375">Lightly active — exercise 1–3 days/week</option>
+              <option value="1.55" selected>Moderately active — exercise 3–5 days/week</option>
+              <option value="1.725">Very active — exercise 6–7 days/week</option>
+              <option value="1.9">Extra active — physical job + daily training</option>
+            </select>
+          </div>
+
+          <div style="margin-bottom:14px">
+            <label>Goal</label>
+            <div class="target-row" id="goal">
+              <div class="pill" data-g="lose"><div class="label">Lose</div><div class="num">−500 kcal</div></div>
+              <div class="pill active" data-g="maintain"><div class="label">Maintain</div><div class="num">0 kcal</div></div>
+              <div class="pill" data-g="gain"><div class="label">Gain</div><div class="num">+300 kcal</div></div>
+            </div>
+          </div>
+
+          <div style="margin-bottom:6px">
+            <label>Macro split</label>
+            <select id="split">
+              <option value="balanced" selected>Balanced — 40 C / 30 P / 30 F</option>
+              <option value="highprotein">High protein — 30 C / 40 P / 30 F</option>
+              <option value="lowcarb">Low-carb — 20 C / 35 P / 45 F</option>
+              <option value="endurance">Endurance — 55 C / 20 P / 25 F</option>
+            </select>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:10px">Estimates only. Not medical advice. Talk to a doctor before changing your diet if you have health conditions.</div>
+        </div>
+
+        <!-- ============ RESULTS ============ -->
+        <div>
+          <div class="result-card">
+            <h2>BMR — Basal Metabolic Rate</h2>
+            <div class="big" id="bmr">—</div>
+            <div class="small">Calories your body burns at complete rest.</div>
+          </div>
+
+          <div class="result-card">
+            <h2>TDEE — Maintenance calories</h2>
+            <div class="big" id="tdee">—</div>
+            <div class="small">Total daily energy expenditure with activity.</div>
+          </div>
+
+          <div class="result-card">
+            <h2>Daily target (<span id="goalLabel">Maintain</span>)</h2>
+            <div class="big" id="target">—</div>
+            <div class="small" id="goalNote"></div>
+            <div class="macro-row">
+              <div class="macro c"><div class="name">Carbs</div><div class="val" id="carbsP">—</div><div class="grams"><span id="carbsG">—</span> g</div></div>
+              <div class="macro p"><div class="name">Protein</div><div class="val" id="protP">—</div><div class="grams"><span id="protG">—</span> g</div></div>
+              <div class="macro f"><div class="name">Fat</div><div class="val" id="fatP">—</div><div class="grams"><span id="fatG">—</span> g</div></div>
+            </div>
+          </div>
+
+          <div class="result-card" style="font-size:13px;line-height:1.6">
+            <h2>How it works</h2>
+            <p style="margin:0 0 8px"><strong>BMR</strong> uses the Mifflin-St Jeor equation, the most accurate widely-used formula:</p>
+            <ul style="margin:0 0 8px 18px;padding:0">
+              <li>Men: <code>10·kg + 6.25·cm − 5·age + 5</code></li>
+              <li>Women: <code>10·kg + 6.25·cm − 5·age − 161</code></li>
+            </ul>
+            <p style="margin:0">TDEE = BMR × activity multiplier. To <strong>lose</strong> weight steadily, eat ~500 kcal under TDEE (≈0.5 kg / 1 lb per week). To <strong>gain</strong>, add ~300 kcal for clean lean-mass gains.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let unit = 'metric', sex = 'male', goal = 'maintain';
+
+    function lbToKg(lb){ return lb * 0.45359237; }
+    function inToCm(inch){ return inch * 2.54; }
+
+    function compute() {
+      const age = +$('age').value || 0;
+      let w = +$('weight').value || 0;
+      let h = +$('height').value || 0;
+      if (unit === 'imperial') { w = lbToKg(w); h = inToCm(h); }
+      if (!w || !h || !age) return;
+
+      const bmr = sex === 'male'
+        ? 10*w + 6.25*h - 5*age + 5
+        : 10*w + 6.25*h - 5*age - 161;
+      const tdee = bmr * (+$('activity').value);
+      const adj = goal === 'lose' ? -500 : goal === 'gain' ? 300 : 0;
+      const target = Math.max(1000, tdee + adj);
+
+      $('bmr').textContent = Math.round(bmr).toLocaleString() + ' kcal';
+      $('tdee').textContent = Math.round(tdee).toLocaleString() + ' kcal';
+      $('target').textContent = Math.round(target).toLocaleString() + ' kcal';
+      $('goalLabel').textContent = goal === 'lose' ? 'Lose 0.5 kg / week' : goal === 'gain' ? 'Gain lean mass' : 'Maintain';
+      $('goalNote').textContent = adj === 0 ? 'Eat at maintenance to keep current weight.' : (adj < 0 ? 'About 0.5 kg / 1 lb of fat loss per week.' : 'Slow lean gain — minimises fat gain.');
+
+      const splits = {
+        balanced:    { c: 0.40, p: 0.30, f: 0.30 },
+        highprotein: { c: 0.30, p: 0.40, f: 0.30 },
+        lowcarb:     { c: 0.20, p: 0.35, f: 0.45 },
+        endurance:   { c: 0.55, p: 0.20, f: 0.25 }
+      };
+      const sp = splits[$('split').value];
+      const cKcal = target * sp.c, pKcal = target * sp.p, fKcal = target * sp.f;
+      $('carbsP').textContent = Math.round(sp.c*100) + '%';
+      $('protP').textContent  = Math.round(sp.p*100) + '%';
+      $('fatP').textContent   = Math.round(sp.f*100) + '%';
+      $('carbsG').textContent = Math.round(cKcal/4);
+      $('protG').textContent  = Math.round(pKcal/4);
+      $('fatG').textContent   = Math.round(fKcal/9);
+    }
+
+    // Wire up segmented controls
+    $('units').addEventListener('click', e => {
+      const b = e.target.closest('button[data-u]'); if (!b) return;
+      [...$('units').children].forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      unit = b.dataset.u;
+      document.querySelectorAll('.u-w').forEach(el => el.textContent = unit === 'metric' ? 'kg' : 'lb');
+      document.querySelectorAll('.u-h').forEach(el => el.textContent = unit === 'metric' ? 'cm' : 'in');
+      // Sensible default flip
+      if (unit === 'imperial') { $('weight').value = 165; $('height').value = 70; }
+      else                     { $('weight').value = 75;  $('height').value = 178; }
+      compute();
+    });
+    $('sex').addEventListener('click', e => {
+      const b = e.target.closest('button[data-s]'); if (!b) return;
+      [...$('sex').children].forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      sex = b.dataset.s;
+      compute();
+    });
+    $('goal').addEventListener('click', e => {
+      const p = e.target.closest('.pill[data-g]'); if (!p) return;
+      [...$('goal').children].forEach(x => x.classList.remove('active'));
+      p.classList.add('active');
+      goal = p.dataset.g;
+      compute();
+    });
+    ['age','weight','height','activity','split'].forEach(id => $(id).addEventListener('input', compute));
+
+    compute();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

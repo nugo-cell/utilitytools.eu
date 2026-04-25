@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATS-Friendly CV in 2026: What Actually Matters — Utility Tools</title>
+  <meta name="description" content="What an Applicant Tracking System (ATS) actually does, what it doesn't, and the small CV choices that genuinely make a difference in 2026 — with a free CV maker to try them.">
+  <meta name="keywords" content="ATS friendly CV, ATS resume, applicant tracking system, CV tips 2026, resume keywords, two column resume ATS, free CV maker">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/blog/ats-friendly-cv-2026">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="ATS-Friendly CV in 2026: What Actually Matters">
+  <meta property="og:description" content="What an ATS actually does, what it doesn't, and the small CV choices that make the difference.">
+  <meta property="og:url" content="/blog/ats-friendly-cv-2026">
+  <meta property="article:published_time" content="2026-04-24">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"ATS-Friendly CV in 2026: What Actually Matters","datePublished":"2026-04-24","author":{"@type":"Organization","name":"Utility Tools"}}
+  </script>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog" class="active">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container-narrow">
+    <article class="prose">
+      <h1>ATS-friendly CV in 2026: what actually matters</h1>
+      <p class="meta">April 24, 2026 · 7 min read</p>
+
+      <p>If you've spent more than five minutes researching how to write a CV, you've heard the abbreviation: <strong>ATS</strong>, an Applicant Tracking System. Around it has grown a small industry of fear: secret formatting rules, magic keywords, "your CV will be rejected by a robot if you use a two-column layout". Most of it is exaggerated. Some of it is wrong. A small core of it is genuinely useful. This is that small core.</p>
+
+      <h2>What an ATS actually does</h2>
+      <p>An ATS is a piece of HR software that does three things, in this order:</p>
+      <ol>
+        <li><strong>Receives</strong> your CV — usually a PDF or DOCX upload.</li>
+        <li><strong>Parses</strong> it into structured fields: name, email, phone, jobs, education, skills.</li>
+        <li><strong>Stores and searches</strong> the parsed result so a recruiter can later filter, e.g. "show me everyone in Berlin who lists Kubernetes".</li>
+      </ol>
+      <p>That is essentially it. Modern systems (Greenhouse, Lever, Workday, Ashby and friends) do not give your CV a "score out of 100" and reject you below a threshold. There's no robot saying no. The risk is more boring: if the parser mangles your CV, the recruiter sees garbage in the search and never finds you.</p>
+
+      <h2>What ATS parsing actually struggles with</h2>
+      <p>The places where modern parsers stumble are predictable:</p>
+      <ul>
+        <li><strong>Text inside images.</strong> A "headshot" is fine. A skills section drawn as a graphic is not — none of those words become searchable.</li>
+        <li><strong>Headers and footers.</strong> Some parsers ignore them entirely. Don't put your phone number or email <em>only</em> in a header.</li>
+        <li><strong>Custom fonts that aren't embedded.</strong> Rare with modern PDFs but still possible. If you "Save as PDF" from a browser or a word processor, fonts are usually fine.</li>
+        <li><strong>Heavy tables for layout.</strong> Two columns implemented with <code>&lt;table&gt;</code> elements can confuse parsers that read top-to-bottom-left-to-right and end up with "Acme Co Engineer JavaScript Berlin 2022 …" all jumbled together.</li>
+        <li><strong>Unusual section titles.</strong> "My Adventures" is cute; "Experience" gets parsed correctly.</li>
+      </ul>
+
+      <h2>The two-column layout question</h2>
+      <p>Probably the most repeated and most overstated rule. The truth in 2026 is:</p>
+      <ul>
+        <li>If the two-column layout is built with proper text flow (CSS columns or a flex/grid PDF) and you put <strong>employment</strong>, <strong>education</strong> and <strong>summary</strong> in the main column, every modern ATS reads it correctly.</li>
+        <li>Putting <strong>contact details, skills, languages and certifications</strong> in a sidebar is fine — those are short, list-y, and easy for parsers to recover.</li>
+        <li>What you should <em>not</em> do is split a single job's description across two columns.</li>
+      </ul>
+      <p>If you're applying to a very large enterprise (banks, public sector, some large pharma) using older Workday/Taleo deployments, a single-column layout is the safest bet. For tech, marketing, design, startups, agencies, and most modern employers, a sidebar layout is fine and often more readable for the human who eventually opens your file.</p>
+
+      <h2>Keywords: do they matter? Yes — but boringly</h2>
+      <p>Recruiters search the parsed text. If the job ad says "experience with PostgreSQL and Kafka required" and your CV says "I work with relational databases and event streams", you may not appear in their search. Use the words from the job ad — exactly — somewhere in the CV, ideally in your skills section <em>and</em> within the description of the relevant role.</p>
+      <p>Keyword stuffing (a paragraph of comma-separated buzzwords at the bottom of the page) used to work and now mostly hurts. Recruiters notice, and many ATSes deduplicate.</p>
+
+      <h2>Things that genuinely help</h2>
+      <ol>
+        <li><strong>One page if you have under 7 years of experience, two pages if more.</strong> Three pages signals you don't know what to leave out.</li>
+        <li><strong>Reverse-chronological order.</strong> Newest job first. Some parsers literally rely on this to figure out which job is "current".</li>
+        <li><strong>Real dates.</strong> "2022 — Present" or "Jan 2022 — Present". Avoid "ongoing", "recent", or vague ranges.</li>
+        <li><strong>Standard section headings:</strong> Summary, Experience, Education, Skills, Projects, Certifications, Languages.</li>
+        <li><strong>Bullets, not paragraphs.</strong> Each bullet starts with a strong verb (Led, Shipped, Reduced, Designed) and ideally contains a number.</li>
+        <li><strong>Numbers everywhere you can honestly use them.</strong> "Grew newsletter to 50,000 subscribers" beats "Grew newsletter significantly".</li>
+        <li><strong>Save as PDF, not as a screenshot.</strong> The text needs to be selectable — if you can't click-and-drag to highlight your name, an ATS can't read it.</li>
+      </ol>
+
+      <h2>Things that don't matter (despite what the internet says)</h2>
+      <ul>
+        <li><strong>Your photo.</strong> In Europe, normal. In the US/UK, often discouraged for unconscious bias reasons. ATSes don't care either way.</li>
+        <li><strong>Colour.</strong> A coloured accent is fine. The text just has to be black-on-white-readable.</li>
+        <li><strong>"Read by a human in 6 seconds" claims.</strong> Made-up statistic that has been circulating since 2012. Recruiters skim, then read carefully if interested. The skimming is human, not robotic.</li>
+        <li><strong>Fancy fonts.</strong> A clean serif (Georgia, Charter) or sans-serif (Inter, Helvetica, Calibri) is fine. Comic Sans isn't.</li>
+        <li><strong>Long objectives.</strong> "Seeking a challenging role where I can grow" — delete it. A 2-line summary of who you are and what you bring is fine; an objective from 1998 isn't.</li>
+      </ul>
+
+      <h2>The structure that works in 2026</h2>
+      <ol>
+        <li><strong>Header</strong> — name, role, email, phone, location, one or two links (LinkedIn + portfolio/GitHub).</li>
+        <li><strong>Summary</strong> — 2 to 4 lines. Skip if you don't have something specific to say.</li>
+        <li><strong>Experience</strong> — newest first. Title, company, dates. 2-5 bullets per role, each with a number when possible.</li>
+        <li><strong>Projects</strong> (optional) — particularly useful for engineers, designers, students, career changers.</li>
+        <li><strong>Education</strong> — degree, institution, year. One line each unless you're a recent graduate.</li>
+        <li><strong>Skills</strong> — categorised if you have many; otherwise a clean list.</li>
+        <li><strong>Languages</strong> — with a level (Native, Fluent, Conversational).</li>
+        <li><strong>Certifications</strong> — only the relevant and recent ones.</li>
+      </ol>
+
+      <h2>How to test your CV in five minutes</h2>
+      <ol>
+        <li>Open your CV PDF.</li>
+        <li>Select all (Ctrl/Cmd + A).</li>
+        <li>Copy and paste into a plain text editor.</li>
+        <li>Read what comes out. If your name appears, your jobs are in order, dates are clear, and the skills are readable — you've passed the parser. If it's a jumbled mess, redesign.</li>
+      </ol>
+
+      <h2>Build it for free</h2>
+      <p>Our free <a href="/cv">CV / Resume Maker</a> follows every recommendation in this article and gives you five clean templates (Classic, Modern, Minimal, Compact, Sidebar). It supports a profile photo, social links, structured experience and education with reordering, projects, languages, certifications, JSON import/export so you can keep multiple versions, and autosave so you don't lose work. Everything runs in your browser — your CV is never uploaded.</p>
+
+      <p>Pick a template, fill in your details, and use your browser's "Save as PDF" to export. That's it.</p>
+
+      <h2>One more piece of advice</h2>
+      <p>The best CV in the world won't beat a referral. Before you spend two more hours tweaking margins, message one person at the company you'd like to work for and ask them what the team is like. The CV gets you in the door; people get you the offer.</p>
+
+      <p>Good luck. <a href="/cv">Build your CV →</a></p>
+    </article>
+  </main>
+
+  <script src="/site.js"></script>
+</body>
+</html>
+

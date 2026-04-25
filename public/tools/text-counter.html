@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Text Counter — Free Online Tool · Utility Tools</title>
+  <meta name="description" content="Count characters, words, lines, sentences, paragraphs, bytes and reading time.">
+  <meta name="keywords" content="word counter, character counter, text counter, read time calculator">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/count">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Text Counter — Utility Tools">
+  <meta property="og:description" content="Count characters, words, lines, sentences, paragraphs, bytes and reading time.">
+  <meta property="og:url" content="/count">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>Text Counter</h1>
+      <p>Live counts for characters, words, sentences, lines, paragraphs, and bytes.</p>
+    </div>
+
+    <div class="panel">
+      <label for="input">Text</label>
+      <textarea id="input" style="min-height:220px" placeholder="Paste or type text here…"></textarea>
+
+      <div class="stat-grid" style="margin-top:20px">
+        <div class="stat"><div class="value" id="chars">0</div><div class="label">Characters</div></div>
+        <div class="stat"><div class="value" id="charsNoSpace">0</div><div class="label">Characters (no spaces)</div></div>
+        <div class="stat"><div class="value" id="words">0</div><div class="label">Words</div></div>
+        <div class="stat"><div class="value" id="sentences">0</div><div class="label">Sentences</div></div>
+        <div class="stat"><div class="value" id="lines">0</div><div class="label">Lines</div></div>
+        <div class="stat"><div class="value" id="paragraphs">0</div><div class="label">Paragraphs</div></div>
+        <div class="stat"><div class="value" id="bytes">0</div><div class="label">Bytes (UTF-8)</div></div>
+        <div class="stat"><div class="value" id="readTime">0s</div><div class="label">Read time</div></div>
+      </div>
+
+      <div class="row" style="margin-top:16px">
+        <button id="upper" class="secondary">UPPERCASE</button>
+        <button id="lower" class="secondary">lowercase</button>
+        <button id="title" class="secondary">Title Case</button>
+        <button id="trim" class="secondary">Trim whitespace</button>
+        <button id="clearBtn" class="secondary" style="margin-left:auto">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const input = document.getElementById('input');
+
+    function update() {
+      const t = input.value;
+      document.getElementById('chars').textContent = t.length;
+      document.getElementById('charsNoSpace').textContent = t.replace(/\s/g,'').length;
+      const words = t.trim() === '' ? 0 : t.trim().split(/\s+/).length;
+      document.getElementById('words').textContent = words;
+      const sentences = t.trim() === '' ? 0 : (t.match(/[^.!?\n]+[.!?]+(\s|$)/g)?.length ?? (t.trim() ? 1 : 0));
+      document.getElementById('sentences').textContent = sentences;
+      document.getElementById('lines').textContent = t === '' ? 0 : t.split('\n').length;
+      const paragraphs = t.trim() === '' ? 0 : t.split(/\n\s*\n/).filter(p => p.trim()).length;
+      document.getElementById('paragraphs').textContent = paragraphs;
+      document.getElementById('bytes').textContent = new TextEncoder().encode(t).length;
+      // ~200 wpm average reading speed
+      const secs = Math.round((words / 200) * 60);
+      document.getElementById('readTime').textContent = secs < 60 ? secs + 's' : Math.floor(secs/60)+'m '+(secs%60)+'s';
+    }
+
+    input.addEventListener('input', update);
+
+    document.getElementById('upper').onclick = () => { input.value = input.value.toUpperCase(); update(); };
+    document.getElementById('lower').onclick = () => { input.value = input.value.toLowerCase(); update(); };
+    document.getElementById('title').onclick = () => {
+      input.value = input.value.replace(/\w\S*/g, w => w[0].toUpperCase() + w.slice(1).toLowerCase());
+      update();
+    };
+    document.getElementById('trim').onclick = () => {
+      input.value = input.value.split('\n').map(l => l.trim()).join('\n').trim();
+      update();
+    };
+    document.getElementById('clearBtn').onclick = () => { input.value = ''; update(); };
+
+    update();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>

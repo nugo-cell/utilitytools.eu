@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Word Scrambler — Free Online Tool · Utility Tools</title>
+  <meta name="description" content="Scramble the letters inside words. A fun tool for quizzes, brain teasers, classroom activities, and spelling practice.">
+  <meta name="keywords" content="word scrambler, letter scrambler, anagram generator, scramble words online, word puzzle maker">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/scramble">
+  <meta property="og:title" content="Word Scrambler — Utility Tools">
+  <meta property="og:description" content="Scramble letters inside words for quizzes and practice.">
+  <meta property="og:url" content="/scramble">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Word Scrambler</h1>
+      <p>Randomly scramble the letters inside each word. Perfect for quizzes, spelling games, and classroom activities.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px">
+        <label class="checkbox"><input type="checkbox" id="keepFirstLast"> Keep first &amp; last letters in place</label>
+        <label class="checkbox"><input type="checkbox" id="preservePunct" checked> Preserve punctuation</label>
+        <label class="checkbox"><input type="checkbox" id="preserveCase" checked> Preserve case</label>
+      </div>
+
+      <div class="split">
+        <div>
+          <label for="input">Original text</label>
+          <textarea id="input" placeholder="The quick brown fox jumps over the lazy dog."></textarea>
+        </div>
+        <div>
+          <label for="output">Scrambled</label>
+          <textarea id="output" readonly></textarea>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <button id="scrambleBtn">Scramble</button>
+        <button id="copyBtn" class="secondary">Copy output</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+  </main>
+
+  <script>
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    const status = document.getElementById('status');
+
+    function setStatus(m, ok){ status.textContent = m; status.className = 'status ' + (ok?'ok':'err'); }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function scrambleWord(word, keepEdges, preserveCase) {
+      // Split into letters vs non-letters (keep punctuation in place)
+      const chars = [...word];
+      const letterIdx = chars.map((c,i) => /\p{L}/u.test(c) ? i : -1).filter(i => i >= 0);
+      if (letterIdx.length < 2) return word;
+
+      let scrambleIdx = letterIdx.slice();
+      if (keepEdges && letterIdx.length > 2) {
+        scrambleIdx = letterIdx.slice(1, -1);
+      }
+      const letters = scrambleIdx.map(i => chars[i]);
+      const casePattern = letters.map(c => c === c.toUpperCase());
+      const lowercased = letters.map(c => c.toLowerCase());
+      const shuffled = shuffle(lowercased.slice());
+      scrambleIdx.forEach((idx, k) => {
+        let c = shuffled[k];
+        if (preserveCase && casePattern[k]) c = c.toUpperCase();
+        chars[idx] = c;
+      });
+      return chars.join('');
+    }
+
+    document.getElementById('scrambleBtn').onclick = () => {
+      const keepEdges = document.getElementById('keepFirstLast').checked;
+      const preserveCase = document.getElementById('preserveCase').checked;
+      const text = input.value;
+      if (!text.trim()) { setStatus('Enter some text', false); return; }
+      const out = text.split(/(\s+)/).map(tok => /\s/.test(tok) ? tok : scrambleWord(tok, keepEdges, preserveCase)).join('');
+      output.value = out;
+      setStatus('Scrambled ✓', true);
+    };
+
+    document.getElementById('copyBtn').onclick = async () => {
+      if (!output.value) { setStatus('Nothing to copy', false); return; }
+      try { await navigator.clipboard.writeText(output.value); setStatus('Copied ✓', true); }
+      catch { setStatus('Copy failed', false); }
+    };
+    document.getElementById('clearBtn').onclick = () => {
+      input.value = ''; output.value = ''; setStatus('', true);
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>

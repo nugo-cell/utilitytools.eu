@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Story Idea Generator for Kids — Random Writing Prompts · Utility Tools</title>
+  <meta name="description" content="A free random story prompt generator for kids and teachers. Combines a character, a place, an object and a problem to spark creative writing.">
+  <meta name="keywords" content="story prompt, writing prompt, kids writing, creative writing for kids, story generator">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/storyidea">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Story Idea Generator — Utility Tools">
+  <meta property="og:description" content="Random writing prompts for kids: character, place, object, problem.">
+  <meta property="og:url" content="/storyidea">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .idea { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+    .idea h3 { margin: 0 0 10px; color: var(--accent); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
+    .idea p { font-size: 18px; margin: 0; }
+    .big { font-size: 22px; line-height: 1.5; padding: 18px; background: var(--bg); border-radius: 8px; border: 1px dashed var(--border); }
+  </style>
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container container-narrow">
+    <div class="tool-header">
+      <h1>Story Idea Generator</h1>
+      <p>Stuck for what to write about? Press the button and combine a hero, a place, an object, and a problem into a brand-new story.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:14px">
+        <button id="rollBtn">🎲 New idea</button>
+        <button id="copyBtn" class="secondary">Copy</button>
+        <button id="printBtn" class="secondary">🖨 Print</button>
+      </div>
+
+      <div class="big" id="sentence">Press the button to roll a story!</div>
+
+      <div class="stat-grid" style="margin-top:18px">
+        <div class="idea"><h3>Hero</h3><p id="char"></p></div>
+        <div class="idea"><h3>Where</h3><p id="place"></p></div>
+        <div class="idea"><h3>Something</h3><p id="object"></p></div>
+        <div class="idea"><h3>Problem</h3><p id="prob"></p></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3 style="margin-top:0">Writing prompts</h3>
+      <ul style="color:var(--muted);font-size:14px">
+        <li>How does the story <strong>begin</strong>?</li>
+        <li>Who <strong>helps</strong> the hero?</li>
+        <li>What is the <strong>biggest moment</strong>?</li>
+        <li>How does it <strong>end</strong>? Happy, sad, or surprising?</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const chars = ['a brave knight','a curious robot','a tiny dragon','a clever cat','a sleepy panda','a daring pirate','a magical chef','a shy unicorn','an explorer','a friendly ghost','a clumsy wizard','an astronaut child','a runaway sock','a talking pencil','a grumpy goblin','a kind giant','a clever fox','a thunder-loving owl'];
+    const places = ['inside a giant cake','at the bottom of the sea','on a cloud city','in a haunted library','in the jungle','on planet Glub','at a school for dragons','inside a video game','at grandma\'s attic','on a flying ship','in a candy forest','under the city','in an old castle','at a snowy mountain top','in a tiny dollhouse'];
+    const objects = ['a magical compass','a singing teapot','a bag of glowing seeds','a map that draws itself','a pair of jumping shoes','a feather that grants wishes','a flute that calls animals','a watch that pauses time','a backpack full of stars','a key with no lock','a book that whispers','a coin that always lands heads','a kite that flies anywhere','a pet rock with opinions'];
+    const probs = ['the moon has gone missing','everyone forgot how to laugh','the colours are running out of the world','a giant storm is coming','they\'re late for the most important party ever','their best friend has shrunk','time keeps repeating the same hour','their shadow ran away','the village pets all started talking','a new island just appeared','their teacher turned into a frog','they have to make a new holiday by tonight'];
+    const pick = a => a[Math.floor(Math.random()*a.length)];
+
+    function roll(){
+      const c = pick(chars), p = pick(places), o = pick(objects), pr = pick(probs);
+      $('char').textContent = c[0].toUpperCase()+c.slice(1);
+      $('place').textContent = p;
+      $('object').textContent = o;
+      $('prob').textContent = pr;
+      $('sentence').innerHTML = `Once upon a time, <strong>${c}</strong> found <strong>${o}</strong> <strong>${p}</strong>. Suddenly, <strong>${pr}</strong>...`;
+    }
+    $('rollBtn').onclick = roll;
+    $('copyBtn').onclick = async () => {
+      try { await navigator.clipboard.writeText($('sentence').textContent); }
+      catch {}
+    };
+    $('printBtn').onclick = () => window.print();
+    roll();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+
