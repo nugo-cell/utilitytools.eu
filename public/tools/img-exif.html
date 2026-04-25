@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EXIF Viewer & Remover — Free Online · Utility Tools</title>
+  <meta name="description" content="View JPEG EXIF metadata in your browser, then strip it by re-encoding the image via canvas. Privacy-friendly, no upload.">
+  <meta name="keywords" content="exif viewer, remove exif, strip metadata, jpeg metadata, photo privacy">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/img-exif">
+  <meta property="og:title" content="EXIF Viewer & Remover">
+  <meta property="og:url" content="/img-exif">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>EXIF Viewer & Remover</h1>
+      <p>See the metadata buried inside a JPEG, then download a clean copy with EXIF stripped.</p>
+    </div>
+
+    <div class="panel">
+      <label class="img-drop" id="drop">
+        <input type="file" id="file" accept="image/jpeg,image/jpg,image/tiff,image/png">
+        <div><b>Click or drop</b> a JPEG (best) or PNG</div>
+      </label>
+    </div>
+
+    <div class="panel" id="work" hidden>
+      <div class="split">
+        <div>
+          <label>Preview</label>
+          <div class="img-stage"><img id="prev"></div>
+          <div class="row" style="margin-top:10px">
+            <button id="cleanBtn">Remove metadata & Download</button>
+          </div>
+          <div id="status" class="status"></div>
+        </div>
+        <div>
+          <label>Metadata</label>
+          <div id="meta" class="kvp" style="background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:12px;max-height:480px;overflow:auto"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+  // Minimal EXIF (TIFF in JPEG APP1) parser. Returns { tag: value } map.
+  function parseExif(buffer){
+    const view=new DataView(buffer);
+    if(view.getUint16(0)!==0xFFD8) throw new Error('Not a JPEG');
+    let off=2;
+    while(off < view.byteLength){
+      if(view.getUint8(off)!==0xFF) throw new Error('Bad marker');
+      const marker=view.getUint8(off+1);
+      const size=view.getUint16(off+2);
+      if(marker===0xE1){
+        // APP1 - check Exif
+        const sig=String.fromCharCode(view.getUint8(off+4),view.getUint8(off+5),view.getUint8(off+6),view.getUint8(off+7));
+        if(sig==='Exif'){
+          const tiff=off+10;
+          return readTIFF(view,tiff);
+        }
+      }
+      if(marker===0xDA||marker===0xD9) break;
+      off += 2 + size;
+    }
+    return {};
+  }
+  function readTIFF(view,start){
+    const little = view.getUint16(start)===0x4949;
+    const get16=(o)=>view.getUint16(o,little);
+    const get32=(o)=>view.getUint32(o,little);
+    if(get16(start+2)!==0x2A) throw new Error('Bad TIFF');
+    const ifd0=start+get32(start+4);
+    const out={};
+    function readIFD(off, tags){
+      const n=get16(off); off+=2;
+      for(let i=0;i<n;i++,off+=12){
+        const tag=get16(off);
+        const type=get16(off+2);
+        const cnt=get32(off+4);
+        const valOff=off+8;
+        const sizes=[0,1,1,2,4,8,1,1,2,4,8,4,8];
+        const sz=(sizes[type]||0)*cnt;
+        const dataOff = sz>4 ? start+get32(valOff) : valOff;
+        let v;
+        if(type===2){ // ASCII
+          let s=''; for(let k=0;k<cnt-1 && dataOff+k<view.byteLength;k++) s+=String.fromCharCode(view.getUint8(dataOff+k));
+          v=s;
+        } else if(type===3){ v=get16(dataOff); }
+        else if(type===4){ v=get32(dataOff); }
+        else if(type===5){ v=get32(dataOff)+'/'+get32(dataOff+4); }
+        else if(type===10){ v=view.getInt32(dataOff,little)+'/'+view.getInt32(dataOff+4,little); }
+        else { v='[type '+type+', '+cnt+']'; }
+        const name=(tags===EXIF_TAGS?EXIF_TAGS[tag]:TIFF_TAGS[tag])||('0x'+tag.toString(16).toUpperCase());
+        out[name]=v;
+        if(tag===0x8769 && type===4){ readIFD(start+v, EXIF_TAGS); }
+        if(tag===0x8825 && type===4){ readIFD(start+v, GPS_TAGS); }
+      }
+    }
+    readIFD(ifd0, TIFF_TAGS);
+    return out;
+  }
+  const TIFF_TAGS = {0x010E:'ImageDescription',0x010F:'Make',0x0110:'Model',0x0112:'Orientation',0x011A:'XResolution',0x011B:'YResolution',0x0128:'ResolutionUnit',0x0131:'Software',0x0132:'DateTime',0x013B:'Artist',0x013E:'WhitePoint',0x8298:'Copyright',0x8769:'ExifOffset',0x8825:'GPSInfo'};
+  const EXIF_TAGS = {0x829A:'ExposureTime',0x829D:'FNumber',0x8822:'ExposureProgram',0x8827:'ISO',0x9000:'ExifVersion',0x9003:'DateTimeOriginal',0x9004:'DateTimeDigitized',0x9201:'ShutterSpeed',0x9202:'Aperture',0x9204:'ExposureBias',0x9207:'MeteringMode',0x9208:'LightSource',0x9209:'Flash',0x920A:'FocalLength',0xA002:'PixelXDimension',0xA003:'PixelYDimension',0xA403:'WhiteBalance',0xA432:'LensSpecification',0xA433:'LensMake',0xA434:'LensModel'};
+  const GPS_TAGS = {0:'GPSVersion',1:'GPSLatitudeRef',2:'GPSLatitude',3:'GPSLongitudeRef',4:'GPSLongitude',5:'GPSAltitudeRef',6:'GPSAltitude',7:'GPSTimeStamp',29:'GPSDateStamp'};
+
+  const drop=document.getElementById('drop'), file=document.getElementById('file'), work=document.getElementById('work');
+  const prev=document.getElementById('prev'), meta=document.getElementById('meta'), status=document.getElementById('status');
+  let currentFile=null, currentImg=null;
+  function set(m,ok){status.textContent=m;status.className='status '+(ok?'ok':'err');}
+
+  ['dragover','dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.toggle('drag',ev==='dragover');}));
+  drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)load(f);});
+  file.onchange=e=>{const f=e.target.files[0];if(f)load(f);};
+
+  function load(f){
+    if(!f.type.startsWith('image/')){set('Pick an image',false);return;}
+    currentFile=f;
+    prev.src=URL.createObjectURL(f);
+    const im=new Image(); im.onload=()=>currentImg=im; im.src=prev.src;
+    work.hidden=false; meta.innerHTML='<div><b>File name</b><span>'+f.name+'</span></div><div><b>Type</b><span>'+f.type+'</span></div><div><b>Size</b><span>'+f.size.toLocaleString()+' B</span></div>';
+    if(f.type==='image/jpeg' || /\.jpe?g$/i.test(f.name)){
+      f.arrayBuffer().then(buf=>{
+        try{
+          const tags=parseExif(buf);
+          if(Object.keys(tags).length===0){ meta.innerHTML += '<div><b>EXIF</b><span>No EXIF block found</span></div>'; }
+          else { for(const [k,v] of Object.entries(tags)) meta.innerHTML += '<div><b>'+k+'</b><span>'+String(v)+'</span></div>'; }
+        }catch(e){ meta.innerHTML += '<div><b>EXIF</b><span>Parse failed: '+e.message+'</span></div>'; }
+      });
+    } else {
+      meta.innerHTML += '<div><b>EXIF</b><span>EXIF parsing supported only for JPEG. You can still strip metadata by re-encoding.</span></div>';
+    }
+  }
+  document.getElementById('cleanBtn').onclick=()=>{
+    if(!currentFile){set('Pick an image',false);return;}
+    const im=new Image();
+    im.onload=()=>{
+      const c=document.createElement('canvas'); c.width=im.naturalWidth; c.height=im.naturalHeight;
+      const ctx=c.getContext('2d'); ctx.drawImage(im,0,0);
+      const type = currentFile.type==='image/png' ? 'image/png' : 'image/jpeg';
+      c.toBlob(b=>{
+        const url=URL.createObjectURL(b);
+        const a=document.createElement('a'); a.href=url;
+        const ext=type==='image/png'?'png':'jpg';
+        a.download=(currentFile.name.replace(/\.[^.]+$/,'')||'image')+'-clean.'+ext;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(url),1000);
+        set('Downloaded clean copy ('+(b.size/1024).toFixed(1)+' KB)',true);
+      }, type, 0.95);
+    };
+    im.src=URL.createObjectURL(currentFile);
+  };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

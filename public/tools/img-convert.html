@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Converter — JPG, PNG, WebP, AVIF · Utility Tools</title>
+  <meta name="description" content="Convert images between JPG, PNG, WebP and AVIF locally in your browser. No upload, no signup.">
+  <meta name="keywords" content="image converter, jpg to png, png to webp, webp to jpg, avif converter, online image format converter">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/img-convert">
+  <meta property="og:title" content="Image Converter — Browser-only">
+  <meta property="og:description" content="Convert JPG, PNG, WebP and AVIF without uploading anything.">
+  <meta property="og:url" content="/img-convert">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Image Converter</h1>
+      <p>Convert between JPG, PNG, WebP and AVIF — entirely in your browser.</p>
+    </div>
+
+    <div class="panel">
+      <label class="img-drop" id="drop">
+        <input type="file" id="file" accept="image/*">
+        <div><b>Click or drop</b> an image here</div>
+      </label>
+    </div>
+
+    <div class="panel" id="workPanel" hidden>
+      <div class="row" style="margin-bottom:12px">
+        <div style="flex:1;min-width:200px">
+          <label>Output format</label>
+          <select id="fmt"></select>
+        </div>
+        <div id="qWrap" style="flex:1;min-width:200px">
+          <label>Quality (lossy formats)</label>
+          <div class="range-row" style="margin:0">
+            <input type="range" id="q" min="0.1" max="1" step="0.05" value="0.9">
+            <span class="val" id="qVal">90%</span>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <button id="goBtn">Convert</button>
+        <button id="dlBtn" class="secondary" disabled>Download</button>
+      </div>
+      <div id="status" class="status"></div>
+      <div class="img-stage" style="margin-top:12px"><img id="prev" alt="preview"></div>
+    </div>
+  </main>
+
+  <script>
+    const drop=document.getElementById('drop'), file=document.getElementById('file');
+    const work=document.getElementById('workPanel'), status=document.getElementById('status');
+    const fmt=document.getElementById('fmt'), q=document.getElementById('q'), qVal=document.getElementById('qVal');
+    const prev=document.getElementById('prev'), dlBtn=document.getElementById('dlBtn');
+    let img=null, srcName='image', outBlob=null;
+
+    // Detect supported encode formats
+    async function canEncode(type){
+      try {
+        const c = document.createElement('canvas'); c.width=2; c.height=2;
+        return await new Promise(res => c.toBlob(b => res(!!b && b.type===type), type, 0.5));
+      } catch(e){ return false; }
+    }
+    (async () => {
+      const formats = [
+        ['image/jpeg','JPEG (.jpg)'],
+        ['image/png','PNG'],
+        ['image/webp','WebP'],
+        ['image/avif','AVIF']
+      ];
+      for(const [t,l] of formats){
+        const ok = await canEncode(t);
+        const o = document.createElement('option');
+        o.value=t; o.textContent = l + (ok?'':' (not supported in this browser)');
+        if(!ok) o.disabled=true;
+        fmt.appendChild(o);
+      }
+    })();
+
+    q.oninput=()=>qVal.textContent=Math.round(q.value*100)+'%';
+    function setStatus(m,ok){ status.textContent=m; status.className='status '+(ok?'ok':'err'); }
+
+    ['dragover','dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.toggle('drag',ev==='dragover');}));
+    drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)load(f);});
+    file.onchange=e=>{const f=e.target.files[0];if(f)load(f);};
+
+    function load(f){
+      if(!f.type.startsWith('image/')){setStatus('Please pick an image',false);return;}
+      srcName = f.name.replace(/\.[^.]+$/,'')||'image';
+      const im=new Image(); im.onload=()=>{img=im; prev.src=im.src; work.hidden=false; setStatus('Loaded '+f.name,true);};
+      im.onerror=()=>setStatus('Cannot decode image',false);
+      im.src=URL.createObjectURL(f);
+    }
+
+    document.getElementById('goBtn').onclick=()=>{
+      if(!img){setStatus('Pick an image',false);return;}
+      const c=document.createElement('canvas'); c.width=img.naturalWidth; c.height=img.naturalHeight;
+      const ctx=c.getContext('2d');
+      if(fmt.value==='image/jpeg'){ ctx.fillStyle='#fff'; ctx.fillRect(0,0,c.width,c.height); }
+      ctx.drawImage(img,0,0);
+      c.toBlob(b=>{
+        if(!b){setStatus('Conversion failed: format not supported',false);return;}
+        outBlob=b;
+        prev.src=URL.createObjectURL(b);
+        dlBtn.disabled=false;
+        setStatus('Converted to '+fmt.value+' ('+(b.size/1024).toFixed(1)+' KB)',true);
+      }, fmt.value, +q.value);
+    };
+
+    dlBtn.onclick=()=>{
+      if(!outBlob) return;
+      const ext = fmt.value.split('/')[1].replace('jpeg','jpg');
+      const url=URL.createObjectURL(outBlob);
+      const a=document.createElement('a'); a.href=url; a.download=srcName+'.'+ext;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

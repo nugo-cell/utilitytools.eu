@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Resizer — Free Online · Utility Tools</title>
+  <meta name="description" content="Resize images in your browser with aspect ratio lock and one-click presets for Instagram, Facebook, Twitter, YouTube and more.">
+  <meta name="keywords" content="image resizer, resize image online, social media image sizes, free image resizer">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/img-resize">
+  <meta property="og:title" content="Image Resizer">
+  <meta property="og:description" content="Resize images locally with aspect ratio lock and social presets.">
+  <meta property="og:url" content="/img-resize">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Image Resizer</h1>
+      <p>Resize any image with aspect ratio lock and ready-made social media sizes.</p>
+    </div>
+
+    <div class="panel">
+      <label class="img-drop" id="drop">
+        <input type="file" id="file" accept="image/*">
+        <div><b>Click or drop</b> an image to resize</div>
+      </label>
+    </div>
+
+    <div class="panel" id="work" hidden>
+      <div class="row" style="margin-bottom:12px">
+        <div style="flex:1;min-width:140px"><label>Width (px)</label><input type="number" id="w" min="1"></div>
+        <div style="flex:1;min-width:140px"><label>Height (px)</label><input type="number" id="h" min="1"></div>
+        <label class="checkbox" style="margin-top:24px"><input type="checkbox" id="lock" checked> Lock aspect ratio</label>
+      </div>
+      <div>
+        <label>Presets</label>
+        <select id="preset">
+          <option value="">— Choose a preset —</option>
+          <optgroup label="Instagram">
+            <option value="1080,1080">Square 1080x1080</option>
+            <option value="1080,1350">Portrait 1080x1350</option>
+            <option value="1080,1920">Story 1080x1920</option>
+          </optgroup>
+          <optgroup label="Facebook">
+            <option value="1200,630">Link 1200x630</option>
+            <option value="820,312">Cover 820x312</option>
+          </optgroup>
+          <optgroup label="X / Twitter">
+            <option value="1600,900">Post 1600x900</option>
+            <option value="1500,500">Header 1500x500</option>
+          </optgroup>
+          <optgroup label="YouTube">
+            <option value="1280,720">Thumbnail 1280x720</option>
+            <option value="2560,1440">Banner 2560x1440</option>
+          </optgroup>
+          <optgroup label="LinkedIn">
+            <option value="1200,627">Post 1200x627</option>
+            <option value="1584,396">Banner 1584x396</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div style="flex:1;min-width:160px">
+          <label>Output format</label>
+          <select id="fmt"><option value="image/png">PNG</option><option value="image/jpeg">JPEG</option><option value="image/webp">WebP</option></select>
+        </div>
+        <button id="goBtn">Resize</button>
+        <button id="dlBtn" class="secondary" disabled>Download</button>
+      </div>
+      <div id="status" class="status"></div>
+      <div class="img-stage" style="margin-top:12px"><canvas id="cv"></canvas></div>
+    </div>
+  </main>
+
+  <script>
+    const drop=document.getElementById('drop'), file=document.getElementById('file');
+    const work=document.getElementById('work'), status=document.getElementById('status');
+    const w=document.getElementById('w'), h=document.getElementById('h'), lock=document.getElementById('lock');
+    const preset=document.getElementById('preset'), fmt=document.getElementById('fmt');
+    const cv=document.getElementById('cv'), dlBtn=document.getElementById('dlBtn');
+    let img=null, srcName='image', ratio=1;
+    function set(m,ok){ status.textContent=m; status.className='status '+(ok?'ok':'err'); }
+    ['dragover','dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.toggle('drag',ev==='dragover');}));
+    drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)load(f);});
+    file.onchange=e=>{const f=e.target.files[0];if(f)load(f);};
+    function load(f){
+      if(!f.type.startsWith('image/')){set('Please pick an image',false);return;}
+      srcName=f.name.replace(/\.[^.]+$/,'')||'image';
+      const im=new Image(); im.onload=()=>{
+        img=im; ratio=im.naturalWidth/im.naturalHeight;
+        w.value=im.naturalWidth; h.value=im.naturalHeight;
+        work.hidden=false; render(); set('Loaded ('+im.naturalWidth+'x'+im.naturalHeight+')',true);
+      };
+      im.src=URL.createObjectURL(f);
+    }
+    w.addEventListener('input',()=>{ if(lock.checked && w.value) h.value=Math.round(w.value/ratio); });
+    h.addEventListener('input',()=>{ if(lock.checked && h.value) w.value=Math.round(h.value*ratio); });
+    preset.onchange=()=>{ if(!preset.value) return; const [pw,ph]=preset.value.split(',').map(Number); w.value=pw; h.value=ph; lock.checked=false; };
+    function render(){
+      if(!img) return;
+      const W=Math.max(1,+w.value||1), H=Math.max(1,+h.value||1);
+      cv.width=W; cv.height=H;
+      const ctx=cv.getContext('2d');
+      if(fmt.value==='image/jpeg'){ ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H); }
+      ctx.imageSmoothingQuality='high';
+      ctx.drawImage(img,0,0,W,H);
+    }
+    document.getElementById('goBtn').onclick=()=>{ if(!img){set('Pick an image',false);return;} render(); dlBtn.disabled=false; set('Resized OK',true); };
+    dlBtn.onclick=()=>{
+      const ext=fmt.value.split('/')[1].replace('jpeg','jpg');
+      cv.toBlob(b=>{
+        const url=URL.createObjectURL(b);
+        const a=document.createElement('a'); a.href=url; a.download=srcName+'-'+cv.width+'x'+cv.height+'.'+ext;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(url),1000);
+      }, fmt.value, 0.92);
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

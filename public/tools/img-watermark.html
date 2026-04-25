@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Watermark Tool — Add Text or Image · Utility Tools</title>
+  <meta name="description" content="Add a text or image watermark to your photos in the browser. Control size, opacity, color and position.">
+  <meta name="keywords" content="watermark tool, add watermark, image watermark, text watermark, free online watermark">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/img-watermark">
+  <meta property="og:title" content="Watermark Tool">
+  <meta property="og:url" content="/img-watermark">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Watermark Tool</h1>
+      <p>Add a text or image watermark to any photo. Position, size, opacity and color are all yours.</p>
+    </div>
+
+    <div class="panel">
+      <label class="img-drop" id="drop">
+        <input type="file" id="file" accept="image/*">
+        <div><b>Click or drop</b> an image</div>
+      </label>
+    </div>
+
+    <div class="panel" id="work" hidden>
+      <div class="split">
+        <div>
+          <label>Watermark text</label>
+          <input type="text" id="txt" value="© Your Name">
+
+          <div class="row" style="margin-top:8px">
+            <div style="flex:1;min-width:120px">
+              <label>Color</label><input type="color" id="col" value="#ffffff">
+            </div>
+            <div style="flex:1;min-width:120px">
+              <label>Position</label>
+              <select id="pos">
+                <option value="br">Bottom-right</option>
+                <option value="bl">Bottom-left</option>
+                <option value="tr">Top-right</option>
+                <option value="tl">Top-left</option>
+                <option value="c">Center</option>
+                <option value="tile">Tiled (diagonal)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="range-row"><label>Font size</label><input type="range" id="fs" min="10" max="200" value="48"><span class="val" id="fsV">48</span></div>
+          <div class="range-row"><label>Opacity</label><input type="range" id="op" min="0.05" max="1" step="0.05" value="0.6"><span class="val" id="opV">60%</span></div>
+
+          <hr style="border-color:var(--border);margin:14px 0">
+          <label>Or use an image watermark (logo)</label>
+          <input type="file" id="logo" accept="image/*">
+          <div class="range-row" style="margin-top:8px"><label>Logo size %</label><input type="range" id="ls" min="5" max="60" value="20"><span class="val" id="lsV">20%</span></div>
+
+          <div class="row" style="margin-top:12px">
+            <button id="goBtn">Apply</button>
+            <button id="dlBtn" class="secondary" disabled>Download</button>
+          </div>
+          <div id="status" class="status"></div>
+        </div>
+        <div class="img-stage"><canvas id="cv"></canvas></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const drop=document.getElementById('drop'), file=document.getElementById('file'), work=document.getElementById('work');
+    const status=document.getElementById('status'), cv=document.getElementById('cv');
+    const txt=document.getElementById('txt'), col=document.getElementById('col'), pos=document.getElementById('pos');
+    const fs=document.getElementById('fs'), fsV=document.getElementById('fsV');
+    const op=document.getElementById('op'), opV=document.getElementById('opV');
+    const logo=document.getElementById('logo'), ls=document.getElementById('ls'), lsV=document.getElementById('lsV');
+    const dlBtn=document.getElementById('dlBtn');
+    let img=null, logoImg=null, srcName='image';
+    function set(m,ok){status.textContent=m;status.className='status '+(ok?'ok':'err');}
+    fs.oninput=()=>{fsV.textContent=fs.value; render();};
+    op.oninput=()=>{opV.textContent=Math.round(op.value*100)+'%'; render();};
+    ls.oninput=()=>{lsV.textContent=ls.value+'%'; render();};
+
+    ['dragover','dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.toggle('drag',ev==='dragover');}));
+    drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)load(f);});
+    file.onchange=e=>{const f=e.target.files[0];if(f)load(f);};
+    logo.onchange=e=>{const f=e.target.files[0]; if(!f) return; const im=new Image(); im.onload=()=>{logoImg=im; render();}; im.src=URL.createObjectURL(f);};
+
+    function load(f){
+      if(!f.type.startsWith('image/')){set('Pick an image',false);return;}
+      srcName=f.name.replace(/\.[^.]+$/,'')||'image';
+      const im=new Image(); im.onload=()=>{img=im; work.hidden=false; dlBtn.disabled=false; render(); set('Loaded',true);};
+      im.src=URL.createObjectURL(f);
+    }
+
+    function render(){
+      if(!img) return;
+      cv.width=img.naturalWidth; cv.height=img.naturalHeight;
+      const ctx=cv.getContext('2d');
+      ctx.drawImage(img,0,0);
+      ctx.globalAlpha=+op.value;
+
+      if(logoImg){
+        const lw = cv.width*(+ls.value/100);
+        const lh = lw*(logoImg.naturalHeight/logoImg.naturalWidth);
+        if(pos.value==='tile') tileLogo(ctx,lw,lh);
+        else { const [x,y]=place(pos.value,lw,lh); ctx.drawImage(logoImg,x,y,lw,lh); }
+      } else {
+        ctx.fillStyle=col.value;
+        ctx.font='bold '+fs.value+'px sans-serif';
+        ctx.textBaseline='top';
+        const m=ctx.measureText(txt.value);
+        const tw=m.width, th=+fs.value*1.2;
+        if(pos.value==='tile') tileText(ctx);
+        else { const [x,y]=place(pos.value,tw,th); ctx.fillText(txt.value,x,y); }
+      }
+      ctx.globalAlpha=1;
+    }
+    function place(p,w,h){
+      const pad=Math.round(Math.max(cv.width,cv.height)*0.02);
+      switch(p){
+        case 'tl': return [pad,pad];
+        case 'tr': return [cv.width-w-pad,pad];
+        case 'bl': return [pad,cv.height-h-pad];
+        case 'br': return [cv.width-w-pad,cv.height-h-pad];
+        case 'c': return [(cv.width-w)/2,(cv.height-h)/2];
+      }
+      return [0,0];
+    }
+    function tileText(ctx){
+      ctx.save(); ctx.translate(cv.width/2,cv.height/2); ctx.rotate(-Math.PI/6);
+      const m=ctx.measureText(txt.value); const tw=m.width, th=+fs.value*1.2;
+      const step=Math.max(tw,th)*1.6;
+      for(let y=-cv.height;y<cv.height;y+=step) for(let x=-cv.width;x<cv.width;x+=step) ctx.fillText(txt.value,x,y);
+      ctx.restore();
+    }
+    function tileLogo(ctx,lw,lh){
+      ctx.save(); ctx.translate(cv.width/2,cv.height/2); ctx.rotate(-Math.PI/6);
+      const step=Math.max(lw,lh)*1.6;
+      for(let y=-cv.height;y<cv.height;y+=step) for(let x=-cv.width;x<cv.width;x+=step) ctx.drawImage(logoImg,x,y,lw,lh);
+      ctx.restore();
+    }
+    [txt,col,pos].forEach(el=>el.addEventListener('input',render));
+    document.getElementById('goBtn').onclick=()=>{render(); dlBtn.disabled=false; set('Applied',true);};
+    dlBtn.onclick=()=>{
+      if(!img){ set('Pick an image first',false); return; }
+      render();
+      cv.toBlob(b=>{
+        if(!b){ set('Could not encode image',false); return; }
+        const url=URL.createObjectURL(b);
+        const a=document.createElement('a'); a.href=url; a.download=srcName+'-watermarked.png';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(url), 1000);
+        set('Downloaded',true);
+      },'image/png');
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

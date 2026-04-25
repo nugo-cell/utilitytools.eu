@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Color Picker from Image — HEX, RGB, HSL · Utility Tools</title>
+  <meta name="description" content="Click any pixel of an image to read its color in HEX, RGB and HSL. Free, browser-only.">
+  <meta name="keywords" content="color picker from image, image eyedropper, hex from image, rgb picker, free online">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/img-color-picker">
+  <meta property="og:title" content="Color Picker from Image">
+  <meta property="og:url" content="/img-color-picker">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Color Picker from Image</h1>
+      <p>Click any pixel to read the colour in HEX, RGB and HSL.</p>
+    </div>
+
+    <div class="panel">
+      <label class="img-drop" id="drop">
+        <input type="file" id="file" accept="image/*">
+        <div><b>Click or drop</b> an image</div>
+      </label>
+    </div>
+
+    <div class="panel" id="work" hidden>
+      <div class="split">
+        <div class="img-stage"><canvas id="cv" style="cursor:crosshair"></canvas></div>
+        <div>
+          <div class="swatch" id="sw" style="background:#444"></div>
+          <div class="kvp" style="margin-top:12px;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:12px">
+            <div><b>HEX</b><span id="hex">—</span><button class="small secondary" data-copy="hex">copy</button></div>
+            <div><b>RGB</b><span id="rgb">—</span><button class="small secondary" data-copy="rgb">copy</button></div>
+            <div><b>HSL</b><span id="hsl">—</span><button class="small secondary" data-copy="hsl">copy</button></div>
+            <div><b>Pixel</b><span id="px">—</span></div>
+          </div>
+          <div id="status" class="status"></div>
+          <h4 style="margin:14px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px">Recent</h4>
+          <div id="recent" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const drop=document.getElementById('drop'), file=document.getElementById('file'), work=document.getElementById('work');
+    const cv=document.getElementById('cv'), sw=document.getElementById('sw');
+    const hex=document.getElementById('hex'), rgb=document.getElementById('rgb'), hsl=document.getElementById('hsl'), px=document.getElementById('px');
+    const status=document.getElementById('status'), recent=document.getElementById('recent');
+    const ctx=cv.getContext('2d',{willReadFrequently:true});
+    let img=null, history=[];
+    function set(m,ok){status.textContent=m;status.className='status '+(ok?'ok':'err');}
+
+    ['dragover','dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.toggle('drag',ev==='dragover');}));
+    drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)load(f);});
+    file.onchange=e=>{const f=e.target.files[0];if(f)load(f);};
+
+    function load(f){
+      if(!f.type.startsWith('image/')){set('Pick an image',false);return;}
+      const im=new Image(); im.onload=()=>{img=im; cv.width=im.naturalWidth; cv.height=im.naturalHeight; ctx.drawImage(im,0,0); work.hidden=false; set('Click any pixel',true);};
+      im.src=URL.createObjectURL(f);
+    }
+    cv.addEventListener('click',e=>{
+      if(!img) return;
+      const r=cv.getBoundingClientRect();
+      const x=Math.floor((e.clientX-r.left)*(cv.width/r.width));
+      const y=Math.floor((e.clientY-r.top)*(cv.height/r.height));
+      const d=ctx.getImageData(x,y,1,1).data;
+      const [R,G,B]=d;
+      const HEX='#'+[R,G,B].map(v=>v.toString(16).padStart(2,'0')).join('').toUpperCase();
+      const RGB=`rgb(${R}, ${G}, ${B})`;
+      const HSL=rgbToHsl(R,G,B);
+      sw.style.background=HEX; hex.textContent=HEX; rgb.textContent=RGB; hsl.textContent=HSL; px.textContent=`(${x}, ${y})`;
+      history.unshift({hex:HEX, x,y}); if(history.length>16) history.pop();
+      recent.innerHTML=history.map(h=>`<span class="swatch" title="${h.hex}" style="width:28px;height:28px;background:${h.hex};cursor:pointer" data-h="${h.hex}"></span>`).join('');
+    });
+    recent.addEventListener('click',e=>{
+      const t=e.target.closest('[data-h]'); if(!t) return;
+      const h=t.dataset.h; navigator.clipboard.writeText(h); set('Copied '+h,true);
+    });
+    function rgbToHsl(r,g,b){
+      r/=255; g/=255; b/=255;
+      const max=Math.max(r,g,b), min=Math.min(r,g,b);
+      let h=0,s=0,l=(max+min)/2;
+      if(max!==min){
+        const d=max-min;
+        s=l>0.5?d/(2-max-min):d/(max+min);
+        switch(max){
+          case r: h=(g-b)/d+(g<b?6:0); break;
+          case g: h=(b-r)/d+2; break;
+          case b: h=(r-g)/d+4; break;
+        }
+        h/=6;
+      }
+      return `hsl(${Math.round(h*360)}, ${Math.round(s*100)}%, ${Math.round(l*100)}%)`;
+    }
+    document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>{
+      const t=document.getElementById(b.dataset.copy).textContent;
+      if(t==='—') return;
+      navigator.clipboard.writeText(t); set('Copied '+t,true);
+    });
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

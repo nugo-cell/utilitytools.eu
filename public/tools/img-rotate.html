@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rotate & Flip Image — Free Online · Utility Tools</title>
+  <meta name="description" content="Rotate images by 90, 180 or 270 degrees and flip horizontally or vertically. 100% browser-based.">
+  <meta name="keywords" content="rotate image, flip image, image rotator, mirror image, free online">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/img-rotate">
+  <meta property="og:title" content="Rotate & Flip Image">
+  <meta property="og:url" content="/img-rotate">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Rotate & Flip Image</h1>
+      <p>Rotate by 90°, 180° or 270° and flip horizontally or vertically — fully in your browser.</p>
+    </div>
+
+    <div class="panel">
+      <label class="img-drop" id="drop">
+        <input type="file" id="file" accept="image/*">
+        <div><b>Click or drop</b> an image</div>
+      </label>
+    </div>
+
+    <div class="panel" id="work" hidden>
+      <div class="img-toolbar">
+        <div class="group">
+          <button id="rL">⟲ 90° left</button>
+          <button id="rR">⟳ 90° right</button>
+          <button id="r180">180°</button>
+        </div>
+        <div class="group">
+          <button id="fH">⇆ Flip H</button>
+          <button id="fV">⇅ Flip V</button>
+        </div>
+        <button id="dlBtn">Download</button>
+        <button id="resetBtn" class="secondary">Reset</button>
+      </div>
+      <div id="status" class="status"></div>
+      <div class="img-stage"><canvas id="cv"></canvas></div>
+    </div>
+  </main>
+
+  <script>
+    const drop=document.getElementById('drop'), file=document.getElementById('file');
+    const work=document.getElementById('work'), status=document.getElementById('status');
+    const cv=document.getElementById('cv');
+    let img=null, srcName='image', rot=0, fH=false, fV=false;
+    function set(m,ok){status.textContent=m;status.className='status '+(ok?'ok':'err');}
+    ['dragover','dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.toggle('drag',ev==='dragover');}));
+    drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)load(f);});
+    file.onchange=e=>{const f=e.target.files[0];if(f)load(f);};
+    function load(f){
+      if(!f.type.startsWith('image/')){set('Pick an image',false);return;}
+      srcName=f.name.replace(/\.[^.]+$/,'')||'image';
+      const im=new Image(); im.onload=()=>{img=im; rot=0; fH=fV=false; render(); work.hidden=false; set('Loaded',true);};
+      im.src=URL.createObjectURL(f);
+    }
+    function render(){
+      if(!img) return;
+      const w=img.naturalWidth, h=img.naturalHeight;
+      const swap = rot%180!==0;
+      cv.width = swap?h:w; cv.height = swap?w:h;
+      const ctx = cv.getContext('2d');
+      ctx.save();
+      ctx.translate(cv.width/2, cv.height/2);
+      ctx.rotate(rot*Math.PI/180);
+      ctx.scale(fH?-1:1, fV?-1:1);
+      ctx.drawImage(img, -w/2, -h/2);
+      ctx.restore();
+    }
+    document.getElementById('rL').onclick=()=>{rot=(rot+270)%360; render();};
+    document.getElementById('rR').onclick=()=>{rot=(rot+90)%360; render();};
+    document.getElementById('r180').onclick=()=>{rot=(rot+180)%360; render();};
+    document.getElementById('fH').onclick=()=>{fH=!fH; render();};
+    document.getElementById('fV').onclick=()=>{fV=!fV; render();};
+    document.getElementById('resetBtn').onclick=()=>{rot=0;fH=fV=false;render();};
+    document.getElementById('dlBtn').onclick=()=>{
+      cv.toBlob(b=>{
+        const url=URL.createObjectURL(b);
+        const a=document.createElement('a'); a.href=url; a.download=srcName+'-edited.png';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(url),1000);
+      },'image/png');
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

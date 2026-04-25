@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Crop Tool — Free Online · Utility Tools</title>
+  <meta name="description" content="Crop images interactively in your browser. Free crop, square, 4:3, 16:9, 9:16. Download instantly. Nothing uploaded.">
+  <meta name="keywords" content="image crop tool, crop image online, square crop, 16:9 crop, free image cropper">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/img-crop">
+  <meta property="og:title" content="Image Crop Tool">
+  <meta property="og:description" content="Interactive image crop with aspect ratio presets. Browser-only.">
+  <meta property="og:url" content="/img-crop">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .crop-wrap{position:relative;display:inline-block;max-width:100%;user-select:none;-webkit-user-select:none;touch-action:none}
+    .crop-wrap img{display:block;max-width:100%;height:auto}
+    .crop-overlay{position:absolute;inset:0;cursor:crosshair}
+    .crop-rect{position:absolute;border:2px dashed #fff;box-shadow:0 0 0 9999px rgba(0,0,0,0.55);box-sizing:border-box}
+    .crop-handle{position:absolute;width:12px;height:12px;background:#fff;border:1px solid #000;border-radius:2px}
+    .crop-handle.nw{top:-6px;left:-6px;cursor:nwse-resize}
+    .crop-handle.ne{top:-6px;right:-6px;cursor:nesw-resize}
+    .crop-handle.sw{bottom:-6px;left:-6px;cursor:nesw-resize}
+    .crop-handle.se{bottom:-6px;right:-6px;cursor:nwse-resize}
+    .crop-rect{cursor:move}
+  </style>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Image Crop Tool</h1>
+      <p>Drag the box to crop. Pick free, square, 4:3, 16:9 or 9:16.</p>
+    </div>
+
+    <div class="panel">
+      <label class="img-drop" id="drop">
+        <input type="file" id="file" accept="image/*">
+        <div><b>Click or drop</b> an image to crop</div>
+      </label>
+    </div>
+
+    <div class="panel" id="work" hidden>
+      <div class="img-toolbar">
+        <div class="group" id="ratios">
+          <button data-r="0" class="active">Free</button>
+          <button data-r="1">1:1</button>
+          <button data-r="1.3333">4:3</button>
+          <button data-r="1.7777">16:9</button>
+          <button data-r="0.5625">9:16</button>
+        </div>
+        <button id="goBtn">Apply Crop</button>
+        <button id="dlBtn" class="secondary" disabled>Download</button>
+        <button id="resetBtn" class="secondary">Reset</button>
+      </div>
+      <div id="status" class="status"></div>
+      <div class="img-stage" id="stage"></div>
+    </div>
+  </main>
+
+  <script>
+    const drop=document.getElementById('drop'), file=document.getElementById('file');
+    const work=document.getElementById('work'), stage=document.getElementById('stage'), status=document.getElementById('status');
+    const dlBtn=document.getElementById('dlBtn');
+    let img=null, srcName='image', ratio=0, outBlob=null;
+    let wrap, rect, imgEl;
+    function set(m,ok){status.textContent=m;status.className='status '+(ok?'ok':'err');}
+
+    document.getElementById('ratios').addEventListener('click',e=>{
+      const b=e.target.closest('button'); if(!b) return;
+      [...e.currentTarget.children].forEach(c=>c.classList.remove('active'));
+      b.classList.add('active'); ratio=+b.dataset.r;
+      if(rect && ratio>0){
+        const w=rect.offsetWidth; rect.style.height=(w/ratio)+'px';
+        clamp();
+      }
+    });
+
+    ['dragover','dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.toggle('drag',ev==='dragover');}));
+    drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)load(f);});
+    file.onchange=e=>{const f=e.target.files[0];if(f)load(f);};
+
+    function load(f){
+      if(!f.type.startsWith('image/')){set('Pick an image',false);return;}
+      srcName=f.name.replace(/\.[^.]+$/,'')||'image';
+      const im=new Image(); im.onload=()=>{img=im; build(); work.hidden=false; set('Drag the box to crop',true);};
+      im.src=URL.createObjectURL(f);
+    }
+
+    function build(){
+      stage.innerHTML='';
+      wrap=document.createElement('div'); wrap.className='crop-wrap';
+      imgEl=document.createElement('img'); imgEl.src=img.src; imgEl.draggable=false;
+      wrap.appendChild(imgEl);
+      const overlay=document.createElement('div'); overlay.className='crop-overlay';
+      rect=document.createElement('div'); rect.className='crop-rect';
+      ['nw','ne','sw','se'].forEach(d=>{const h=document.createElement('div');h.className='crop-handle '+d;rect.appendChild(h);});
+      overlay.appendChild(rect); wrap.appendChild(overlay);
+      stage.appendChild(wrap);
+      imgEl.onload=()=>{ initRect(); };
+      if(imgEl.complete) initRect();
+      attachDrag();
+    }
+    function initRect(){
+      const W=imgEl.clientWidth, H=imgEl.clientHeight;
+      let rw=W*0.6, rh=H*0.6;
+      if(ratio>0) rh=rw/ratio;
+      if(rh>H*0.9){ rh=H*0.6; rw=ratio>0?rh*ratio:rw; }
+      rect.style.left=((W-rw)/2)+'px';
+      rect.style.top=((H-rh)/2)+'px';
+      rect.style.width=rw+'px';
+      rect.style.height=rh+'px';
+    }
+    function clamp(){
+      const W=imgEl.clientWidth, H=imgEl.clientHeight;
+      let l=parseFloat(rect.style.left)||0, t=parseFloat(rect.style.top)||0;
+      let w=rect.offsetWidth, h=rect.offsetHeight;
+      w=Math.min(w,W); h=Math.min(h,H);
+      if(ratio>0){ if(w/ratio>H) w=H*ratio; h=w/ratio; }
+      l=Math.max(0,Math.min(l,W-w));
+      t=Math.max(0,Math.min(t,H-h));
+      rect.style.left=l+'px'; rect.style.top=t+'px'; rect.style.width=w+'px'; rect.style.height=h+'px';
+    }
+    function attachDrag(){
+      let mode=null, sx=0, sy=0, sl=0, st=0, sw=0, sh=0;
+      const start=(e,m)=>{
+        e.preventDefault();
+        mode=m;
+        const p=e.touches?e.touches[0]:e;
+        sx=p.clientX; sy=p.clientY;
+        sl=parseFloat(rect.style.left)||0; st=parseFloat(rect.style.top)||0;
+        sw=rect.offsetWidth; sh=rect.offsetHeight;
+        document.addEventListener('mousemove',move); document.addEventListener('mouseup',end);
+        document.addEventListener('touchmove',move,{passive:false}); document.addEventListener('touchend',end);
+      };
+      const move=(e)=>{
+        e.preventDefault();
+        const p=e.touches?e.touches[0]:e;
+        const dx=p.clientX-sx, dy=p.clientY-sy;
+        if(mode==='move'){ rect.style.left=(sl+dx)+'px'; rect.style.top=(st+dy)+'px'; }
+        else {
+          let l=sl,t=st,w=sw,h=sh;
+          if(mode.includes('e')) w=sw+dx;
+          if(mode.includes('s')) h=sh+dy;
+          if(mode.includes('w')){ w=sw-dx; l=sl+dx; }
+          if(mode.includes('n')){ h=sh-dy; t=st+dy; }
+          if(ratio>0){ h=w/ratio; if(mode.includes('n')) t=st+(sh-h); }
+          if(w<20||h<20) return;
+          rect.style.left=l+'px'; rect.style.top=t+'px'; rect.style.width=w+'px'; rect.style.height=h+'px';
+        }
+        clamp();
+      };
+      const end=()=>{ mode=null;
+        document.removeEventListener('mousemove',move); document.removeEventListener('mouseup',end);
+        document.removeEventListener('touchmove',move); document.removeEventListener('touchend',end);
+      };
+      rect.addEventListener('mousedown',e=>{ if(e.target===rect) start(e,'move'); });
+      rect.addEventListener('touchstart',e=>{ if(e.target===rect) start(e,'move'); },{passive:false});
+      rect.querySelectorAll('.crop-handle').forEach(h=>{
+        const dir=h.classList[1];
+        h.addEventListener('mousedown',e=>start(e,dir));
+        h.addEventListener('touchstart',e=>start(e,dir),{passive:false});
+      });
+    }
+
+    document.getElementById('goBtn').onclick=()=>{
+      if(!img){set('Pick an image',false);return;}
+      const scale=img.naturalWidth/imgEl.clientWidth;
+      const cx=(parseFloat(rect.style.left)||0)*scale;
+      const cy=(parseFloat(rect.style.top)||0)*scale;
+      const cw=rect.offsetWidth*scale;
+      const ch=rect.offsetHeight*scale;
+      const c=document.createElement('canvas'); c.width=Math.round(cw); c.height=Math.round(ch);
+      c.getContext('2d').drawImage(img,cx,cy,cw,ch,0,0,c.width,c.height);
+      c.toBlob(b=>{
+        outBlob=b;
+        // Show result in stage
+        stage.innerHTML=''; const im=new Image(); im.src=URL.createObjectURL(b); stage.appendChild(im);
+        dlBtn.disabled=false; set('Cropped to '+c.width+'x'+c.height,true);
+      },'image/png');
+    };
+    dlBtn.onclick=()=>{
+      if(!outBlob){ set('Click "Apply Crop" first',false); return; }
+      const url=URL.createObjectURL(outBlob);
+      const a=document.createElement('a'); a.href=url; a.download=srcName+'-cropped.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+      set('Downloaded',true);
+    };
+    document.getElementById('resetBtn').onclick=()=>{ if(img){ build(); dlBtn.disabled=true; outBlob=null; set('',true);} };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

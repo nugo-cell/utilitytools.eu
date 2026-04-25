@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thumbnail Generator — YouTube, Instagram, FB, LinkedIn · Utility Tools</title>
+  <meta name="description" content="Make thumbnails for YouTube, Instagram, Facebook and LinkedIn. Add bold text overlay. Browser-only.">
+  <meta name="keywords" content="thumbnail generator, youtube thumbnail, instagram thumbnail, facebook thumbnail, linkedin banner, free online">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/img-thumbnail">
+  <meta property="og:title" content="Thumbnail Generator">
+  <meta property="og:url" content="/img-thumbnail">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Thumbnail Generator</h1>
+      <p>Pick a platform, drop in an image and add bold text. Download a ready-to-post thumbnail.</p>
+    </div>
+
+    <div class="panel">
+      <label class="img-drop" id="drop">
+        <input type="file" id="file" accept="image/*">
+        <div><b>Click or drop</b> a background image (used as a "cover" fill)</div>
+      </label>
+    </div>
+
+    <div class="panel" id="work" hidden>
+      <div class="split">
+        <div>
+          <label>Preset</label>
+          <select id="preset">
+            <option value="1280,720,YouTube Thumbnail">YouTube — 1280×720</option>
+            <option value="2560,1440,YouTube Channel Banner">YouTube Banner — 2560×1440</option>
+            <option value="1080,1080,Instagram Square">Instagram Square — 1080×1080</option>
+            <option value="1080,1350,Instagram Portrait">Instagram Portrait — 1080×1350</option>
+            <option value="1080,1920,Instagram/TikTok Story">Story / Reel — 1080×1920</option>
+            <option value="1200,630,Facebook Link">Facebook Link — 1200×630</option>
+            <option value="820,312,Facebook Cover">Facebook Cover — 820×312</option>
+            <option value="1200,627,LinkedIn Post">LinkedIn Post — 1200×627</option>
+            <option value="1584,396,LinkedIn Banner">LinkedIn Banner — 1584×396</option>
+          </select>
+
+          <label style="margin-top:10px">Title</label>
+          <input type="text" id="title" value="MY AWESOME THUMBNAIL">
+          <label style="margin-top:8px">Subtitle</label>
+          <input type="text" id="sub" value="Quick · Free · No Upload">
+
+          <div class="row" style="margin-top:8px">
+            <div><label>Text color</label><input type="color" id="col" value="#ffffff"></div>
+            <div><label>Outline</label><input type="color" id="out" value="#000000"></div>
+            <div><label>Accent bar</label><input type="color" id="bar" value="#7c5cff"></div>
+          </div>
+
+          <div class="range-row" style="margin-top:8px"><label>Title size %</label><input type="range" id="ts" min="4" max="20" value="11"><span class="val" id="tsV">11%</span></div>
+          <div class="range-row"><label>Darken bg</label><input type="range" id="dk" min="0" max="0.8" step="0.05" value="0.35"><span class="val" id="dkV">35%</span></div>
+
+          <div>
+            <label>Position</label>
+            <select id="pos">
+              <option value="bl">Bottom-left</option>
+              <option value="br">Bottom-right</option>
+              <option value="tl">Top-left</option>
+              <option value="tr">Top-right</option>
+              <option value="c">Center</option>
+            </select>
+          </div>
+
+          <div class="row" style="margin-top:12px">
+            <button id="dlBtn">Download Thumbnail</button>
+          </div>
+          <div id="status" class="status"></div>
+        </div>
+        <div class="img-stage"><canvas id="cv"></canvas></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const drop=document.getElementById('drop'), file=document.getElementById('file'), work=document.getElementById('work');
+    const cv=document.getElementById('cv'), preset=document.getElementById('preset'), pos=document.getElementById('pos');
+    const title=document.getElementById('title'), sub=document.getElementById('sub');
+    const col=document.getElementById('col'), out=document.getElementById('out'), bar=document.getElementById('bar');
+    const ts=document.getElementById('ts'), tsV=document.getElementById('tsV');
+    const dk=document.getElementById('dk'), dkV=document.getElementById('dkV');
+    const status=document.getElementById('status');
+    let img=null, srcName='thumbnail';
+
+    function set(m,ok){status.textContent=m;status.className='status '+(ok?'ok':'err');}
+    ts.oninput=()=>{tsV.textContent=ts.value+'%'; render();};
+    dk.oninput=()=>{dkV.textContent=Math.round(dk.value*100)+'%'; render();};
+    [title,sub,col,out,bar,preset,pos].forEach(el=>el.addEventListener('input',render));
+
+    ['dragover','dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.toggle('drag',ev==='dragover');}));
+    drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)load(f);});
+    file.onchange=e=>{const f=e.target.files[0];if(f)load(f);};
+
+    function load(f){
+      if(!f.type.startsWith('image/')){set('Pick an image',false);return;}
+      srcName=(f.name.replace(/\.[^.]+$/,'')||'thumbnail')+'-thumb';
+      const im=new Image(); im.onload=()=>{img=im; work.hidden=false; render(); set('Loaded',true);};
+      im.src=URL.createObjectURL(f);
+    }
+    function render(){
+      const [W,H,label]=preset.value.split(',');
+      cv.width=+W; cv.height=+H;
+      const ctx=cv.getContext('2d');
+      ctx.fillStyle='#111'; ctx.fillRect(0,0,cv.width,cv.height);
+
+      if(img){
+        // cover fit
+        const s=Math.max(cv.width/img.naturalWidth, cv.height/img.naturalHeight);
+        const w=img.naturalWidth*s, h=img.naturalHeight*s;
+        ctx.drawImage(img,(cv.width-w)/2,(cv.height-h)/2,w,h);
+      }
+      if(+dk.value>0){ ctx.fillStyle='rgba(0,0,0,'+dk.value+')'; ctx.fillRect(0,0,cv.width,cv.height); }
+
+      // Accent bar
+      const bw=Math.round(cv.width*0.012);
+      ctx.fillStyle=bar.value;
+      const px=Math.round(cv.width*0.04);
+      const tFs=Math.round(cv.height*(+ts.value/100));
+      const sFs=Math.round(tFs*0.5);
+      const lineGap=Math.round(tFs*0.2);
+
+      // Compute text block
+      ctx.font='900 '+tFs+'px Impact, "Anton", "Arial Black", sans-serif';
+      const tW=ctx.measureText(title.value).width;
+      ctx.font='600 '+sFs+'px sans-serif';
+      const sW=ctx.measureText(sub.value).width;
+      const blockW=Math.max(tW,sW);
+      const blockH=tFs+lineGap+sFs;
+
+      let x, y, anchorAlign='left';
+      const margin=Math.round(cv.height*0.06);
+      switch(pos.value){
+        case 'tl': x=px; y=margin; break;
+        case 'tr': x=cv.width-px-blockW; y=margin; anchorAlign='right'; break;
+        case 'bl': x=px; y=cv.height-margin-blockH; break;
+        case 'br': x=cv.width-px-blockW; y=cv.height-margin-blockH; anchorAlign='right'; break;
+        case 'c': default: x=(cv.width-blockW)/2; y=(cv.height-blockH)/2; anchorAlign='center'; break;
+      }
+
+      // Accent bar drawn at left edge of block (for left/center) or right (for right)
+      if(anchorAlign==='right'){ ctx.fillRect(x+blockW+12, y, bw, blockH); }
+      else if(anchorAlign==='center'){ ctx.fillRect((cv.width-blockW)/2 - 18, y, bw, blockH); }
+      else { ctx.fillRect(x-18, y, bw, blockH); }
+
+      // Title
+      ctx.textBaseline='top';
+      ctx.lineJoin='round'; ctx.lineWidth=Math.max(2, tFs/14);
+      ctx.strokeStyle=out.value; ctx.fillStyle=col.value;
+      ctx.font='900 '+tFs+'px Impact, "Anton", "Arial Black", sans-serif';
+      let tx = anchorAlign==='right' ? x+blockW-tW : (anchorAlign==='center'? (cv.width-tW)/2 : x);
+      ctx.strokeText(title.value, tx, y);
+      ctx.fillText(title.value, tx, y);
+
+      // Subtitle
+      ctx.font='600 '+sFs+'px sans-serif';
+      ctx.lineWidth=Math.max(2, sFs/14);
+      let sx = anchorAlign==='right' ? x+blockW-sW : (anchorAlign==='center'? (cv.width-sW)/2 : x);
+      const sy = y+tFs+lineGap;
+      ctx.strokeText(sub.value, sx, sy);
+      ctx.fillText(sub.value, sx, sy);
+    }
+
+    document.getElementById('dlBtn').onclick=()=>cv.toBlob(b=>{
+      const url=URL.createObjectURL(b);
+      const a=document.createElement('a'); a.href=url; a.download=srcName+'-'+cv.width+'x'+cv.height+'.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+    },'image/png');
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

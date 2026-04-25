@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Base64 to Image — Free Online · Utility Tools</title>
+  <meta name="description" content="Paste a Base64 string or data URL and preview, download or copy the decoded image. Browser-only.">
+  <meta name="keywords" content="base64 to image, decode base64, data url to image, base64 image viewer">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/base64-img">
+  <meta property="og:title" content="Base64 to Image">
+  <meta property="og:url" content="/base64-img">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Base64 to Image</h1>
+      <p>Paste a Base64 string or full data URL — preview and download the image.</p>
+    </div>
+
+    <div class="panel">
+      <div class="split">
+        <div>
+          <label>Base64 string or data URL</label>
+          <textarea id="src" placeholder="data:image/png;base64,iVBORw0KGgoAAAA..." style="min-height:280px"></textarea>
+          <div class="row" style="margin-top:10px">
+            <select id="mime" style="width:auto">
+              <option value="image/png">image/png (auto-prepend if missing)</option>
+              <option value="image/jpeg">image/jpeg</option>
+              <option value="image/webp">image/webp</option>
+              <option value="image/gif">image/gif</option>
+              <option value="image/svg+xml">image/svg+xml</option>
+            </select>
+            <button id="decBtn">Decode & Preview</button>
+            <button id="dlBtn" class="secondary" disabled>Download</button>
+          </div>
+          <div id="status" class="status"></div>
+        </div>
+        <div>
+          <label>Preview</label>
+          <div class="img-stage"><img id="prev" alt="preview"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const src=document.getElementById('src'), mime=document.getElementById('mime'), prev=document.getElementById('prev');
+    const status=document.getElementById('status'), dlBtn=document.getElementById('dlBtn');
+    let blob=null, ext='png';
+    function set(m,ok){status.textContent=m;status.className='status '+(ok?'ok':'err');}
+
+    function decode(){
+      let s=(src.value||'').trim();
+      if(!s){set('Paste a Base64 string',false);return;}
+      let type=mime.value;
+      if(s.startsWith('data:')){
+        const m=/^data:([^;,]+)(?:;base64)?,(.*)$/i.exec(s);
+        if(!m){set('Invalid data URL',false);return;}
+        type=m[1]; s=m[2];
+      }
+      // Strip whitespace
+      s=s.replace(/\s+/g,'');
+      try{
+        const bin=atob(s); const arr=new Uint8Array(bin.length);
+        for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+        blob=new Blob([arr],{type});
+        ext = (type.split('/')[1]||'png').replace('jpeg','jpg').replace('svg+xml','svg');
+        const url=URL.createObjectURL(blob);
+        prev.src=url;
+        dlBtn.disabled=false;
+        set('Decoded ('+blob.size.toLocaleString()+' bytes, '+type+')',true);
+      }catch(e){ set('Invalid Base64: '+e.message,false); }
+    }
+    document.getElementById('decBtn').onclick=decode;
+    dlBtn.onclick=()=>{
+      if(!blob) return;
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download='decoded.'+ext;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

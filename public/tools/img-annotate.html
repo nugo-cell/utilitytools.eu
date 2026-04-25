@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Annotator — Arrows, Boxes, Text · Utility Tools</title>
+  <meta name="description" content="Annotate any image with arrows, rectangles, circles and text. Free, browser-only, no upload.">
+  <meta name="keywords" content="image annotator, draw on image, arrow tool, screenshot annotator, free online">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/img-annotate">
+  <meta property="og:title" content="Image Annotator">
+  <meta property="og:url" content="/img-annotate">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Image Annotator</h1>
+      <p>Add arrows, rectangles, circles and text labels to any image.</p>
+    </div>
+
+    <div class="panel">
+      <label class="img-drop" id="drop">
+        <input type="file" id="file" accept="image/*">
+        <div><b>Click or drop</b> an image</div>
+      </label>
+    </div>
+
+    <div class="panel" id="work" hidden>
+      <div class="img-toolbar">
+        <div class="group" id="tools">
+          <button data-t="arrow" class="active">↗ Arrow</button>
+          <button data-t="rect">▭ Rect</button>
+          <button data-t="circle">◯ Circle</button>
+          <button data-t="text">T Text</button>
+          <button data-t="free">✎ Free</button>
+        </div>
+        <input type="color" id="col" value="#ff3b3b" title="Color">
+        <div style="display:inline-flex;align-items:center;gap:6px">
+          <label style="margin:0">Width</label>
+          <input type="range" id="lw" min="1" max="20" value="4" style="width:100px">
+        </div>
+        <button id="undo" class="secondary">Undo</button>
+        <button id="clear" class="secondary">Clear</button>
+        <button id="dlBtn">Download</button>
+      </div>
+      <div id="status" class="status"></div>
+      <div class="img-stage"><canvas id="cv" style="cursor:crosshair"></canvas></div>
+    </div>
+  </main>
+
+  <script>
+    const drop=document.getElementById('drop'), file=document.getElementById('file'), work=document.getElementById('work');
+    const cv=document.getElementById('cv'), col=document.getElementById('col'), lw=document.getElementById('lw');
+    const status=document.getElementById('status');
+    const ctx=cv.getContext('2d');
+    let img=null, srcName='image', tool='arrow', shapes=[], drawing=false, current=null;
+
+    function set(m,ok){status.textContent=m;status.className='status '+(ok?'ok':'err');}
+    document.getElementById('tools').addEventListener('click',e=>{
+      const b=e.target.closest('button'); if(!b) return;
+      [...e.currentTarget.children].forEach(c=>c.classList.remove('active'));
+      b.classList.add('active'); tool=b.dataset.t;
+    });
+
+    ['dragover','dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.toggle('drag',ev==='dragover');}));
+    drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)load(f);});
+    file.onchange=e=>{const f=e.target.files[0];if(f)load(f);};
+
+    function load(f){
+      if(!f.type.startsWith('image/')){set('Pick an image',false);return;}
+      srcName=f.name.replace(/\.[^.]+$/,'')||'image';
+      const im=new Image(); im.onload=()=>{img=im; cv.width=im.naturalWidth; cv.height=im.naturalHeight; shapes=[]; redraw(); work.hidden=false;};
+      im.src=URL.createObjectURL(f);
+    }
+
+    function pos(e){
+      const r=cv.getBoundingClientRect();
+      const p=e.touches?e.touches[0]:e;
+      return { x:(p.clientX-r.left)*(cv.width/r.width), y:(p.clientY-r.top)*(cv.height/r.height) };
+    }
+    cv.addEventListener('mousedown',start); cv.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
+    cv.addEventListener('touchstart',e=>{e.preventDefault();start(e);},{passive:false});
+    cv.addEventListener('touchmove',e=>{e.preventDefault();move(e);},{passive:false});
+    window.addEventListener('touchend',end);
+
+    function start(e){
+      if(!img) return;
+      const p=pos(e);
+      if(tool==='text'){
+        const t=prompt('Text to add:'); if(!t) return;
+        shapes.push({t:'text', x:p.x, y:p.y, text:t, color:col.value, size:Math.max(14,+lw.value*5)});
+        redraw(); return;
+      }
+      drawing=true;
+      current={t:tool, x1:p.x, y1:p.y, x2:p.x, y2:p.y, color:col.value, w:+lw.value, pts:tool==='free'?[[p.x,p.y]]:null};
+    }
+    function move(e){
+      if(!drawing) return;
+      const p=pos(e);
+      current.x2=p.x; current.y2=p.y;
+      if(current.t==='free') current.pts.push([p.x,p.y]);
+      redraw(); drawShape(current);
+    }
+    function end(){ if(drawing && current){ shapes.push(current); } drawing=false; current=null; redraw(); }
+
+    function redraw(){
+      if(!img) return;
+      ctx.drawImage(img,0,0,cv.width,cv.height);
+      shapes.forEach(drawShape);
+    }
+    function drawShape(s){
+      ctx.strokeStyle=s.color; ctx.fillStyle=s.color; ctx.lineWidth=s.w||3; ctx.lineCap='round'; ctx.lineJoin='round';
+      if(s.t==='rect'){ ctx.strokeRect(Math.min(s.x1,s.x2),Math.min(s.y1,s.y2),Math.abs(s.x2-s.x1),Math.abs(s.y2-s.y1)); }
+      else if(s.t==='circle'){
+        const cx=(s.x1+s.x2)/2, cy=(s.y1+s.y2)/2;
+        const rx=Math.abs(s.x2-s.x1)/2, ry=Math.abs(s.y2-s.y1)/2;
+        ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); ctx.stroke();
+      }
+      else if(s.t==='arrow'){
+        ctx.beginPath(); ctx.moveTo(s.x1,s.y1); ctx.lineTo(s.x2,s.y2); ctx.stroke();
+        const ang=Math.atan2(s.y2-s.y1,s.x2-s.x1); const head=Math.max(10,s.w*4);
+        ctx.beginPath();
+        ctx.moveTo(s.x2,s.y2);
+        ctx.lineTo(s.x2-head*Math.cos(ang-Math.PI/7), s.y2-head*Math.sin(ang-Math.PI/7));
+        ctx.lineTo(s.x2-head*Math.cos(ang+Math.PI/7), s.y2-head*Math.sin(ang+Math.PI/7));
+        ctx.closePath(); ctx.fill();
+      }
+      else if(s.t==='free'){
+        ctx.beginPath(); s.pts.forEach((p,i)=>{ if(i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); }); ctx.stroke();
+      }
+      else if(s.t==='text'){
+        ctx.font='bold '+s.size+'px sans-serif'; ctx.textBaseline='top';
+        ctx.fillText(s.text,s.x,s.y);
+      }
+    }
+    document.getElementById('undo').onclick=()=>{shapes.pop(); redraw();};
+    document.getElementById('clear').onclick=()=>{shapes=[]; redraw();};
+    document.getElementById('dlBtn').onclick=()=>cv.toBlob(b=>{
+      const url=URL.createObjectURL(b);
+      const a=document.createElement('a'); a.href=url; a.download=srcName+'-annotated.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+    },'image/png');
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

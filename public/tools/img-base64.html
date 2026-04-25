@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image to Base64 Converter — Free Online · Utility Tools</title>
+  <meta name="description" content="Convert any image to a Base64 data URL right in your browser. Copy or download the encoded string.">
+  <meta name="keywords" content="image to base64, base64 encoder, data url converter, png to base64, jpg to base64">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/img-base64">
+  <meta property="og:title" content="Image to Base64">
+  <meta property="og:url" content="/img-base64">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Image to Base64</h1>
+      <p>Convert any image into a Base64 data URL you can paste into HTML, CSS or JSON.</p>
+    </div>
+
+    <div class="panel">
+      <label class="img-drop" id="drop">
+        <input type="file" id="file" accept="image/*">
+        <div><b>Click or drop</b> an image</div>
+      </label>
+    </div>
+
+    <div class="panel" id="work" hidden>
+      <div class="split">
+        <div>
+          <div class="img-stage"><img id="prev" alt="preview"></div>
+          <div id="info" class="status ok" style="margin-top:8px"></div>
+        </div>
+        <div>
+          <label>Base64 (data URL)</label>
+          <textarea id="out" readonly style="min-height:280px"></textarea>
+          <div class="row" style="margin-top:10px">
+            <button id="copyBtn">Copy</button>
+            <button id="copyRawBtn" class="secondary">Copy raw (no prefix)</button>
+            <button id="dlBtn" class="secondary">Download .txt</button>
+          </div>
+          <div id="status" class="status"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const drop=document.getElementById('drop'), file=document.getElementById('file'), work=document.getElementById('work');
+    const prev=document.getElementById('prev'), out=document.getElementById('out'), info=document.getElementById('info'), status=document.getElementById('status');
+    let dataURL='', srcName='image';
+    function set(m,ok){status.textContent=m;status.className='status '+(ok?'ok':'err');}
+    function fmtSize(n){ if(n<1024) return n+' B'; if(n<1048576) return (n/1024).toFixed(1)+' KB'; return (n/1048576).toFixed(2)+' MB'; }
+
+    ['dragover','dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.toggle('drag',ev==='dragover');}));
+    drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)load(f);});
+    file.onchange=e=>{const f=e.target.files[0];if(f)load(f);};
+
+    function load(f){
+      if(!f.type.startsWith('image/')){set('Pick an image',false);return;}
+      srcName=f.name.replace(/\.[^.]+$/,'')||'image';
+      const r=new FileReader();
+      r.onload=()=>{
+        dataURL=r.result; out.value=dataURL; prev.src=dataURL;
+        info.textContent=f.name+' · '+f.type+' · '+fmtSize(f.size)+' → Base64 length: '+dataURL.length.toLocaleString();
+        work.hidden=false;
+      };
+      r.readAsDataURL(f);
+    }
+    function copy(s){ navigator.clipboard.writeText(s).then(()=>set('Copied to clipboard',true), ()=>set('Copy failed',false)); }
+    document.getElementById('copyBtn').onclick=()=>copy(dataURL);
+    document.getElementById('copyRawBtn').onclick=()=>copy(dataURL.split(',')[1]||'');
+    document.getElementById('dlBtn').onclick=()=>{
+      const blob=new Blob([dataURL],{type:'text/plain'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download=srcName+'-base64.txt';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

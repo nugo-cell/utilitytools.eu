@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meme Generator — Free Online · Utility Tools</title>
+  <meta name="description" content="Make classic memes in seconds. Add bold top and bottom text to any image, then download. Browser-only.">
+  <meta name="keywords" content="meme generator, free meme maker, top text bottom text, impact font, online meme">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/img-meme">
+  <meta property="og:title" content="Meme Generator">
+  <meta property="og:url" content="/img-meme">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Meme Generator</h1>
+      <p>Add bold top and bottom text to any image — classic meme style.</p>
+    </div>
+
+    <div class="panel">
+      <label class="img-drop" id="drop">
+        <input type="file" id="file" accept="image/*">
+        <div><b>Click or drop</b> an image</div>
+      </label>
+    </div>
+
+    <div class="panel" id="work" hidden>
+      <div class="split">
+        <div>
+          <label>Top text</label>
+          <input type="text" id="top" value="ONE DOES NOT SIMPLY">
+          <label style="margin-top:10px">Bottom text</label>
+          <input type="text" id="bot" value="MAKE A MEME ONLINE">
+          <div class="range-row" style="margin-top:10px"><label>Font size %</label><input type="range" id="fs" min="4" max="20" value="10"><span class="val" id="fsV">10%</span></div>
+          <div class="row" style="margin-top:8px">
+            <div><label>Text</label><input type="color" id="col" value="#ffffff"></div>
+            <div><label>Outline</label><input type="color" id="out" value="#000000"></div>
+            <label class="checkbox" style="margin-top:24px"><input type="checkbox" id="upper" checked> UPPERCASE</label>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button id="dlBtn">Download Meme</button>
+          </div>
+        </div>
+        <div class="img-stage"><canvas id="cv"></canvas></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const drop=document.getElementById('drop'), file=document.getElementById('file'), work=document.getElementById('work');
+    const cv=document.getElementById('cv'), top=document.getElementById('top'), bot=document.getElementById('bot');
+    const fs=document.getElementById('fs'), fsV=document.getElementById('fsV');
+    const col=document.getElementById('col'), out=document.getElementById('out'), upper=document.getElementById('upper');
+    let img=null, srcName='meme';
+    fs.oninput=()=>{fsV.textContent=fs.value+'%'; render();};
+    [top,bot,col,out,upper].forEach(el=>el.addEventListener('input',render));
+    ['dragover','dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.toggle('drag',ev==='dragover');}));
+    drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)load(f);});
+    file.onchange=e=>{const f=e.target.files[0];if(f)load(f);};
+
+    function load(f){
+      if(!f.type.startsWith('image/')) return;
+      srcName=(f.name.replace(/\.[^.]+$/,'')||'meme')+'-meme';
+      const im=new Image(); im.onload=()=>{img=im; work.hidden=false; render();}; im.src=URL.createObjectURL(f);
+    }
+    function render(){
+      if(!img) return;
+      cv.width=img.naturalWidth; cv.height=img.naturalHeight;
+      const ctx=cv.getContext('2d');
+      ctx.drawImage(img,0,0);
+      const size=Math.round(cv.height*(+fs.value/100));
+      ctx.font='900 '+size+'px Impact, "Anton", "Arial Black", sans-serif';
+      ctx.textAlign='center';
+      ctx.lineWidth=Math.max(2,size/12); ctx.strokeStyle=out.value; ctx.fillStyle=col.value;
+      ctx.lineJoin='round';
+      const t1 = upper.checked ? top.value.toUpperCase() : top.value;
+      const t2 = upper.checked ? bot.value.toUpperCase() : bot.value;
+      drawWrapped(ctx, t1, cv.width/2, size*1.1, cv.width*0.95, size*1.05, 'top');
+      drawWrapped(ctx, t2, cv.width/2, cv.height-size*0.4, cv.width*0.95, size*1.05, 'bottom');
+    }
+    function drawWrapped(ctx, text, x, y, maxW, lineH, anchor){
+      const words=text.split(/\s+/); const lines=[]; let cur='';
+      for(const w of words){
+        const tr=cur?cur+' '+w:w;
+        if(ctx.measureText(tr).width>maxW && cur){ lines.push(cur); cur=w; } else cur=tr;
+      }
+      if(cur) lines.push(cur);
+      const total=lines.length*lineH;
+      let yy = anchor==='top' ? y : y - total + lineH;
+      lines.forEach(l=>{ ctx.strokeText(l,x,yy); ctx.fillText(l,x,yy); yy+=lineH; });
+    }
+    document.getElementById('dlBtn').onclick=()=>cv.toBlob(b=>{
+      const url=URL.createObjectURL(b);
+      const a=document.createElement('a'); a.href=url; a.download=srcName+'.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+    },'image/png');
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

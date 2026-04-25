@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Favicon Generator — Free, Multi-Size · Utility Tools</title>
+  <meta name="description" content="Generate favicons in 16, 32, 48, 180, 192 and 512 px from any image. Download individually or as one ZIP.">
+  <meta name="keywords" content="favicon generator, favicon ico, apple touch icon, android icon, free favicon maker">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/img-favicon">
+  <meta property="og:title" content="Favicon Generator">
+  <meta property="og:url" content="/img-favicon">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Favicon Generator</h1>
+      <p>Upload any square-ish image. We generate 16, 32, 48, 180, 192 and 512 px PNG favicons + an HTML snippet.</p>
+    </div>
+
+    <div class="panel">
+      <label class="img-drop" id="drop">
+        <input type="file" id="file" accept="image/*">
+        <div><b>Click or drop</b> a square image (PNG with transparency works best)</div>
+      </label>
+    </div>
+
+    <div class="panel" id="work" hidden>
+      <div class="row" style="margin-bottom:12px">
+        <label class="checkbox"><input type="checkbox" id="bg"> Add background color</label>
+        <input type="color" id="bgCol" value="#ffffff" style="margin-left:6px">
+        <label class="checkbox" style="margin-left:12px"><input type="checkbox" id="round"> Rounded corners</label>
+      </div>
+      <div class="row">
+        <button id="zipBtn">Download all as ZIP</button>
+        <button id="snipBtn" class="secondary">Copy HTML snippet</button>
+      </div>
+      <div id="status" class="status"></div>
+      <div id="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:14px"></div>
+    </div>
+  </main>
+
+  <script>
+    const SIZES=[16,32,48,180,192,512];
+    const drop=document.getElementById('drop'), file=document.getElementById('file'), work=document.getElementById('work');
+    const grid=document.getElementById('grid'), status=document.getElementById('status');
+    const bg=document.getElementById('bg'), bgCol=document.getElementById('bgCol'), round=document.getElementById('round');
+    let img=null, blobs={};
+    function set(m,ok){status.textContent=m;status.className='status '+(ok?'ok':'err');}
+
+    ['dragover','dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.toggle('drag',ev==='dragover');}));
+    drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)load(f);});
+    file.onchange=e=>{const f=e.target.files[0];if(f)load(f);};
+    [bg,bgCol,round].forEach(el=>el.addEventListener('change',()=>{ if(img) build(); }));
+    bgCol.addEventListener('input',()=>{ if(img && bg.checked) build(); });
+
+    function load(f){
+      if(!f.type.startsWith('image/')){set('Pick an image',false);return;}
+      const im=new Image(); im.onload=()=>{img=im; work.hidden=false; build();}; im.src=URL.createObjectURL(f);
+    }
+    function build(){
+      grid.innerHTML=''; blobs={};
+      let done=0;
+      SIZES.forEach(sz=>{
+        const c=document.createElement('canvas'); c.width=sz; c.height=sz;
+        const ctx=c.getContext('2d');
+        if(round.checked){
+          const r=sz*0.18;
+          ctx.beginPath();
+          ctx.moveTo(r,0); ctx.lineTo(sz-r,0); ctx.quadraticCurveTo(sz,0,sz,r);
+          ctx.lineTo(sz,sz-r); ctx.quadraticCurveTo(sz,sz,sz-r,sz);
+          ctx.lineTo(r,sz); ctx.quadraticCurveTo(0,sz,0,sz-r);
+          ctx.lineTo(0,r); ctx.quadraticCurveTo(0,0,r,0);
+          ctx.closePath(); ctx.clip();
+        }
+        if(bg.checked){ ctx.fillStyle=bgCol.value; ctx.fillRect(0,0,sz,sz); }
+        // Fit cover
+        const s=Math.min(sz/img.naturalWidth, sz/img.naturalHeight);
+        const w=img.naturalWidth*s, h=img.naturalHeight*s;
+        ctx.imageSmoothingQuality='high';
+        ctx.drawImage(img,(sz-w)/2,(sz-h)/2,w,h);
+        c.toBlob(b=>{
+          blobs[sz]=b;
+          const cell=document.createElement('div');
+          cell.style.cssText='background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center';
+          const url=URL.createObjectURL(b);
+          cell.innerHTML=`<img src="${url}" alt="${sz}" style="width:64px;height:64px;image-rendering:pixelated;border-radius:0"><div style="margin-top:8px;font-family:var(--mono);font-size:12px">${sz}×${sz}</div><a href="${url}" download="favicon-${sz}.png" style="display:inline-block;margin-top:6px;font-size:12px">Download</a>`;
+          grid.appendChild(cell);
+          if(++done===SIZES.length) set('Generated '+SIZES.length+' sizes',true);
+        },'image/png');
+      });
+    }
+    document.getElementById('zipBtn').onclick=async()=>{
+      if(!Object.keys(blobs).length){set('Build first',false);return;}
+      const zip=new JSZip();
+      for(const sz of SIZES){
+        if(blobs[sz]) zip.file('favicon-'+sz+'.png', blobs[sz]);
+      }
+      // Mirror standard names
+      if(blobs[180]) zip.file('apple-touch-icon.png', blobs[180]);
+      if(blobs[192]) zip.file('android-chrome-192x192.png', blobs[192]);
+      if(blobs[512]) zip.file('android-chrome-512x512.png', blobs[512]);
+      zip.file('site.webmanifest', JSON.stringify({
+        name:'Your Site', short_name:'Site',
+        icons:[{src:'/android-chrome-192x192.png',sizes:'192x192',type:'image/png'},
+               {src:'/android-chrome-512x512.png',sizes:'512x512',type:'image/png'}],
+        theme_color:'#ffffff', background_color:'#ffffff', display:'standalone'
+      }, null, 2));
+      zip.file('snippet.html', htmlSnippet());
+      const blob = await zip.generateAsync({type:'blob'});
+      const url = URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download='favicons.zip';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url), 1500);
+      set('ZIP downloaded',true);
+    };
+    function htmlSnippet(){
+      return `<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">`;
+    }
+    document.getElementById('snipBtn').onclick=()=>{ navigator.clipboard.writeText(htmlSnippet()); set('Snippet copied to clipboard',true); };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

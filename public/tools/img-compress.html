@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Compressor — Free Online JPG, PNG, WebP · Utility Tools</title>
+  <meta name="description" content="Free browser-based image compressor for JPG, PNG and WebP. Adjust quality, see before/after size, download. Nothing leaves your device.">
+  <meta name="keywords" content="image compressor, compress jpg, compress png, webp compressor, online image optimizer, browser only">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/img-compress">
+  <meta property="og:title" content="Image Compressor — Browser-only">
+  <meta property="og:description" content="Compress JPG, PNG and WebP locally with a quality slider.">
+  <meta property="og:url" content="/img-compress">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Image Compressor</h1>
+      <p>Compress JPG, PNG and WebP entirely in your browser. No upload, no server.</p>
+    </div>
+
+    <div class="panel">
+      <label class="img-drop" id="drop">
+        <input type="file" id="file" accept="image/*">
+        <div><b>Click or drop</b> an image here (JPG · PNG · WebP)</div>
+      </label>
+    </div>
+
+    <div class="panel" id="workPanel" hidden>
+      <div class="row" style="margin-bottom:12px">
+        <div style="flex:1;min-width:200px">
+          <label>Output format</label>
+          <select id="fmt">
+            <option value="image/jpeg">JPEG (.jpg)</option>
+            <option value="image/webp">WebP</option>
+            <option value="image/png">PNG (lossless, quality ignored)</option>
+          </select>
+        </div>
+      </div>
+      <div class="range-row">
+        <label for="quality">Quality</label>
+        <input type="range" id="quality" min="0.1" max="1" step="0.05" value="0.8">
+        <span class="val" id="qVal">80%</span>
+      </div>
+      <div class="row">
+        <button id="goBtn">Compress</button>
+        <button id="dlBtn" class="secondary" disabled>Download</button>
+      </div>
+      <div id="status" class="status"></div>
+
+      <div class="stat-grid" style="margin-top:14px">
+        <div class="stat"><div class="value" id="sOrig">—</div><div class="label">Original size</div></div>
+        <div class="stat"><div class="value" id="sNew">—</div><div class="label">Compressed</div></div>
+        <div class="stat"><div class="value" id="sSave">—</div><div class="label">Saved</div></div>
+      </div>
+
+      <div class="split" style="margin-top:14px">
+        <div><label>Original</label><div class="img-stage"><img id="prevA" alt="original preview"></div></div>
+        <div><label>Compressed</label><div class="img-stage"><img id="prevB" alt="compressed preview"></div></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const drop = document.getElementById('drop');
+    const fileEl = document.getElementById('file');
+    const workPanel = document.getElementById('workPanel');
+    const status = document.getElementById('status');
+    const quality = document.getElementById('quality');
+    const qVal = document.getElementById('qVal');
+    const fmt = document.getElementById('fmt');
+    const sOrig = document.getElementById('sOrig'), sNew = document.getElementById('sNew'), sSave = document.getElementById('sSave');
+    const prevA = document.getElementById('prevA'), prevB = document.getElementById('prevB');
+    const dlBtn = document.getElementById('dlBtn');
+    let origFile = null, origImg = null, outBlob = null;
+
+    function fmtSize(n){ if(n<1024) return n+' B'; if(n<1048576) return (n/1024).toFixed(1)+' KB'; return (n/1048576).toFixed(2)+' MB'; }
+    function setStatus(m,ok){ status.textContent=m; status.className='status '+(ok?'ok':'err'); }
+    quality.oninput = () => qVal.textContent = Math.round(quality.value*100)+'%';
+
+    ['dragover','dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.toggle('drag',ev==='dragover');}));
+    drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if(f) loadFile(f); });
+    fileEl.onchange = e => { const f = e.target.files[0]; if(f) loadFile(f); };
+
+    function loadFile(f){
+      if(!f.type.startsWith('image/')){ setStatus('Please choose an image file', false); return; }
+      origFile = f;
+      const url = URL.createObjectURL(f);
+      const im = new Image(); im.onload = () => {
+        origImg = im;
+        prevA.src = url;
+        sOrig.textContent = fmtSize(f.size);
+        sNew.textContent = '—'; sSave.textContent = '—';
+        prevB.removeAttribute('src');
+        workPanel.hidden = false;
+        // Default output: WebP gives the best size on virtually any input.
+        // Keep PNG only when input is PNG and likely needs transparency.
+        if(f.type==='image/png') fmt.value='image/webp';
+        else if(f.type==='image/webp') fmt.value='image/webp';
+        else fmt.value='image/jpeg';
+        setStatus('Loaded '+f.name+' ('+im.naturalWidth+'×'+im.naturalHeight+'). Tip: WebP usually gives the smallest file.', true);
+      };
+      im.onerror = ()=>setStatus('Could not decode image', false);
+      im.src = url;
+    }
+
+    document.getElementById('goBtn').onclick = () => {
+      if(!origImg){ setStatus('Choose an image first', false); return; }
+      const c = document.createElement('canvas');
+      c.width = origImg.naturalWidth; c.height = origImg.naturalHeight;
+      const ctx = c.getContext('2d');
+      // For JPEG/WebP, fill white to avoid black background on PNG with alpha
+      if(fmt.value==='image/jpeg'){ ctx.fillStyle='#fff'; ctx.fillRect(0,0,c.width,c.height); }
+      ctx.drawImage(origImg, 0, 0);
+      c.toBlob(b => {
+        if(!b){ setStatus('Browser refused that format. Try a different one.', false); return; }
+        outBlob = b;
+        prevB.src = URL.createObjectURL(b);
+        sNew.textContent = fmtSize(b.size);
+        const delta = b.size - origFile.size; // positive = grew, negative = shrank
+        const pct = Math.round(Math.abs(delta)/origFile.size*100);
+        if(delta < 0){
+          sSave.textContent = '−' + pct + '%';
+          sSave.style.color = '';
+          setStatus('Compressed ✓ saved '+pct+'%', true);
+        } else if(delta === 0){
+          sSave.textContent = '0%';
+          setStatus('Same size — try lower quality, or pick WebP.', true);
+        } else {
+          sSave.textContent = '+' + pct + '%';
+          setStatus('Output is '+pct+'% larger than the original. The source was already well compressed — try WebP at lower quality, or keep the original.', false);
+        }
+        dlBtn.disabled = false;
+      }, fmt.value, +quality.value);
+    };
+
+    dlBtn.onclick = () => {
+      if(!outBlob){ setStatus('Click "Compress" first', false); return; }
+      const ext = fmt.value.split('/')[1].replace('jpeg','jpg');
+      const url = URL.createObjectURL(outBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = (origFile.name.replace(/\.[^.]+$/,'')||'image') + '-compressed.' + ext;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

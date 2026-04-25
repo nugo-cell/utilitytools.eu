@@ -47,7 +47,24 @@ const TOOLS = [
   { slug: 'pdf-editor',   name: 'PDF Editor',              file: 'tools/pdf-editor.html',   icon: 'Pdf',  tags: ['documents','converter'],      desc: 'Reorder, rotate, delete pages, and merge multiple PDFs. Browser-only, no upload.' },
   { slug: 'pdf-signer',   name: 'PDF Signer',              file: 'tools/pdf-signer.html',   icon: 'Sgn',  tags: ['documents','security'],       desc: 'Draw or type a signature, place it on any PDF page, download the signed file.' },
   { slug: 'excel-table',  name: 'Excel / CSV to Table',    file: 'tools/excel-table.html',  icon: 'Xls',  tags: ['documents','converter'],      desc: 'Open Excel/CSV/ODS files, search, sort, and print or export — all in your browser.' },
-  { slug: 'xml',          name: 'XML Formatter',           file: 'tools/xml.html',          icon: 'XML',  tags: ['developer','text'],           desc: 'Pretty-print, minify and validate XML in your browser.' }
+  { slug: 'xml',          name: 'XML Formatter',           file: 'tools/xml.html',          icon: 'XML',  tags: ['developer','text'],           desc: 'Pretty-print, minify and validate XML in your browser.' },
+
+  // -------- Image Toolkit (browser-only, no upload) --------
+  { slug: 'img-compress',     name: 'Image Compressor',         file: 'tools/img-compress.html',     icon: 'Cmp', tags: ['image','design'],            desc: 'Compress JPG, PNG, WebP with a quality slider. See size before/after.' },
+  { slug: 'img-convert',      name: 'Image Converter',          file: 'tools/img-convert.html',      icon: 'Cvt', tags: ['image','converter'],         desc: 'Convert images between JPG, PNG, WebP and AVIF (where supported).' },
+  { slug: 'img-resize',       name: 'Image Resizer',            file: 'tools/img-resize.html',       icon: 'Rsz', tags: ['image','design'],            desc: 'Resize images with aspect ratio lock and social media presets.' },
+  { slug: 'img-crop',         name: 'Image Crop Tool',          file: 'tools/img-crop.html',         icon: 'Crp', tags: ['image','design'],            desc: 'Interactive crop with free or 1:1, 4:3, 16:9, 9:16 ratios.' },
+  { slug: 'img-rotate',       name: 'Rotate & Flip Image',      file: 'tools/img-rotate.html',       icon: 'Rot', tags: ['image','design'],            desc: 'Rotate 90/180/270° and flip horizontally or vertically.' },
+  { slug: 'img-watermark',    name: 'Watermark Tool',           file: 'tools/img-watermark.html',    icon: 'Wmk', tags: ['image','design'],            desc: 'Add a text or image watermark with size, opacity and position controls.' },
+  { slug: 'img-annotate',     name: 'Image Annotator',          file: 'tools/img-annotate.html',     icon: 'Ann', tags: ['image','design'],            desc: 'Draw arrows, rectangles, circles and text on any image.' },
+  { slug: 'img-blur',         name: 'Blur / Pixelate',          file: 'tools/img-blur.html',         icon: 'Blr', tags: ['image','security'],          desc: 'Hide private information by blurring or pixelating any region.' },
+  { slug: 'img-meme',         name: 'Meme Generator',           file: 'tools/img-meme.html',         icon: 'Mem', tags: ['image','fun'],               desc: 'Add bold top and bottom text to any image, classic meme style.' },
+  { slug: 'img-base64',       name: 'Image to Base64',          file: 'tools/img-base64.html',       icon: 'B64', tags: ['image','developer','converter'], desc: 'Convert any image to a Base64 data URL with a copy button.' },
+  { slug: 'base64-img',       name: 'Base64 to Image',          file: 'tools/base64-img.html',       icon: '→IMG',tags: ['image','developer','converter'], desc: 'Paste a Base64 string and preview or download the image.' },
+  { slug: 'img-exif',         name: 'EXIF Viewer / Remover',    file: 'tools/img-exif.html',         icon: 'EXIF',tags: ['image','security'],          desc: 'Show EXIF metadata, then strip it by re-encoding via canvas.' },
+  { slug: 'img-color-picker', name: 'Color Picker from Image',  file: 'tools/img-color-picker.html', icon: 'Pck', tags: ['image','design'],            desc: 'Click any pixel to read HEX, RGB and HSL values.' },
+  { slug: 'img-favicon',      name: 'Favicon Generator',        file: 'tools/img-favicon.html',      icon: 'Fav', tags: ['image','design','generator'],desc: 'Generate 16, 32, 48, 180, 192 and 512 px favicons + ZIP download.' },
+  { slug: 'img-thumbnail',    name: 'Thumbnail Generator',      file: 'tools/img-thumbnail.html',    icon: 'Tmb', tags: ['image','design','generator'],desc: 'YouTube/Instagram/Facebook/LinkedIn thumbnail with text overlay.' }
 ];
 
 const ALL_TAGS = [...new Set(TOOLS.flatMap(t => t.tags))].sort();
