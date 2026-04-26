@@ -37,26 +37,9 @@
     try { localStorage.removeItem(KEY); } catch (_) {}
   }
 
-  // ---------- AdSense loader (only after consent) ----------
-  var adsenseInjected = false;
-  function injectAdsense() {
-    if (adsenseInjected) return;
-    if (document.querySelector('script[src*="adsbygoogle.js"]')) { adsenseInjected = true; return; }
-    var s = document.createElement('script');
-    s.async = true;
-    s.crossOrigin = 'anonymous';
-    s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + ADSENSE_CLIENT;
-    document.head.appendChild(s);
-    if (!document.querySelector('meta[name="google-adsense-account"]')) {
-      var m = document.createElement('meta');
-      m.name = 'google-adsense-account'; m.content = ADSENSE_CLIENT;
-      document.head.appendChild(m);
-    }
-    adsenseInjected = true;
-    document.querySelectorAll('ins.adsbygoogle').forEach(function () {
-      try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (_) {}
-    });
-  }
+  // ---------- AdSense loader ----------
+  // Removed: the AdSense script tag is added manually in the HTML.
+  function injectAdsense() { /* no-op */ }
 
   // ---------- Bottom-center cookie banner (subtle) ----------
   function buildBanner() {

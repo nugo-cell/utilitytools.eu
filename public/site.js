@@ -1,8 +1,7 @@
 // Shared site chrome — injects:
 //   1. Theme (light/dark) + early-init.
 //   2. Favicon, manifest, og:image (so we don't have to repeat in every HTML).
-//   3. The top ad slot + fills any inline .ad-slot with <ins class="adsbygoogle">.
-//      AdSense itself is loaded by /consent.js, only after the user consents.
+//   3. AdSense loader via /consent.js (Google Auto Ads handles placement itself).
 //   4. The footer (with EU friends links + a "Consent settings" link).
 //   5. A JSON-LD <SoftwareApplication> block per tool page (SEO).
 //   6. A "Related tools" block at the bottom of each tool page.
@@ -138,31 +137,8 @@
     } catch (_) {}
   })();
 
-  // ---------------- Ad slot helpers ----------------
-  function fillAdSlot(slot) {
-    if (!slot || slot.querySelector('ins.adsbygoogle')) return;
-    var ins = document.createElement('ins');
-    ins.className = 'adsbygoogle';
-    ins.style.display = 'block';
-    ins.setAttribute('data-ad-client', 'ca-pub-5700080992080321');
-    ins.setAttribute('data-ad-format', 'auto');
-    ins.setAttribute('data-full-width-responsive', 'true');
-    slot.appendChild(ins);
-    if (window.adsbygoogle) {
-      try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (_) {}
-    }
-  }
-  if (!document.querySelector('.ad-slot.ad-top') && !document.body.dataset.noAds) {
-    var mainEl = document.querySelector('main') || document.body;
-    var ad = document.createElement('aside');
-    ad.className = 'ad-slot ad-top';
-    ad.setAttribute('aria-label', 'Advertisement');
-    ad.innerHTML = '<span class="ad-label">Advertisement</span>';
-    mainEl.insertBefore(ad, mainEl.firstChild);
-  }
-  if (!document.body.dataset.noAds) {
-    document.querySelectorAll('.ad-slot').forEach(fillAdSlot);
-  }
+  // ---------------- Ad slots ----------------
+  // Removed: Google AdSense Auto Ads (loaded via consent.js) handles placement.
 
   injectThemeToggle();
 
