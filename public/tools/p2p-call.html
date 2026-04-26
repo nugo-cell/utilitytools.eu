@@ -77,6 +77,36 @@
       box-shadow:var(--shadow-soft);opacity:0;transition:opacity .2s, transform .2s;pointer-events:none;
     }
     .pc-toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
+    .pc-mode{
+      display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0;
+    }
+    .pc-mode label{
+      display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border);
+      border-radius:10px;background:var(--panel-2);cursor:pointer;font-size:14px;color:var(--text);
+      transition:border-color .15s, background .15s;
+    }
+    .pc-mode label:hover{border-color:var(--accent)}
+    .pc-mode input[type=radio]{accent-color:var(--accent)}
+    .pc-mode label.sel{border-color:var(--accent);background:linear-gradient(135deg,rgba(0,212,170,.10),rgba(124,92,255,.10))}
+    .pc-knock{
+      display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px;
+      padding:12px 14px;border:1px solid var(--accent);border-radius:10px;
+      background:linear-gradient(135deg,rgba(0,212,170,.12),rgba(124,92,255,.12));
+      animation:pcPulse 1.4s ease-in-out infinite;
+    }
+    .pc-knock strong{color:var(--text)}
+    .pc-knock .grow{flex:1;min-width:180px;color:var(--text);font-size:14px}
+    .pc-knock button{padding:8px 14px;font-size:13px}
+    .pc-knock button.btn-danger{background:#ff5e7e;color:#fff;border:0}
+    @keyframes pcPulse{0%,100%{box-shadow:0 0 0 0 rgba(124,92,255,.4)}50%{box-shadow:0 0 0 8px rgba(124,92,255,0)}}
+    /* Author rules above set display:flex/grid which would otherwise win over
+       the UA stylesheet's [hidden]{display:none}. Re-state hidden=hidden here. */
+    .pc-knock[hidden], .pc-devices[hidden], .pc-grid[hidden], .pc-actions[hidden]{display:none}
+    .pc-tile.audio-only video{visibility:hidden}
+    .pc-tile.audio-only::before{
+      content:"🎙 Audio only";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+      color:#9ca3b8;font-size:14px;font-weight:600;background:#0a0a14;
+    }
   </style>
 </head>
 <body>
@@ -95,7 +125,7 @@
     <div class="panel" id="lobby">
       <h3 style="margin-top:0">Start a call</h3>
       <p style="color:var(--muted);font-size:14px;margin:0 0 10px">
-        Create a brand-new private room and send the link to the person you want to talk to. Up to 2 people per room.
+        Create a brand-new private room and send the link to the person you want to talk to. Up to 2 people per room. <b>Camera and microphone are required</b> — if you only want to talk, use the <a href="/p2p-voice">voice call tool</a> instead.
       </p>
       <div class="pc-start-buttons">
         <button id="createBtn" type="button">🆕 Create new room</button>
@@ -114,6 +144,12 @@
         <button id="copyLink" type="button">Copy link</button>
       </div>
       <p class="pc-status" id="status"></p>
+
+      <div class="pc-knock" id="knockBanner" hidden>
+        <span class="grow"><strong>👋 Someone is waiting to join.</strong> Only let them in if you're expecting them.</span>
+        <button id="admitBtn" type="button">✓ Admit</button>
+        <button id="rejectBtn" type="button" class="btn-danger">✕ Reject</button>
+      </div>
 
       <div class="pc-grid">
         <div class="pc-tile" id="localTile">
@@ -169,9 +205,11 @@
     const localTile = $('localTile'), remoteTile = $('remoteTile'), remoteEmpty = $('remoteEmpty');
     const status = $('status'), shareLink = $('shareLink'), roomLabel = $('roomLabel');
     const micBtn = $('micBtn'), camBtn = $('camBtn'), hangBtn = $('hangBtn');
+    const knockBanner = $('knockBanner'), admitBtn = $('admitBtn'), rejectBtn = $('rejectBtn');
 
     let ws = null, pc = null, localStream = null;
     let isInitiator = false, makingOffer = false, ignoreOffer = false, polite = true;
+    let isHost = false;             // true if we created the room (1st in)
     let roomId = null;
     let screenStream = null;     // active getDisplayMedia stream while sharing
     let cameraTrack = null;      // current camera track on the sender (when not sharing)
@@ -251,7 +289,7 @@
             : { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
         });
       } catch (e) {
-        setStatus('Could not access camera/mic: ' + e.message, 'err');
+        setStatus('Could not access camera/mic: ' + e.message + ' — a video call requires both. For voice-only, use the voice call tool.', 'err');
         return;
       }
       localVid.srcObject = localStream;
@@ -280,30 +318,61 @@
           cleanup(); lobby.hidden = false; callPanel.hidden = true;
           return;
         }
+        if (msg.type === 'waiting') {
+          // We're the joiner. Sit tight until the host admits us.
+          remoteEmpty.textContent = '🔒 Waiting for the host to let you in…';
+          setStatus('Knocking on the door — waiting for the host to admit you…', 'live');
+          return;
+        }
+        if (msg.type === 'rejected') {
+          setStatus('The host did not let you in.', 'err');
+          remoteEmpty.textContent = '✕ The host rejected your request to join.';
+          cleanup(); return;
+        }
         if (msg.type === 'init') {
           isInitiator = !!msg.initiator;
+          isHost      = !!msg.host;
           // "Polite" peer in perfect-negotiation = NOT the initiator. Initiator wins glare.
           polite = !isInitiator;
-          createPeerConnection();
-          if (isInitiator) {
+          if (isHost) {
+            // Wait for someone to knock; don't open a peer connection yet.
+            setStatus('Waiting for the other person to join — share the link below.', 'live');
+            remoteEmpty.textContent = 'Waiting for the other person to join…';
+          } else {
+            // Joiner has been admitted: build the peer connection and send the offer.
+            createPeerConnection();
             setStatus('Joined. Calling the other person…', 'live');
             await maybeMakeOffer();
-          } else {
-            setStatus('Waiting for the other person to join… share the link below.', 'live');
           }
           return;
         }
+        if (msg.type === 'knock') {
+          // Host: someone is waiting in the lobby — show the admit/reject banner.
+          setKnockState('asking');
+          setStatus('Someone is waiting to join — admit or reject below.', 'live');
+          return;
+        }
+        if (msg.type === 'knock-cancelled') {
+          // Pending guest disconnected before we admitted them.
+          setKnockState('idle');
+          setStatus('The person waiting to join left before you decided.', 'err');
+          return;
+        }
         if (msg.type === 'peer-joined') {
-          setStatus('Peer joined — connecting…', 'live');
-          // The initiator is whoever joined SECOND, so we (joined first) are NOT initiator here.
-          // We do nothing; the new peer will send the offer.
+          // Host: guest was admitted AND has actually joined — drop the banner now.
+          setKnockState('idle');
+          setStatus('Peer admitted — connecting…', 'live');
+          if (!pc) createPeerConnection();
           return;
         }
         if (msg.type === 'peer-left') {
           setStatus('The other person left the call.', 'err');
           if (pc) { try { pc.close(); } catch(_) {} pc = null; }
           remoteVid.srcObject = null;
-          remoteTile.classList.remove('live', 'sharing'); remoteEmpty.style.display = '';
+          remoteTile.classList.remove('live', 'sharing', 'audio-only'); remoteEmpty.style.display = '';
+          remoteEmpty.textContent = isHost
+            ? 'Waiting for the other person to join…'
+            : 'Waiting for the other person to join…';
           return;
         }
         if (msg.type === 'screen') {
@@ -333,6 +402,45 @@
       };
     }
 
+    // ---------- Host knock controls ----------
+    function setKnockState(state) {
+      // 'idle'   = banner hidden
+      // 'asking' = "someone is waiting" with Admit / Reject enabled
+      // 'admitting' = banner stays visible, buttons disabled, waiting for the
+      //               other side to actually finish joining the call
+      const grow = knockBanner.querySelector('.grow');
+      if (state === 'idle') {
+        knockBanner.hidden = true;
+        admitBtn.disabled = false; rejectBtn.disabled = false;
+        admitBtn.textContent = '✓ Admit';
+        if (grow) grow.innerHTML = '<strong>👋 Someone is waiting to join.</strong> Only let them in if you\'re expecting them.';
+      } else if (state === 'asking') {
+        knockBanner.hidden = false;
+        admitBtn.disabled = false; rejectBtn.disabled = false;
+        admitBtn.textContent = '✓ Admit';
+        if (grow) grow.innerHTML = '<strong>👋 Someone is waiting to join.</strong> Only let them in if you\'re expecting them.';
+      } else if (state === 'admitting') {
+        knockBanner.hidden = false;
+        admitBtn.disabled = true; rejectBtn.disabled = true;
+        admitBtn.textContent = '⏳ Admitting…';
+        if (grow) grow.innerHTML = '<strong>⏳ Admitting…</strong> Waiting for them to finish connecting.';
+      }
+    }
+    admitBtn.onclick = () => {
+      if (admitBtn.disabled) return;
+      if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'admit' }));
+      // Keep banner visible (in "admitting" state) until the guest actually
+      // joins — only then is the banner removed (on peer-joined).
+      setKnockState('admitting');
+      setStatus('Admitting…', 'live');
+    };
+    rejectBtn.onclick = () => {
+      if (rejectBtn.disabled) return;
+      if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'reject' }));
+      setKnockState('idle');
+      setStatus('Rejected. Still waiting for the other person…', 'live');
+    };
+
     function createPeerConnection() {
       if (pc) return;
       pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
@@ -350,6 +458,15 @@
           remoteTile.classList.add('live');
           remoteEmpty.style.display = 'none';
         }
+        // Detect audio-only remote: show a placeholder instead of a black frame.
+        const stream = ev.streams[0];
+        const updateAudioOnly = () => {
+          const hasVideo = stream.getVideoTracks().some(t => t.readyState === 'live');
+          remoteTile.classList.toggle('audio-only', !hasVideo);
+        };
+        updateAudioOnly();
+        stream.onaddtrack = updateAudioOnly;
+        stream.onremovetrack = updateAudioOnly;
       };
       pc.onicecandidate = (ev) => {
         if (ev.candidate && ws && ws.readyState === 1) {
@@ -397,7 +514,11 @@
     // ---------- Screen sharing (great for IT support) ----------
     const screenBtn = $('screenBtn');
     screenBtn.onclick = async () => {
-      if (!pc || !videoSender) { alert('Connect first.'); return; }
+      if (!pc) { alert('Connect first.'); return; }
+      if (!videoSender) {
+        alert('Screen sharing needs a video channel — start the call with the camera enabled to use it.');
+        return;
+      }
       if (screenStream) { stopScreenShare(); return; }
       try {
         // NOTE: we deliberately do NOT request audio here. Capturing system audio
@@ -560,11 +681,14 @@
       if (ws) { try { ws.close(); } catch(_) {} ws = null; }
       if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
       remoteVid.srcObject = null; localVid.srcObject = null;
-      remoteTile.classList.remove('live', 'sharing'); localTile.classList.remove('live', 'muted', 'sharing');
-      remoteEmpty.style.display = '';
+      remoteTile.classList.remove('live', 'sharing', 'audio-only'); localTile.classList.remove('live', 'muted', 'sharing', 'audio-only');
+      remoteEmpty.style.display = ''; remoteEmpty.textContent = 'Waiting for the other person to join…';
+      setKnockState('idle');
+      isHost = false;
       videoSender = null; cameraTrack = null;
       audioSender = null;
       screenBtn.textContent = '🖥 Share screen';
+      camBtn.disabled = false; camBtn.style.opacity = ''; camBtn.textContent = '📹 Stop camera';
     }
 
     window.addEventListener('beforeunload', cleanup);

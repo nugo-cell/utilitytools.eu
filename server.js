@@ -108,6 +108,7 @@ const TOOLS = [
   { slug: 'video-editor',     name: 'Video Editor (Trim/Rotate)',file: 'tools/video-editor.html',    icon: '🎬',  tags: ['video','design','converter'], desc: 'Trim, rotate, change speed, mute, add text overlay, extract frames, export as WebM. Browser-only.' },
   { slug: 'video-to-audio',   name: 'Video to MP3 / WAV',       file: 'tools/video-to-audio.html',   icon: '🎧',  tags: ['video','converter','music'], desc: 'Extract the audio track from any local video. Trim, choose channels & bitrate, save as MP3 or WAV.' },
   { slug: 'p2p-call',         name: 'P2P Video Call (encrypted)',file: 'tools/p2p-call.html',        icon: '📞',  tags: ['communication','privacy','video'], desc: 'Create a private 1-to-1 video/audio call. Share a link, encrypted end-to-end via WebRTC. No recording, no account.' },
+  { slug: 'p2p-voice',        name: 'P2P Voice Call (encrypted)',file: 'tools/p2p-voice.html',       icon: '🎙',  tags: ['communication','privacy'],  desc: 'Pure voice 1-to-1 call — no camera, just a microphone. Share a link, talk encrypted end-to-end via WebRTC. No account.' },
   { slug: 'temp-chat',        name: 'Temp Chat (E2E encrypted)', file: 'tools/temp-chat.html',       icon: '💬',  tags: ['communication','privacy'],     desc: 'Ephemeral encrypted group chat. Share a link, talk in real-time, close the tab and everything is gone. Up to 10 people.' },
   { slug: 'p2p-file',         name: 'P2P File Transfer (no upload)', file: 'tools/p2p-file.html',    icon: '📁',  tags: ['communication','privacy','documents'], desc: 'Send any file directly browser-to-browser via WebRTC. The file never touches our server — DTLS-encrypted, no size cap, no account.' },
   { slug: 'ip-lookup',        name: 'IP Lookup & Map',          file: 'tools/ip-lookup.html',        icon: '🌐',  tags: ['network','privacy','developer'], desc: 'See your public IP and where it is on a map. Look up any IPv4/IPv6 — country, city, ISP, ASN, timezone.' },
@@ -370,29 +371,70 @@ wss.on('connection', (ws, req) => {
     return;
   }
 
-  const isInitiator = peers.size === 1; // 2nd to join initiates the WebRTC offer
+  // First peer is the HOST (room creator). Second peer "knocks" and must be
+  // admitted by the host before any signaling is relayed. This stops random
+  // people who got the link from silently joining a call already in progress.
+  const isHost = peers.size === 0;
+  ws._isHost   = isHost;
+  ws._pending  = !isHost;
   peers.add(ws);
-  try { ws.send(JSON.stringify({ type: 'init', initiator: isInitiator, peers: peers.size })); } catch(_) {}
-  // Tell the existing peer that someone joined
-  for (const p of peers) {
-    if (p !== ws && p.readyState === 1) {
-      try { p.send(JSON.stringify({ type: 'peer-joined' })); } catch(_) {}
+
+  if (isHost) {
+    // Host is not the WebRTC initiator — the joiner sends the offer
+    // after being admitted (so we know joiner's media is ready).
+    try { ws.send(JSON.stringify({ type: 'init', initiator: false, host: true, peers: peers.size })); } catch(_) {}
+  } else {
+    try { ws.send(JSON.stringify({ type: 'waiting' })); } catch(_) {}
+    for (const p of peers) {
+      if (p !== ws && p.readyState === 1) {
+        try { p.send(JSON.stringify({ type: 'knock' })); } catch(_) {}
+      }
     }
   }
 
   ws.on('message', data => {
-    // Relay any signaling payload (SDP / ICE / chat) to the OTHER peer only.
+    // Relay any signaling payload (SDP / ICE) to the OTHER peer only.
     const text = data.toString();
     if (text.length > 64 * 1024) return; // 64KB hard cap per message
+
+    // Inspect small messages for host control commands (admit / reject).
+    let parsed = null;
+    if (text.length < 2048) { try { parsed = JSON.parse(text); } catch(_) {} }
+
+    if (parsed && (parsed.type === 'admit' || parsed.type === 'reject')) {
+      if (!ws._isHost) return; // only host can admit/reject
+      for (const p of peers) {
+        if (p === ws || !p._pending) continue;
+        if (parsed.type === 'admit') {
+          p._pending = false;
+          // Joiner becomes the WebRTC initiator now that both are ready.
+          try { p.send(JSON.stringify({ type: 'init', initiator: true, host: false, peers: peers.size })); } catch(_) {}
+          try { ws.send(JSON.stringify({ type: 'peer-joined' })); } catch(_) {}
+        } else {
+          try { p.send(JSON.stringify({ type: 'rejected' })); } catch(_) {}
+          try { p.close(1000, 'rejected by host'); } catch(_) {}
+        }
+      }
+      return;
+    }
+
+    // Never relay signaling from / to a peer that hasn't been admitted yet.
+    if (ws._pending) return;
     for (const p of peers) {
-      if (p !== ws && p.readyState === 1) { try { p.send(text); } catch(_) {} }
+      if (p !== ws && p.readyState === 1 && !p._pending) {
+        try { p.send(text); } catch(_) {}
+      }
     }
   });
 
   ws.on('close', () => {
+    const wasPending = ws._pending;
     peers.delete(ws);
     for (const p of peers) {
-      if (p.readyState === 1) { try { p.send(JSON.stringify({ type: 'peer-left' })); } catch(_) {} }
+      if (p.readyState !== 1) continue;
+      try {
+        p.send(JSON.stringify({ type: wasPending ? 'knock-cancelled' : 'peer-left' }));
+      } catch(_) {}
     }
     if (peers.size === 0) rooms.delete(room);
   });

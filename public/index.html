@@ -243,12 +243,12 @@
     // Tools we recommend on first visit — most-used, broad-appeal utilities.
     // ORDER MATTERS: this is also the display order of favorites at the top of the grid.
     const DEFAULT_FAVS = [
-      'p2p-file', 'p2p-call', 'temp-chat', 'timezones', 'ip-lookup', 'password', 'qr', 'cv',
+      'p2p-file', 'p2p-call', 'p2p-voice', 'temp-chat', 'timezones', 'ip-lookup', 'password', 'qr', 'cv',
       'scramble', 'encrypt', 'img-compress', 'json-to-code', 'json'
     ];
     const FAV_KEY = 'utilitytools.favs';
     const FAV_SEEDED_KEY = 'utilitytools.favs.seeded';
-    const SEED_VERSION = '8'; // bump whenever DEFAULT_FAVS changes
+    const SEED_VERSION = '9'; // bump whenever DEFAULT_FAVS changes
 
     // Seed/top-up defaults whenever the visitor has not yet seen the current
     // SEED_VERSION. We always *add* (union) — never remove — so a user who

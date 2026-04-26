@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P2P Voice Call — Encrypted, No Camera, No Account · Utility Tools</title>
+  <meta name="description" content="Free 1-to-1 encrypted voice call in your browser. Just a microphone — no camera, no app, no account. Share a link, talk privately. End-to-end via WebRTC.">
+  <meta name="keywords" content="p2p voice call, encrypted voice call, browser voice chat, audio only call, no signup voice call, private voice call, walkie talkie browser">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="/p2p-voice">
+  <meta property="og:title" content="P2P Voice Call — Encrypted, No Camera">
+  <meta property="og:url" content="/p2p-voice">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .vc-stage{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-top:18px;
+    }
+    .vc-tile{
+      position:relative;background:linear-gradient(160deg,#0e1024,#171a35);
+      border:2px solid var(--border);border-radius:14px;padding:28px 16px;text-align:center;
+      transition:border-color .2s, box-shadow .2s;
+    }
+    .vc-tile.live{border-color:var(--accent)}
+    .vc-tile.speaking{border-color:#22c39a;box-shadow:0 0 0 4px rgba(34,195,154,.18)}
+    .vc-avatar{
+      width:96px;height:96px;border-radius:50%;margin:0 auto 14px;
+      display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:800;
+      background:linear-gradient(135deg,#7c5cff,#22c39a);color:#fff;
+      box-shadow:0 4px 18px rgba(124,92,255,.35);position:relative;
+    }
+    .vc-tile.speaking .vc-avatar::after{
+      content:"";position:absolute;inset:-8px;border-radius:50%;
+      border:2px solid rgba(34,195,154,.55);animation:vcRing 1.2s ease-out infinite;
+    }
+    @keyframes vcRing{0%{transform:scale(.85);opacity:.9}100%{transform:scale(1.25);opacity:0}}
+    .vc-name{font-size:16px;font-weight:700;color:var(--text)}
+    .vc-state{font-size:13px;color:var(--muted);margin-top:4px;min-height:18px}
+    .vc-tile.muted .vc-state::before{content:"🎙 Muted · ";color:#ff7a90;font-weight:700}
+    .vc-meter{
+      height:4px;border-radius:3px;background:rgba(255,255,255,.08);margin:12px auto 0;max-width:160px;overflow:hidden;
+    }
+    .vc-meter > i{
+      display:block;height:100%;width:0;background:linear-gradient(90deg,#22c39a,#7c5cff);
+      transition:width .08s linear;border-radius:3px;
+    }
+    .vc-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;justify-content:center}
+    .vc-actions button.btn-secondary{background:var(--panel-2);color:var(--text);border:1px solid var(--border)}
+    .vc-actions button.btn-danger{background:#ff5e7e;color:#fff;border:0}
+    .vc-actions button.btn-danger:hover{background:#ff3a5e}
+    .vc-share{display:flex;align-items:stretch;gap:0;margin-top:10px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+    .vc-share input{flex:1;border:0;background:var(--panel-2);color:var(--text);padding:10px 12px;font-family:var(--mono);font-size:13px}
+    .vc-share input:focus{outline:0}
+    .vc-share button{border:0;border-radius:0;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff;font-weight:600}
+    .vc-share button:hover{filter:brightness(1.1)}
+    .vc-status{font-size:13px;color:var(--muted);margin-top:10px;min-height:18px}
+    .vc-status .ok{color:var(--success);font-weight:600}
+    .vc-status .err{color:var(--danger);font-weight:600}
+    .vc-status .live{color:var(--accent);font-weight:600}
+    .vc-info{
+      background:linear-gradient(135deg,rgba(0,212,170,.08),rgba(124,92,255,.08));
+      border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--muted);margin-top:14px;
+    }
+    .vc-info b{color:var(--text)}
+    .vc-info .lock{color:var(--success);font-weight:700}
+    .vc-start-buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+    .vc-devices{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;
+      margin-top:12px;padding:12px;border:1px dashed var(--border);border-radius:10px;
+      background:linear-gradient(135deg,rgba(124,92,255,.05),rgba(0,212,170,.05));
+    }
+    .vc-devices label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+    .vc-devices select{width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--panel-2);color:var(--text);font-size:13px}
+    .vc-devices select:focus{outline:0;border-color:var(--accent)}
+    .vc-knock{
+      display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px;
+      padding:12px 14px;border:1px solid var(--accent);border-radius:10px;
+      background:linear-gradient(135deg,rgba(0,212,170,.12),rgba(124,92,255,.12));
+      animation:vcPulse 1.4s ease-in-out infinite;
+    }
+    .vc-knock strong{color:var(--text)}
+    .vc-knock .grow{flex:1;min-width:180px;color:var(--text);font-size:14px}
+    .vc-knock button{padding:8px 14px;font-size:13px}
+    .vc-knock button.btn-danger{background:#ff5e7e;color:#fff;border:0}
+    @keyframes vcPulse{0%,100%{box-shadow:0 0 0 0 rgba(124,92,255,.4)}50%{box-shadow:0 0 0 8px rgba(124,92,255,0)}}
+    /* The class rules above set display:flex/grid which would otherwise win over
+       the UA stylesheet's [hidden]{display:none}. Re-state hidden=hidden here. */
+    .vc-knock[hidden], .vc-devices[hidden], .vc-stage[hidden], .vc-actions[hidden]{display:none}
+    .vc-toast{
+      position:fixed;left:50%;bottom:30px;transform:translateX(-50%);
+      background:var(--panel);border:1px solid var(--accent);color:var(--text);
+      padding:10px 18px;border-radius:8px;font-size:14px;z-index:1000;
+      box-shadow:var(--shadow-soft);opacity:0;transition:opacity .2s, transform .2s;pointer-events:none;
+    }
+    .vc-toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
+    .vc-timer{font-family:var(--mono);font-size:14px;color:var(--muted);margin-top:8px}
+    .vc-timer.live{color:var(--success);font-weight:700}
+  </style>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>P2P Voice Call <span style="font-size:14px;font-weight:500;color:var(--success)">🔒 end-to-end encrypted</span></h1>
+      <p>Free, private 1-to-1 <b>voice-only</b> call. Just a microphone — no camera, no app, no account. Audio flows directly between your two browsers, encrypted end-to-end via WebRTC. Want video? <a href="/p2p-call">Use the video call tool</a>.</p>
+    </div>
+
+    <!-- LOBBY -->
+    <div class="panel" id="lobby">
+      <h3 style="margin-top:0">Start a voice call</h3>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 10px">
+        Create a new private room and send the link to the other person. Up to 2 people per room. Your microphone is required; the camera is never asked for.
+      </p>
+      <div class="vc-start-buttons">
+        <button id="createBtn" type="button">📞 Create new call</button>
+        <button id="joinBtn"   type="button" class="btn-secondary" style="background:var(--panel-2);color:var(--text);border:1px solid var(--border)">🔗 Join with a link / room ID</button>
+      </div>
+      <div class="vc-info">
+        <b class="lock">🔒 What "encrypted" means here:</b> WebRTC mandates DTLS-SRTP encryption for all audio between peers. The relay server only forwards a few signaling messages so the two browsers can find each other — it never sees, stores, or has the keys for your call. <b>Hosted on DigitalOcean Frankfurt 🇩🇪 · GDPR-friendly · zero logs.</b>
+      </div>
+    </div>
+
+    <!-- CALL -->
+    <div class="panel" id="callPanel" hidden>
+      <h3 style="margin-top:0">Room: <span id="roomLabel" style="font-family:var(--mono);color:var(--accent)"></span></h3>
+      <div class="vc-share">
+        <input id="shareLink" type="text" readonly>
+        <button id="copyLink" type="button">Copy link</button>
+      </div>
+      <p class="vc-status" id="status"></p>
+      <div class="vc-timer" id="timer">Not connected</div>
+
+      <div class="vc-knock" id="knockBanner" hidden>
+        <span class="grow"><strong>👋 Someone is waiting to join.</strong> Only let them in if you're expecting them.</span>
+        <button id="admitBtn" type="button">✓ Admit</button>
+        <button id="rejectBtn" type="button" class="btn-danger">✕ Reject</button>
+      </div>
+
+      <div class="vc-stage">
+        <div class="vc-tile live" id="localTile">
+          <div class="vc-avatar" id="localAvatar">🙂</div>
+          <div class="vc-name">You</div>
+          <div class="vc-state" id="localState">Ready</div>
+          <div class="vc-meter"><i id="localMeter"></i></div>
+        </div>
+        <div class="vc-tile" id="remoteTile">
+          <div class="vc-avatar" id="remoteAvatar">👤</div>
+          <div class="vc-name">Peer</div>
+          <div class="vc-state" id="remoteState">Waiting…</div>
+          <div class="vc-meter"><i id="remoteMeter"></i></div>
+        </div>
+      </div>
+
+      <!-- Hidden audio sink for the remote stream. Hidden because we render our own UI. -->
+      <audio id="remoteAudio" autoplay playsinline style="display:none"></audio>
+
+      <div class="vc-actions">
+        <button id="micBtn"     type="button">🎙 Mute mic</button>
+        <button id="devicesBtn" type="button" class="btn-secondary">⚙ Devices</button>
+        <button id="hangBtn"    type="button" class="btn-danger">📞 Hang up</button>
+      </div>
+
+      <div class="vc-devices" id="devicesPanel" hidden>
+        <div>
+          <label for="micSel">🎙 Microphone</label>
+          <select id="micSel"></select>
+        </div>
+        <div>
+          <label for="spkSel">🔊 Speaker (output)</label>
+          <select id="spkSel"></select>
+        </div>
+      </div>
+
+      <div class="vc-info">
+        <b>How it works:</b> WebRTC opens a direct, encrypted audio channel between the two browsers. Our server only relays a small "introduction" (SDP/ICE) so the browsers can find each other through routers/firewalls. We use Google's free public STUN servers. <b>If you're behind a strict corporate or double-NAT mobile network, the connection may fail</b> — try a different network or a personal hotspot.
+      </div>
+    </div>
+  </main>
+
+  <div class="vc-toast" id="toast"></div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const lobby = $('lobby'), callPanel = $('callPanel');
+    const remoteAudio = $('remoteAudio');
+    const localTile = $('localTile'), remoteTile = $('remoteTile');
+    const localState = $('localState'), remoteState = $('remoteState');
+    const localMeter = $('localMeter'), remoteMeter = $('remoteMeter');
+    const status = $('status'), shareLink = $('shareLink'), roomLabel = $('roomLabel');
+    const micBtn = $('micBtn'), hangBtn = $('hangBtn');
+    const knockBanner = $('knockBanner'), admitBtn = $('admitBtn'), rejectBtn = $('rejectBtn');
+    const timerEl = $('timer');
+
+    let ws = null, pc = null, localStream = null;
+    let isInitiator = false, makingOffer = false, ignoreOffer = false, polite = true;
+    let isHost = false;
+    let roomId = null;
+    let audioSender = null;
+    let currentMicId = null, currentSpkId = null;
+    let localCtx = null, remoteCtx = null;
+    let callStartedAt = 0, timerHandle = null;
+    const DEV_KEY = 'utilitytools.p2pvoice.devices';
+
+    const ICE_SERVERS = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' }
+    ];
+
+    // ---------- helpers ----------
+    function genRoomId() {
+      const a = new Uint8Array(9);
+      crypto.getRandomValues(a);
+      return btoa(String.fromCharCode(...a)).replace(/[+/=]/g, c => ({'+':'-','/':'_','=':''}[c])).slice(0, 12);
+    }
+    function setStatus(msg, kind) { status.innerHTML = msg ? `<span class="${kind || ''}">${msg}</span>` : ''; }
+    function toast(msg) {
+      const t = $('toast'); t.textContent = msg; t.classList.add('show');
+      clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 1800);
+    }
+    function fmtDuration(ms) {
+      const s = Math.floor(ms / 1000);
+      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+      const pad = n => String(n).padStart(2, '0');
+      return h ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
+    }
+    function startTimer() {
+      callStartedAt = Date.now();
+      timerEl.classList.add('live');
+      clearInterval(timerHandle);
+      const tick = () => { timerEl.textContent = '🟢 ' + fmtDuration(Date.now() - callStartedAt); };
+      tick();
+      timerHandle = setInterval(tick, 1000);
+    }
+    function stopTimer() {
+      clearInterval(timerHandle); timerHandle = null;
+      timerEl.classList.remove('live');
+      timerEl.textContent = callStartedAt ? 'Call ended · ' + fmtDuration(Date.now() - callStartedAt) : 'Not connected';
+    }
+
+    // ---------- entry points ----------
+    $('createBtn').onclick = async () => {
+      const id = genRoomId();
+      location.hash = id;
+      await enterRoom(id);
+    };
+    $('joinBtn').onclick = async () => {
+      const v = prompt('Paste the call link or room ID:');
+      if (!v) return;
+      let id = v.trim();
+      const m = id.match(/#([A-Za-z0-9_-]{4,64})/);
+      if (m) id = m[1];
+      if (!/^[A-Za-z0-9_-]{4,64}$/.test(id)) { alert('That does not look like a valid room ID.'); return; }
+      location.hash = id;
+      await enterRoom(id);
+    };
+    if (location.hash && /^#[A-Za-z0-9_-]{4,64}$/.test(location.hash)) {
+      enterRoom(location.hash.slice(1)).catch(e => alert('Could not start: ' + e.message));
+    }
+
+    // ---------- main flow ----------
+    async function enterRoom(id) {
+      roomId = id;
+      roomLabel.textContent = id;
+      shareLink.value = location.origin + '/p2p-voice#' + id;
+      lobby.hidden = true;
+      callPanel.hidden = false;
+      setStatus('Requesting microphone access…');
+
+      try {
+        const saved = JSON.parse(localStorage.getItem(DEV_KEY) || '{}');
+        currentMicId = saved.mic || null;
+        currentSpkId = saved.spk || null;
+      } catch(_) {}
+
+      try {
+        // VOICE-ONLY by design — we never request the camera.
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: false,
+          audio: currentMicId
+            ? { deviceId: { exact: currentMicId }, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+            : { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+        });
+      } catch (e) {
+        setStatus('Could not access microphone: ' + e.message, 'err');
+        return;
+      }
+
+      attachLocalMeter(localStream);
+      localState.textContent = 'Mic ready';
+
+      await populateDevices();
+      navigator.mediaDevices.addEventListener('devicechange', populateDevices);
+
+      connectSignaling(id);
+    }
+
+    function connectSignaling(id) {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      ws = new WebSocket(`${proto}://${location.host}/ws/p2p?room=${encodeURIComponent(id)}`);
+
+      ws.onopen  = () => setStatus('Connecting to room…');
+      ws.onerror = () => setStatus('Signaling connection failed.', 'err');
+      ws.onclose = () => {};
+      ws.onmessage = async (ev) => {
+        let msg;
+        try { msg = JSON.parse(ev.data); } catch (_) { return; }
+
+        if (msg.type === 'full') {
+          setStatus('This room is already full (2 people max). Create a new one.', 'err');
+          cleanup(); lobby.hidden = false; callPanel.hidden = true;
+          return;
+        }
+        if (msg.type === 'waiting') {
+          remoteState.textContent = '🔒 Waiting for the host to let you in…';
+          setStatus('Knocking on the door — waiting for the host to admit you…', 'live');
+          return;
+        }
+        if (msg.type === 'rejected') {
+          setStatus('The host did not let you in.', 'err');
+          remoteState.textContent = '✕ Rejected by host';
+          cleanup(); return;
+        }
+        if (msg.type === 'init') {
+          isInitiator = !!msg.initiator;
+          isHost      = !!msg.host;
+          polite      = !isInitiator;
+          if (isHost) {
+            setStatus('Waiting for the other person to join — share the link below.', 'live');
+            remoteState.textContent = 'Waiting…';
+          } else {
+            createPeerConnection();
+            setStatus('Joined. Calling the other person…', 'live');
+            await maybeMakeOffer();
+          }
+          return;
+        }
+        if (msg.type === 'knock') {
+          setKnockState('asking');
+          setStatus('Someone is waiting to join — admit or reject below.', 'live');
+          return;
+        }
+        if (msg.type === 'knock-cancelled') {
+          setKnockState('idle');
+          setStatus('The person waiting to join left before you decided.', 'err');
+          return;
+        }
+        if (msg.type === 'peer-joined') {
+          // Guest was admitted AND has actually joined — only now drop the banner.
+          setKnockState('idle');
+          setStatus('Peer admitted — connecting…', 'live');
+          if (!pc) createPeerConnection();
+          return;
+        }
+        if (msg.type === 'peer-left') {
+          setStatus('The other person left the call.', 'err');
+          if (pc) { try { pc.close(); } catch(_) {} pc = null; }
+          remoteAudio.srcObject = null;
+          remoteTile.classList.remove('live', 'speaking', 'muted');
+          remoteState.textContent = 'Disconnected';
+          stopTimer();
+          stopRemoteMeter();
+          return;
+        }
+
+        // Otherwise it's a relayed signaling payload (offer / answer / ICE).
+        if (!pc) createPeerConnection();
+        try {
+          if (msg.sdp) {
+            const offerCollision = msg.sdp.type === 'offer' && (makingOffer || pc.signalingState !== 'stable');
+            ignoreOffer = !polite && offerCollision;
+            if (ignoreOffer) return;
+            await pc.setRemoteDescription(msg.sdp);
+            if (msg.sdp.type === 'offer') {
+              await pc.setLocalDescription();
+              ws.send(JSON.stringify({ sdp: pc.localDescription }));
+            }
+          } else if (msg.candidate) {
+            try { await pc.addIceCandidate(msg.candidate); }
+            catch (e) { if (!ignoreOffer) throw e; }
+          }
+        } catch (e) {
+          console.warn('signaling error:', e);
+        }
+      };
+    }
+
+    // ---------- Host knock controls ----------
+    function setKnockState(state) {
+      // 'idle' / 'asking' / 'admitting' — see p2p-call.html for full notes.
+      const grow = knockBanner.querySelector('.grow');
+      if (state === 'idle') {
+        knockBanner.hidden = true;
+        admitBtn.disabled = false; rejectBtn.disabled = false;
+        admitBtn.textContent = '✓ Admit';
+        if (grow) grow.innerHTML = '<strong>👋 Someone is waiting to join.</strong> Only let them in if you\'re expecting them.';
+      } else if (state === 'asking') {
+        knockBanner.hidden = false;
+        admitBtn.disabled = false; rejectBtn.disabled = false;
+        admitBtn.textContent = '✓ Admit';
+        if (grow) grow.innerHTML = '<strong>👋 Someone is waiting to join.</strong> Only let them in if you\'re expecting them.';
+      } else if (state === 'admitting') {
+        knockBanner.hidden = false;
+        admitBtn.disabled = true; rejectBtn.disabled = true;
+        admitBtn.textContent = '⏳ Admitting…';
+        if (grow) grow.innerHTML = '<strong>⏳ Admitting…</strong> Waiting for them to finish connecting.';
+      }
+    }
+    admitBtn.onclick = () => {
+      if (admitBtn.disabled) return;
+      if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'admit' }));
+      // Keep banner visible until the guest actually completes joining.
+      setKnockState('admitting');
+      setStatus('Admitting…', 'live');
+    };
+    rejectBtn.onclick = () => {
+      if (rejectBtn.disabled) return;
+      if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'reject' }));
+      setKnockState('idle');
+      setStatus('Rejected. Still waiting for the other person…', 'live');
+    };
+
+    function createPeerConnection() {
+      if (pc) return;
+      pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+
+      // Audio only — never add a video track.
+      for (const t of localStream.getTracks()) {
+        if (t.kind !== 'audio') continue;
+        audioSender = pc.addTrack(t, localStream);
+      }
+
+      pc.ontrack = (ev) => {
+        // We only care about the audio track.
+        const stream = ev.streams[0];
+        if (remoteAudio.srcObject !== stream) {
+          remoteAudio.srcObject = stream;
+          // Re-apply the chosen output device, if the browser supports setSinkId.
+          if (currentSpkId && typeof remoteAudio.setSinkId === 'function') {
+            remoteAudio.setSinkId(currentSpkId).catch(() => {});
+          }
+          remoteTile.classList.add('live');
+          remoteState.textContent = 'Connected';
+          attachRemoteMeter(stream);
+        }
+      };
+      pc.onicecandidate = (ev) => {
+        if (ev.candidate && ws && ws.readyState === 1) {
+          ws.send(JSON.stringify({ candidate: ev.candidate }));
+        }
+      };
+      pc.onnegotiationneeded = maybeMakeOffer;
+      pc.onconnectionstatechange = () => {
+        const st = pc.connectionState;
+        if (st === 'connected') {
+          setStatus('🟢 Connected — call is live and encrypted (DTLS-SRTP).', 'ok');
+          startTimer();
+        } else if (st === 'connecting') {
+          setStatus('Establishing encrypted P2P connection…', 'live');
+        } else if (st === 'failed') {
+          setStatus('Connection failed (likely a strict NAT/firewall). Try a different network.', 'err');
+          stopTimer();
+        } else if (st === 'disconnected') {
+          setStatus('Connection interrupted — trying to recover…', 'err');
+        }
+      };
+    }
+
+    async function maybeMakeOffer() {
+      if (!pc) return;
+      try {
+        makingOffer = true;
+        await pc.setLocalDescription();
+        ws.send(JSON.stringify({ sdp: pc.localDescription }));
+      } catch (e) {
+        console.warn('offer error', e);
+      } finally {
+        makingOffer = false;
+      }
+    }
+
+    // ---------- Audio level meters (visual "speaking" indicator) ----------
+    function makeMeter(stream, onLevel) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const src = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 512; analyser.smoothingTimeConstant = 0.6;
+        src.connect(analyser);
+        const buf = new Uint8Array(analyser.frequencyBinCount);
+        let raf = 0;
+        const loop = () => {
+          analyser.getByteTimeDomainData(buf);
+          // RMS deviation from 128 (silence centre) → 0..1 level
+          let sum = 0;
+          for (let i = 0; i < buf.length; i++) {
+            const v = (buf[i] - 128) / 128; sum += v * v;
+          }
+          const rms = Math.sqrt(sum / buf.length);
+          onLevel(Math.min(1, rms * 2.2));
+          raf = requestAnimationFrame(loop);
+        };
+        loop();
+        return { ctx, stop: () => { cancelAnimationFrame(raf); try { src.disconnect(); } catch(_){} try { ctx.close(); } catch(_){} } };
+      } catch (e) {
+        console.warn('meter failed', e);
+        return { stop() {} };
+      }
+    }
+    function attachLocalMeter(stream) {
+      stopLocalMeter();
+      localCtx = makeMeter(stream, lvl => {
+        localMeter.style.width = (lvl * 100).toFixed(0) + '%';
+        // Don't flash "speaking" if user is muted.
+        const muted = localTile.classList.contains('muted');
+        localTile.classList.toggle('speaking', !muted && lvl > 0.08);
+      });
+    }
+    function stopLocalMeter() { if (localCtx) { localCtx.stop(); localCtx = null; } localMeter.style.width = '0'; }
+    function attachRemoteMeter(stream) {
+      stopRemoteMeter();
+      remoteCtx = makeMeter(stream, lvl => {
+        remoteMeter.style.width = (lvl * 100).toFixed(0) + '%';
+        remoteTile.classList.toggle('speaking', lvl > 0.08);
+      });
+    }
+    function stopRemoteMeter() { if (remoteCtx) { remoteCtx.stop(); remoteCtx = null; } remoteMeter.style.width = '0'; }
+
+    // ---------- controls ----------
+    micBtn.onclick = () => {
+      if (!localStream) return;
+      const track = localStream.getAudioTracks()[0]; if (!track) return;
+      track.enabled = !track.enabled;
+      localTile.classList.toggle('muted', !track.enabled);
+      micBtn.textContent = track.enabled ? '🎙 Mute mic' : '🎙 Unmute mic';
+    };
+
+    // ---------- Device selection ----------
+    const devicesBtn = $('devicesBtn'), devicesPanel = $('devicesPanel');
+    const micSel = $('micSel'), spkSel = $('spkSel');
+    devicesBtn.onclick = () => { devicesPanel.hidden = !devicesPanel.hidden; if (!devicesPanel.hidden) populateDevices(); };
+
+    async function populateDevices() {
+      let devs = [];
+      try { devs = await navigator.mediaDevices.enumerateDevices(); } catch(_) { return; }
+      const fill = (sel, kind, current) => {
+        const list = devs.filter(d => d.kind === kind);
+        sel.innerHTML = list.map((d, i) =>
+          `<option value="${d.deviceId}">${d.label || (kind + ' ' + (i+1))}</option>`
+        ).join('') || `<option value="">(none available)</option>`;
+        if (current && list.some(d => d.deviceId === current)) sel.value = current;
+      };
+      fill(micSel, 'audioinput', currentMicId);
+      fill(spkSel, 'audiooutput', currentSpkId);
+      if (typeof remoteAudio.setSinkId !== 'function') {
+        spkSel.parentElement.style.display = 'none';
+      }
+    }
+    function saveDevices() {
+      try { localStorage.setItem(DEV_KEY, JSON.stringify({ mic: currentMicId, spk: currentSpkId })); } catch(_) {}
+    }
+    micSel.onchange = async () => {
+      const id = micSel.value; if (!id) return;
+      currentMicId = id; saveDevices();
+      try {
+        const ns = await navigator.mediaDevices.getUserMedia({
+          audio: { deviceId: { exact: id }, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+          video: false
+        });
+        const newTrack = ns.getAudioTracks()[0]; if (!newTrack) return;
+        if (localStream) {
+          const old = localStream.getAudioTracks()[0];
+          if (old) { try { localStream.removeTrack(old); old.stop(); } catch(_) {} }
+          localStream.addTrack(newTrack);
+        }
+        if (audioSender) await audioSender.replaceTrack(newTrack);
+        attachLocalMeter(localStream);
+        toast('🎙 Microphone switched');
+      } catch (e) { alert('Could not switch mic: ' + e.message); }
+    };
+    spkSel.onchange = async () => {
+      const id = spkSel.value; if (!id) return;
+      currentSpkId = id; saveDevices();
+      try { await remoteAudio.setSinkId(id); toast('🔊 Speaker switched'); }
+      catch (e) { alert('Could not switch speaker: ' + e.message); }
+    };
+
+    hangBtn.onclick = () => {
+      cleanup();
+      setStatus('Call ended.', 'err');
+      lobby.hidden = false; callPanel.hidden = true;
+      history.replaceState(null, '', location.pathname);
+    };
+
+    function cleanup() {
+      stopTimer();
+      stopLocalMeter(); stopRemoteMeter();
+      if (pc) { try { pc.close(); } catch(_) {} pc = null; }
+      if (ws) { try { ws.close(); } catch(_) {} ws = null; }
+      if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+      remoteAudio.srcObject = null;
+      remoteTile.classList.remove('live', 'speaking', 'muted');
+      localTile.classList.remove('speaking', 'muted');
+      remoteState.textContent = 'Waiting…';
+      setKnockState('idle');
+      isHost = false; audioSender = null;
+      micBtn.textContent = '🎙 Mute mic';
+    }
+
+    window.addEventListener('beforeunload', cleanup);
+
+    $('copyLink').onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(shareLink.value);
+        toast('🔗 Link copied — send it to the other person');
+      } catch(_) {
+        shareLink.select(); document.execCommand('copy');
+        toast('Link copied');
+      }
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+
+
