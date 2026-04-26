@@ -3,13 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>English to Morse Code Translator (with Audio) · Utility Tools</title>
-  <meta name="description" content="Free English to Morse code translator. Encode, decode, copy, and play audible Morse beeps using the Web Audio API. 100% browser-based.">
-  <meta name="keywords" content="english to morse code, morse code translator, morse code generator, decode morse code, morse code audio">
-  <meta name="robots" content="index,follow">
-  <link rel="canonical" href="/morse">
-  <meta property="og:title" content="English to Morse Code Translator">
-  <meta property="og:url" content="/morse">
   <link rel="stylesheet" href="/styles.css">
   <style>
     .tt-out{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px;min-height:64px;font-family:var(--mono);font-size:15px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
@@ -20,13 +13,57 @@
     .faq-item{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
     .faq-item h3{margin:0 0 6px;font-size:15px}.faq-item p{margin:0;color:var(--muted);font-size:14px}
   </style>
-  <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
-    {"@type":"Question","name":"How do I read Morse code?","acceptedAnswer":{"@type":"Answer","text":"A dot (.) is a short signal, a dash (-) is roughly three times longer. Letters are separated by single spaces, words by a forward slash (/)."}},
-    {"@type":"Question","name":"Can I decode Morse back to English?","acceptedAnswer":{"@type":"Answer","text":"Yes — paste Morse code into the input box and click Decode. The translator handles letters, digits and 18 punctuation marks."}},
-    {"@type":"Question","name":"Why does playback need a click first?","acceptedAnswer":{"@type":"Answer","text":"Modern browsers block audio until the user interacts with the page. Pressing Play creates the AudioContext and starts the beeps."}}
-  ]}
-  </script>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>Morse Code Translator — English ⇄ Morse</title>
+  <meta name="description" content="Translate English to Morse code and back. Audio playback, free, in-browser.">
+  <meta name="keywords" content="morse code translator, english to morse, morse to english, morse code, morse audio">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/morse">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="Morse Code Translator — English ⇄ Morse">
+  <meta property="og:description" content="Translate English to Morse code and back. Audio playback, free, in-browser.">
+  <meta property="og:url" content="https://utilitytools.eu/morse">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Morse Code Translator — English ⇄ Morse">
+  <meta name="twitter:description" content="Translate English to Morse code and back. Audio playback, free, in-browser.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "English ⇄ Morse Code Translator",
+  "description": "Translate English to Morse code and back. Audio playback, free, in-browser.",
+  "url": "https://utilitytools.eu/morse",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "Any (Web)",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "UtilityTools.eu",
+    "url": "https://utilitytools.eu"
+  }
+}</script>
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Speed control?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes."
+      }
+    }
+  ]
+}</script>
+  <!-- SEO:END -->
 </head>
 <body>
   <header class="topnav">

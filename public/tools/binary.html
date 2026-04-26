@@ -3,13 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>English to Binary Translator (UTF-8) · Utility Tools</title>
-  <meta name="description" content="Free English to binary translator. Convert text to 8-bit UTF-8 binary in three styles, or decode binary back to text. Browser-only.">
-  <meta name="keywords" content="english to binary, text to binary, binary translator, ascii to binary, utf-8 binary, decode binary">
-  <meta name="robots" content="index,follow">
-  <link rel="canonical" href="/binary">
-  <meta property="og:title" content="English to Binary Translator">
-  <meta property="og:url" content="/binary">
   <link rel="stylesheet" href="/styles.css">
   <style>
     .tt-out{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px;min-height:64px;font-family:var(--mono);font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
@@ -20,13 +13,57 @@
     .faq-item{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
     .faq-item h3{margin:0 0 6px;font-size:15px}.faq-item p{margin:0;color:var(--muted);font-size:14px}
   </style>
-  <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
-    {"@type":"Question","name":"Is this ASCII or UTF-8?","acceptedAnswer":{"@type":"Answer","text":"Both. Plain English letters are identical in ASCII and UTF-8 (one byte each). Non-ASCII characters such as emoji or accented letters are encoded as their UTF-8 multi-byte sequence."}},
-    {"@type":"Question","name":"Can I paste binary back to get text?","acceptedAnswer":{"@type":"Answer","text":"Yes. Paste any 0s and 1s — spaces are ignored. Click Decode to turn the bits back into the original UTF-8 text."}},
-    {"@type":"Question","name":"What does 'grouped by word' do?","acceptedAnswer":{"@type":"Answer","text":"It encodes each whitespace-separated word independently and joins them with two spaces, so you can see word boundaries clearly."}}
-  ]}
-  </script>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>English to Binary Translator — Free Online</title>
+  <meta name="description" content="Convert English text to binary and back. ASCII or UTF-8. Free, in-browser.">
+  <meta name="keywords" content="english to binary, binary translator, text to binary, binary to text, ascii to binary">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/binary">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="English to Binary Translator — Free Online">
+  <meta property="og:description" content="Convert English text to binary and back. ASCII or UTF-8. Free, in-browser.">
+  <meta property="og:url" content="https://utilitytools.eu/binary">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="English to Binary Translator — Free Online">
+  <meta name="twitter:description" content="Convert English text to binary and back. ASCII or UTF-8. Free, in-browser.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "English ⇄ Binary Translator",
+  "description": "Convert English text to binary and back. ASCII or UTF-8. Free, in-browser.",
+  "url": "https://utilitytools.eu/binary",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "Any (Web)",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "UtilityTools.eu",
+    "url": "https://utilitytools.eu"
+  }
+}</script>
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "UTF-8?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes."
+      }
+    }
+  ]
+}</script>
+  <!-- SEO:END -->
 </head>
 <body>
   <header class="topnav"><a href="/" class="brand">Utility<span>Tools</span></a><nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav></header>

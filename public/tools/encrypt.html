@@ -3,14 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>File Encryption Tool — AES-256-GCM, Browser-Only · Utility Tools</title>
-  <meta name="description" content="Free file encryption tool. Encrypt any file with a randomly generated AES-256 key — the file can only be opened with that key. 100% in your browser, nothing uploaded.">
-  <meta name="keywords" content="file encryption, encrypt file online, AES-256, decrypt file, browser encryption, free file encryption tool, secure file lock">
-  <meta name="robots" content="index,follow">
-  <link rel="canonical" href="/encrypt">
-  <meta property="og:title" content="File Encryption Tool — AES-256-GCM">
-  <meta property="og:description" content="Encrypt any file with a generated key. Decrypt only with that key. Browser-only — nothing leaves your device.">
-  <meta property="og:url" content="/encrypt">
   <link rel="stylesheet" href="/styles.css">
   <style>
     .tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
@@ -73,14 +65,65 @@
 
     .help{font-size:13px;color:var(--muted);margin-top:10px;padding:10px 12px;border-left:3px solid var(--accent);background:rgba(124,92,255,0.06);border-radius:0 6px 6px 0}
   </style>
-  <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
-    {"@type":"Question","name":"How strong is the encryption?","acceptedAnswer":{"@type":"Answer","text":"AES-256 in GCM mode with a randomly generated 256-bit key and a fresh 96-bit IV per file. AES-256-GCM is approved by NIST and used by HTTPS, IPsec and most modern security protocols."}},
-    {"@type":"Question","name":"Is the file uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. Encryption and decryption happen entirely in your browser using the built-in Web Crypto API. The file, the key, and the encrypted output never leave your device."}},
-    {"@type":"Question","name":"What happens if I lose the key?","acceptedAnswer":{"@type":"Answer","text":"The file is unrecoverable. AES-256 has no backdoor and brute-forcing a 256-bit key is computationally infeasible. Always save the key file the moment it is generated."}},
-    {"@type":"Question","name":"Can I encrypt very large files?","acceptedAnswer":{"@type":"Answer","text":"Files are processed in memory, so the practical limit depends on your browser and device. Most modern browsers handle files up to a few hundred megabytes. For multi-gigabyte files, use a desktop encryption tool instead."}}
-  ]}
-  </script>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>AES-256 File Encryption Online — In-Browser</title>
+  <meta name="description" content="Encrypt and decrypt files with AES-256 in your browser. Files never leave your device. Free, no signup.">
+  <meta name="keywords" content="aes 256 encryption, encrypt file online, file encryption, decrypt file, browser encryption">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/encrypt">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="AES-256 File Encryption Online — In-Browser">
+  <meta property="og:description" content="Encrypt and decrypt files with AES-256 in your browser. Files never leave your device. Free, no signup.">
+  <meta property="og:url" content="https://utilitytools.eu/encrypt">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AES-256 File Encryption Online — In-Browser">
+  <meta name="twitter:description" content="Encrypt and decrypt files with AES-256 in your browser. Files never leave your device. Free, no signup.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "AES-256 File Encryption",
+  "description": "Encrypt and decrypt files with AES-256 in your browser. Files never leave your device. Free, no signup.",
+  "url": "https://utilitytools.eu/encrypt",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "Any (Web)",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "UtilityTools.eu",
+    "url": "https://utilitytools.eu"
+  }
+}</script>
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Algorithm?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "AES-256-GCM with PBKDF2 key derivation."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can you recover my password?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No — the file is unrecoverable without it."
+      }
+    }
+  ]
+}</script>
+  <!-- SEO:END -->
 </head>
 <body>
   <header class="topnav"><a href="/" class="brand">Utility<span>Tools</span></a><nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav></header>

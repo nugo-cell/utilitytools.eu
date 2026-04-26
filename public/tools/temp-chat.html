@@ -3,13 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Temp Chat — P2P WebRTC, Encrypted, Ephemeral · Utility Tools</title>
-  <meta name="description" content="Free ephemeral encrypted group chat over WebRTC. Share a link, talk peer-to-peer. Server only relays signaling — never sees your messages. Up to 10 people. Close the tab and everything is gone.">
-  <meta name="keywords" content="webrtc chat, p2p chat, encrypted chat, ephemeral chat, no signup chat, datachannel chat, secure chat link">
-  <meta name="robots" content="index,follow">
-  <link rel="canonical" href="/temp-chat">
-  <meta property="og:title" content="Temp Chat — P2P WebRTC, Encrypted, Ephemeral">
-  <meta property="og:url" content="/temp-chat">
   <link rel="stylesheet" href="/styles.css">
   <style>
     .tc-room-bar{
@@ -76,6 +69,57 @@
     }
     .tc-toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
   </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>Temp Chat — Anonymous Browser Chat Rooms</title>
+  <meta name="description" content="Spin up a temporary chat room with a link. No signup, message history isn't kept after you leave.">
+  <meta name="keywords" content="temporary chat, anonymous chat, throwaway chat room, no signup chat, private chat link">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/temp-chat">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="Temp Chat — Anonymous Browser Chat Rooms">
+  <meta property="og:description" content="Spin up a temporary chat room with a link. No signup, message history isn't kept after you leave.">
+  <meta property="og:url" content="https://utilitytools.eu/temp-chat">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Temp Chat — Anonymous Browser Chat Rooms">
+  <meta name="twitter:description" content="Spin up a temporary chat room with a link. No signup, message history isn't kept after you leave.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Temp Chat",
+  "description": "Spin up a temporary chat room with a link. No signup, message history isn't kept after you leave.",
+  "url": "https://utilitytools.eu/temp-chat",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "Any (Web)",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "UtilityTools.eu",
+    "url": "https://utilitytools.eu"
+  }
+}</script>
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is it end-to-end encrypted?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Connections use TLS in transit; treat it as a temporary, not high-secrecy, channel."
+      }
+    }
+  ]
+}</script>
+  <!-- SEO:END -->
 </head>
 <body>
   <header class="topnav">

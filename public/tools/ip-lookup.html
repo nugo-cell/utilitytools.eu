@@ -3,15 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IP Lookup &amp; Map — What's My IP · Geolocate Any IP · Utility Tools</title>
-  <meta name="description" content="See your public IP and where it's located on a map. Look up any IPv4/IPv6 address — country, city, ISP, ASN, timezone, and exact coordinates. Free, no signup.">
-  <meta name="keywords" content="what is my ip, ip lookup, ip geolocation, ip address map, ipv4, ipv6, asn, isp lookup, ip on map, free ip lookup">
-  <meta name="robots" content="index,follow">
   <!-- Tile providers (CARTO/OSM) require a Referer; override Helmet's no-referrer default for this page. -->
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <link rel="canonical" href="/ip-lookup">
-  <meta property="og:title" content="IP Lookup &amp; Map">
-  <meta property="og:url" content="/ip-lookup">
   <link rel="stylesheet" href="/styles.css">
   <!-- Leaflet from cdnjs (allow-listed in our CSP style-src). unpkg is blocked. -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
@@ -54,6 +47,57 @@
     }
     .ip-info b{color:var(--text)}
   </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>IP Lookup &amp; Map — Geolocation, ASN, ISP</title>
+  <meta name="description" content="Look up any IP address with location, ASN and ISP. Free, no signup.">
+  <meta name="keywords" content="ip lookup, ip geolocation, ip address info, what is my ip, asn lookup">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/ip-lookup">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="IP Lookup &amp; Map — Geolocation, ASN, ISP">
+  <meta property="og:description" content="Look up any IP address with location, ASN and ISP. Free, no signup.">
+  <meta property="og:url" content="https://utilitytools.eu/ip-lookup">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="IP Lookup &amp; Map — Geolocation, ASN, ISP">
+  <meta name="twitter:description" content="Look up any IP address with location, ASN and ISP. Free, no signup.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "IP Lookup & Map",
+  "description": "Look up any IP address with location, ASN and ISP. Free, no signup.",
+  "url": "https://utilitytools.eu/ip-lookup",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "Any (Web)",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "UtilityTools.eu",
+    "url": "https://utilitytools.eu"
+  }
+}</script>
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Accurate to a street?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No — usually city/region level."
+      }
+    }
+  ]
+}</script>
+  <!-- SEO:END -->
 </head>
 <body>
   <header class="topnav">
