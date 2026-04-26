@@ -10,6 +10,35 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const SITE_URL = process.env.SITE_URL || (process.env.NODE_ENV === 'production' ? 'https://utilitytools.eu' : `http://localhost:${PORT}`);
 
+// ---------------- Logging ----------------
+// Without this, DigitalOcean / Docker "Runtime Logs" appear empty because the
+// app never writes anything beyond the startup banner. Use plain console.log
+// (line-buffered, goes to stdout/stderr, picked up by every container runtime).
+const startedAt = new Date().toISOString();
+console.log(`[boot] ${startedAt} node=${process.version} env=${process.env.NODE_ENV || 'development'} port=${PORT} site=${SITE_URL}`);
+
+// Surface crashes instead of dying silently.
+process.on('uncaughtException',  err => console.error('[uncaughtException]', err && err.stack || err));
+process.on('unhandledRejection', err => console.error('[unhandledRejection]', err && err.stack || err));
+process.on('SIGTERM', () => { console.log('[shutdown] SIGTERM received, exiting'); process.exit(0); });
+process.on('SIGINT',  () => { console.log('[shutdown] SIGINT received, exiting');  process.exit(0); });
+
+// Tiny access log — one line per request: method, path, status, duration, IP, UA.
+// Skips static asset chatter so the log stays readable.
+const SKIP_LOG = /\.(?:css|js|svg|png|jpe?g|webp|ico|woff2?|map|webmanifest)$/i;
+app.set('trust proxy', true); // App Platform sits behind a load balancer
+app.use((req, res, next) => {
+  if (SKIP_LOG.test(req.path)) return next();
+  const t0 = Date.now();
+  res.on('finish', () => {
+    const ms = Date.now() - t0;
+    const ip = (req.headers['x-forwarded-for'] || req.ip || '').toString().split(',')[0].trim();
+    const ua = (req.headers['user-agent'] || '-').slice(0, 80);
+    console.log(`[req] ${req.method} ${req.originalUrl} ${res.statusCode} ${ms}ms ip=${ip} ua="${ua}"`);
+  });
+  next();
+});
+
 // ---------------- Security headers ----------------
 // Helmet adds CSP, HSTS, X-Content-Type-Options, Referrer-Policy, etc.
 // CSP is hand-tuned to allow Google AdSense + the public CDNs the tools use.
