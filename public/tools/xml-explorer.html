@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .xi-wrap { display:grid; grid-template-columns: 1fr; gap:16px; }
+    @media (min-width: 980px){ .xi-wrap{ grid-template-columns: 380px 1fr; } }
+
+    .xi-input { display:flex; flex-direction:column; gap:10px; }
+    .xi-input textarea { min-height: 220px; font-family: var(--mono); font-size:13px; }
+
+    .xi-drop {
+      border: 2px dashed var(--border-strong); border-radius: var(--radius);
+      padding: 14px; text-align:center; color: var(--muted); font-size:13px;
+      cursor: pointer; transition: .15s; background: var(--panel-2);
+    }
+    .xi-drop:hover, .xi-drop.over { border-color: var(--accent); color: var(--text); background: var(--grad-soft); }
+    .xi-drop b { color: var(--text); }
+
+    .xi-toolbar {
+      display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+      padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius);
+      background:var(--panel-2);
+    }
+    .xi-toolbar .xi-status { margin-left:auto; font-size:13px; color:var(--muted); }
+    .xi-toolbar .xi-status.ok  { color: var(--success); }
+    .xi-toolbar .xi-status.err { color: var(--danger); }
+
+    .xi-crumbs {
+      display:flex; flex-wrap:wrap; align-items:center; gap:4px;
+      padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius);
+      background:var(--panel); font-family:var(--mono); font-size:13px; min-height:42px;
+    }
+    .xi-crumb {
+      display:inline-flex; align-items:center; padding:3px 9px; border-radius:6px;
+      cursor:pointer; border:1px solid transparent; transition:.15s; color:var(--text);
+      background: rgba(124,92,255,0.10);
+    }
+    .xi-crumb:hover { border-color: var(--accent); }
+    .xi-crumb.current {
+      background: var(--grad); color: var(--btn-text); font-weight:700;
+      border-color: transparent;
+    }
+    .xi-crumb-sep { color: var(--muted); padding: 0 2px; }
+
+    .xi-view {
+      border:1px solid var(--border); border-radius:var(--radius);
+      background:var(--panel); padding:14px; min-height: 200px;
+    }
+    .xi-meta {
+      display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; font-size:13px; color:var(--muted);
+      align-items:center;
+    }
+    .xi-pill {
+      display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px;
+      font-weight:600; font-size:12px; border:1px solid transparent;
+    }
+    .xi-pill.t-element { background: rgba(124,92,255,0.18); color:#c4b5ff; border-color: rgba(124,92,255,0.4); }
+    .xi-pill.t-text    { background: rgba(56,189,248,0.18); color:#7dd3fc; border-color: rgba(56,189,248,0.4); }
+    .xi-pill.t-cdata   { background: rgba(255,181,71,0.18); color:#fcd34d; border-color: rgba(255,181,71,0.4); }
+    .xi-pill.t-comment { background: rgba(138,147,181,0.18); color:#cbd5e1; border-color: rgba(138,147,181,0.4); }
+    .xi-pill.t-attrs   { background: rgba(0,212,170,0.18);  color:#5eead4; border-color: rgba(0,212,170,0.4); }
+    .xi-pill.t-doc     { background: var(--grad); color: var(--btn-text); border-color: transparent; }
+
+    html[data-theme="light"] .xi-pill.t-element { color:#5b3ce0; }
+    html[data-theme="light"] .xi-pill.t-text    { color:#0284c7; }
+    html[data-theme="light"] .xi-pill.t-cdata   { color:#b45309; }
+    html[data-theme="light"] .xi-pill.t-attrs   { color:#0d9488; }
+
+    .xi-section-title {
+      font-size:11px; text-transform:uppercase; letter-spacing:1.5px;
+      color: var(--muted); margin: 14px 0 6px; font-weight:700;
+    }
+    .xi-section-title:first-child { margin-top: 0; }
+
+    .xi-attrs {
+      display:flex; flex-direction:column; gap:6px; margin-bottom: 6px;
+      font-family: var(--mono); font-size:13px;
+    }
+    .xi-attr {
+      display:flex; gap:10px; align-items:center; padding:7px 12px;
+      border:1px solid rgba(0,212,170,0.35); border-radius:8px;
+      background: rgba(0,212,170,0.06);
+    }
+    .xi-attr-name  { color: var(--accent-mint); font-weight:700; }
+    .xi-attr-eq    { color: var(--muted); }
+    .xi-attr-val   { color: var(--accent-cyan); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; }
+
+    .xi-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px; }
+    .xi-row {
+      display:flex; align-items:center; gap:10px; padding:9px 12px;
+      border:1px solid var(--border); border-radius:8px; background:var(--panel-2);
+      transition:.15s; cursor:pointer; min-width:0;
+    }
+    .xi-row:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,92,255,0.15); }
+    .xi-row.leaf { cursor: default; }
+    .xi-row.leaf:hover { transform:none; box-shadow:none; border-color: var(--border-strong); }
+
+    .xi-tag {
+      font-family: var(--mono); font-size:13px; font-weight:700;
+      color: var(--text); flex-shrink:0;
+    }
+    .xi-tag .lt, .xi-tag .gt, .xi-tag .slash { color: var(--accent); font-weight:600; }
+    .xi-tag .name { color: var(--text); }
+    .xi-tag .idx  { color: var(--accent-mint); margin-left:4px; font-weight:600; font-size:12px; }
+
+    .xi-arrow { margin-left:auto; color: var(--accent); font-weight:700; flex-shrink:0; }
+    .xi-info  { font-family: var(--mono); font-size:13px; color: var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; }
+    .xi-info .preview { color: var(--accent-cyan); }
+    .xi-info .stat    { color: var(--muted); }
+
+    .xi-collapse {
+      display:inline-flex; align-items:center; justify-content:center;
+      width:22px; height:22px; border-radius:6px; cursor:pointer;
+      background: rgba(0,212,170,0.18); color: var(--accent-mint);
+      border:1px solid rgba(0,212,170,0.4); font-weight:700; font-size:14px;
+      flex-shrink:0; user-select:none; transition:.15s;
+    }
+    .xi-collapse:hover { background: var(--accent-mint); color: var(--btn-text); }
+    .xi-row.expanded   { background: linear-gradient(135deg, rgba(0,212,170,0.06), rgba(124,92,255,0.06)); }
+
+    .xi-sublist {
+      list-style:none; margin: 6px 0 0 32px; padding:0;
+      display:flex; flex-direction:column; gap:4px;
+      border-left: 2px solid rgba(0,212,170,0.4); padding-left:10px;
+    }
+    .xi-sublist .xi-row { padding:6px 10px; }
+
+    .xi-leaf-card {
+      padding:18px; border:1px solid var(--border); border-radius:8px;
+      background: var(--panel-2);
+    }
+    .xi-leaf-card pre {
+      margin:0; font-family:var(--mono); font-size:14px; color: var(--text);
+      white-space:pre-wrap; word-break:break-word;
+    }
+
+    .xi-empty { text-align:center; color:var(--muted); padding: 40px 12px; font-size:14px; }
+
+    .sample-btn { background: transparent; border:1px dashed var(--border-strong); color: var(--muted); }
+    .sample-btn:hover { border-color: var(--accent); color: var(--text); }
+
+    .xi-filemeta { font-size:12px; color: var(--muted); }
+    .xi-filemeta b { color: var(--text); }
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>Interactive XML Explorer — Click Through Any XML File</title>
+  <meta name="description" content="Paste XML or drop any file (we sniff the contents — even .txt, .dat or .config files work if they are really XML) and explore the tree interactively. Drill into elements, expand children inline, view attributes. In-browser, no signup.">
+  <meta name="keywords" content="interactive xml, xml viewer, xml explorer, xml tree, xml browser, navigate xml, sniff xml file, detect xml">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/xml-explorer">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="Interactive XML Explorer — Click Through Any XML File">
+  <meta property="og:description" content="Paste XML or drop any file (we sniff the contents — even .txt, .dat or .config files work if they are really XML) and explore the tree interactively. Drill into elements, expand children inline, view attributes. In-browser, no signup.">
+  <meta property="og:url" content="https://utilitytools.eu/xml-explorer">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Interactive XML Explorer — Click Through Any XML File">
+  <meta name="twitter:description" content="Paste XML or drop any file (we sniff the contents — even .txt, .dat or .config files work if they are really XML) and explore the tree interactively. Drill into elements, expand children inline, view attributes. In-browser, no signup.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Interactive XML Explorer",
+  "description": "Paste XML or drop any file (we sniff the contents — even .txt, .dat or .config files work if they are really XML) and explore the tree interactively. Drill into elements, expand children inline, view attributes. In-browser, no signup.",
+  "url": "https://utilitytools.eu/xml-explorer",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "Any (Web)",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "UtilityTools.eu",
+    "url": "https://utilitytools.eu"
+  }
+}</script>
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is my file sent anywhere?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Parsing and rendering happen entirely in your browser."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What if the file does not have a .xml extension?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "We sniff the content. If it starts with <?xml or a valid XML element, we will parse and explore it."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I see attributes and CDATA?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — attributes are listed in their own section, and CDATA / text / comment nodes are shown as drill-in leaves."
+      }
+    }
+  ]
+}</script>
+  <!-- SEO:END -->
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>Interactive XML Explorer</h1>
+      <p>Paste XML or drop a file and click through it like folders. Auto-detects XML inside oddly-named files (.txt, .dat, .config, …). Drill into elements, expand children inline, jump back via breadcrumbs. 100% in your browser.</p>
+    </div>
+
+    <div class="panel">
+      <div class="xi-wrap">
+        <!-- Left: input -->
+        <div class="xi-input">
+          <label for="xi-source">Paste XML</label>
+          <textarea id="xi-source" spellcheck="false" placeholder='<library>
+  <book id="1">
+    <title>1984</title>
+    <author>Orwell</author>
+  </book>
+  <book id="2">
+    <title>Dune</title>
+    <author>Herbert</author>
+  </book>
+</library>'></textarea>
+
+          <div class="xi-drop" id="xi-drop">
+            <div>📁 <b>Drop any file here</b> or click to choose</div>
+            <div style="margin-top:4px">We sniff the contents — even .txt / .dat / .config files work if they're really XML.</div>
+            <input type="file" id="xi-file" hidden>
+          </div>
+
+          <div id="xi-filemeta" class="xi-filemeta" hidden></div>
+
+          <div class="row" style="gap:8px;flex-wrap:wrap;">
+            <button id="xi-load">Explore →</button>
+            <button id="xi-sample" class="sample-btn" type="button">Try sample</button>
+            <button id="xi-clear"  class="secondary" type="button">Clear</button>
+          </div>
+        </div>
+
+        <!-- Right: explorer -->
+        <div>
+          <div class="xi-toolbar">
+            <button id="xi-back" class="secondary" type="button" disabled>← Back</button>
+            <button id="xi-root" class="secondary" type="button" disabled>⌂ Root</button>
+            <span id="xi-status" class="xi-status">Paste XML or drop a file, then click <b>Explore</b>.</span>
+          </div>
+
+          <div class="xi-crumbs" id="xi-crumbs" aria-label="Breadcrumb"></div>
+
+          <div class="xi-view" id="xi-view">
+            <div class="xi-empty">Nothing loaded yet.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    const srcEl    = document.getElementById('xi-source');
+    const loadBtn  = document.getElementById('xi-load');
+    const sampleBtn= document.getElementById('xi-sample');
+    const clearBtn = document.getElementById('xi-clear');
+    const backBtn  = document.getElementById('xi-back');
+    const rootBtn  = document.getElementById('xi-root');
+    const statusEl = document.getElementById('xi-status');
+    const crumbsEl = document.getElementById('xi-crumbs');
+    const viewEl   = document.getElementById('xi-view');
+    const dropEl   = document.getElementById('xi-drop');
+    const fileEl   = document.getElementById('xi-file');
+    const fileMeta = document.getElementById('xi-filemeta');
+
+    let DOC = null;          // parsed XML Document
+    let path = [];           // array of indexes from documentElement, e.g. [3, 0]
+    const expanded = new Set(); // pathKey + '||' + childIndex
+
+    const SAMPLE = `<?xml version="1.0" encoding="UTF-8"?>
+<library xmlns="http://example.com/lib" version="2">
+  <metadata>
+    <name>EU Public Library</name>
+    <updated>2026-04-28</updated>
+  </metadata>
+  <books>
+    <book id="1" lang="en">
+      <title>1984</title>
+      <author>George Orwell</author>
+      <year>1949</year>
+      <tags>
+        <tag>dystopia</tag>
+        <tag>classic</tag>
+      </tags>
+    </book>
+    <book id="2" lang="en">
+      <title>Dune</title>
+      <author>Frank Herbert</author>
+      <year>1965</year>
+      <tags>
+        <tag>scifi</tag>
+        <tag>desert</tag>
+      </tags>
+    </book>
+    <book id="3" lang="fr">
+      <title>Le Petit Prince</title>
+      <author>Antoine de Saint-Exupéry</author>
+      <year>1943</year>
+      <description><![CDATA[A poetic tale, written & illustrated by the author.]]></description>
+    </book>
+  </books>
+  <!-- end of catalogue -->
+</library>`;
+
+    function setStatus(msg, kind){
+      statusEl.textContent = msg;
+      statusEl.className = 'xi-status' + (kind ? ' ' + kind : '');
+    }
+
+    // ---- XML detection / parsing ----
+    function looksLikeXml(text){
+      const t = text.replace(/^\uFEFF/, '').trimStart();
+      if (!t) return false;
+      if (t.startsWith('<?xml')) return true;
+      // first significant char must be '<' and have a closing '>'
+      if (t[0] !== '<') return false;
+      // Avoid matching plain HTML <!doctype html> as a positive only-by-prefix.
+      // We'll let the strict parser decide.
+      return /<[A-Za-z_][\w:.-]*/.test(t);
+    }
+
+    function tryParseXml(text){
+      const t = text.replace(/^\uFEFF/, '');
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(t, 'application/xml');
+      const err = doc.getElementsByTagName('parsererror')[0];
+      if (err) {
+        const msg = (err.textContent || 'Parse error').replace(/\s+/g, ' ').trim();
+        return { ok: false, error: msg };
+      }
+      if (!doc.documentElement) return { ok: false, error: 'No root element' };
+      return { ok: true, doc };
+    }
+
+    function loadXml(text, srcLabel){
+      if (!text || !text.trim()) {
+        setStatus('Empty input.', 'err');
+        return;
+      }
+      if (!looksLikeXml(text)) {
+        setStatus('That does not look like XML.', 'err');
+        viewEl.innerHTML = `<div class="xi-empty" style="color:var(--danger)">Content does not start with a valid XML element or declaration.</div>`;
+        DOC = null; path = []; crumbsEl.innerHTML = '';
+        backBtn.disabled = rootBtn.disabled = true;
+        return;
+      }
+      const r = tryParseXml(text);
+      if (!r.ok) {
+        DOC = null; path = []; crumbsEl.innerHTML = '';
+        viewEl.innerHTML = `<div class="xi-empty" style="color:var(--danger)">Invalid XML: ${escapeHtml(r.error)}</div>`;
+        backBtn.disabled = rootBtn.disabled = true;
+        setStatus('Invalid XML', 'err');
+        return;
+      }
+      DOC = r.doc;
+      path = [];
+      expanded.clear();
+      const root = DOC.documentElement;
+      setStatus(`Loaded ✓  <${root.nodeName}>${srcLabel ? '  · ' + srcLabel : ''}`, 'ok');
+      refresh();
+    }
+
+    // ---- Tree helpers ----
+    // Significant child nodes of an element: child elements + non-empty text/CDATA + comments
+    function childNodes(el){
+      const out = [];
+      for (const n of el.childNodes) {
+        if (n.nodeType === 1) out.push(n);                   // ELEMENT
+        else if (n.nodeType === 3) {                          // TEXT
+          if ((n.nodeValue || '').trim() !== '') out.push(n);
+        } else if (n.nodeType === 4) out.push(n);             // CDATA
+        else if (n.nodeType === 8) out.push(n);               // COMMENT
+      }
+      return out;
+    }
+
+    function getNodeAt(p){
+      if (!DOC) return null;
+      let n = DOC.documentElement;
+      for (const idx of p) {
+        const kids = childNodes(n);
+        n = kids[idx];
+        if (!n) return null;
+      }
+      return n;
+    }
+
+    function nodeKindLabel(n){
+      switch (n.nodeType) {
+        case 1: return 'element';
+        case 3: return 'text';
+        case 4: return 'cdata';
+        case 8: return 'comment';
+        default: return 'node';
+      }
+    }
+
+    function escapeHtml(s){
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
+    }
+    function truncate(s, n){ s = String(s).replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n-1) + '…' : s; }
+
+    function tagHtml(name){
+      return `<span class="xi-tag"><span class="lt">&lt;</span><span class="name">${escapeHtml(name)}</span><span class="gt">&gt;</span></span>`;
+    }
+    function pillFor(t){ return `<span class="xi-pill t-${t}">${t}</span>`; }
+
+    // For an element row, what to show as info / siblings count
+    function elementInfo(el){
+      const kids = childNodes(el);
+      const elementKids = kids.filter(k => k.nodeType === 1);
+      const onlyText = kids.length > 0 && kids.every(k => k.nodeType === 3 || k.nodeType === 4);
+      if (onlyText) {
+        const text = kids.map(k => k.nodeValue).join('');
+        return `<span class="preview">"${escapeHtml(truncate(text, 60))}"</span>`;
+      }
+      const parts = [];
+      if (elementKids.length) parts.push(`${elementKids.length} child element${elementKids.length===1?'':'s'}`);
+      const otherKids = kids.length - elementKids.length;
+      if (otherKids) parts.push(`${otherKids} text/comment`);
+      if (el.attributes.length) parts.push(`${el.attributes.length} attr${el.attributes.length===1?'':'s'}`);
+      if (!parts.length) parts.push('empty');
+      return `<span class="stat">${parts.join(' · ')}</span>`;
+    }
+
+    // Disambiguate sibling label e.g. <book>[2] when parent has many <book>
+    function siblingLabel(parent, child, indexInChildList){
+      if (child.nodeType !== 1) {
+        if (child.nodeType === 3) return '#text';
+        if (child.nodeType === 4) return '#cdata';
+        if (child.nodeType === 8) return '#comment';
+        return '#node';
+      }
+      // Count same-name siblings
+      const kids = childNodes(parent).filter(k => k.nodeType === 1);
+      const sameName = kids.filter(k => k.nodeName === child.nodeName);
+      if (sameName.length <= 1) return child.nodeName;
+      const ord = sameName.indexOf(child);
+      return `${child.nodeName}[${ord}]`;
+    }
+
+    // ---- Render ----
+    function renderCrumbs(){
+      if (!DOC) { crumbsEl.innerHTML = ''; return; }
+      const root = DOC.documentElement;
+      const parts = [];
+      parts.push(`<span class="xi-crumb ${path.length===0?'current':''}" data-idx="-1">⌂ ${escapeHtml(root.nodeName)}</span>`);
+      let parent = root;
+      path.forEach((childIdx, i) => {
+        const kids = childNodes(parent);
+        const child = kids[childIdx];
+        if (!child) return;
+        const label = siblingLabel(parent, child, childIdx);
+        parts.push(`<span class="xi-crumb-sep">›</span>`);
+        const cls = (i === path.length - 1) ? 'current' : '';
+        parts.push(`<span class="xi-crumb ${cls}" data-idx="${i}">${escapeHtml(label)}</span>`);
+        parent = child;
+      });
+      crumbsEl.innerHTML = parts.join('');
+      backBtn.disabled = path.length === 0;
+      rootBtn.disabled = path.length === 0;
+    }
+
+    function renderView(){
+      if (!DOC) { viewEl.innerHTML = '<div class="xi-empty">Nothing loaded yet.</div>'; return; }
+      const node = getNodeAt(path);
+      if (!node) { viewEl.innerHTML = '<div class="xi-empty" style="color:var(--danger)">Lost path.</div>'; return; }
+
+      // TEXT / CDATA / COMMENT leaf
+      if (node.nodeType === 3 || node.nodeType === 4 || node.nodeType === 8) {
+        const t = node.nodeType === 3 ? 'text' : node.nodeType === 4 ? 'cdata' : 'comment';
+        const header = `<div class="xi-meta">${pillFor(t)}<span>${nodeKindLabel(node)} node</span></div>`;
+        viewEl.innerHTML = header +
+          `<div class="xi-leaf-card"><pre>${escapeHtml(node.nodeValue || '')}</pre></div>`;
+        return;
+      }
+
+      // ELEMENT
+      const el = node;
+      const kids = childNodes(el);
+      const elementKids = kids.filter(k => k.nodeType === 1);
+      const isRoot = (path.length === 0);
+      const headerPill = isRoot ? pillFor('doc') : pillFor('element');
+
+      let header = `<div class="xi-meta">${headerPill}<span>${tagHtml(el.nodeName)}</span>`;
+      if (el.attributes.length) header += `<span>· ${el.attributes.length} attr${el.attributes.length===1?'':'s'}</span>`;
+      if (elementKids.length)   header += `<span>· ${elementKids.length} child element${elementKids.length===1?'':'s'}</span>`;
+      header += `</div>`;
+
+      let body = '';
+
+      // Attributes section
+      if (el.attributes.length) {
+        body += `<div class="xi-section-title">Attributes</div>`;
+        body += `<div class="xi-attrs">` + Array.from(el.attributes).map(a =>
+          `<div class="xi-attr">
+            <span class="xi-attr-name">${escapeHtml(a.name)}</span>
+            <span class="xi-attr-eq">=</span>
+            <span class="xi-attr-val">"${escapeHtml(a.value)}"</span>
+          </div>`
+        ).join('') + `</div>`;
+      }
+
+      // Pure text element — show value as leaf
+      const onlyText = kids.length > 0 && kids.every(k => k.nodeType === 3 || k.nodeType === 4);
+      if (onlyText) {
+        const text = kids.map(k => k.nodeValue).join('');
+        body += `<div class="xi-section-title">Text content</div>`;
+        body += `<div class="xi-leaf-card"><pre>${escapeHtml(text)}</pre></div>`;
+        viewEl.innerHTML = header + body;
+        return;
+      }
+
+      if (!kids.length) {
+        body += `<div class="xi-section-title">Children</div>`;
+        body += `<div class="xi-empty">Empty element</div>`;
+        viewEl.innerHTML = header + body;
+        return;
+      }
+
+      // Children list
+      body += `<div class="xi-section-title">Children (${kids.length})</div>`;
+      const pathKey = path.join('|');
+
+      const rows = kids.map((c, i) => {
+        const t = nodeKindLabel(c);
+        const isElement = c.nodeType === 1;
+        const grandKids = isElement ? childNodes(c) : [];
+        const grandElems = grandKids.filter(g => g.nodeType === 1);
+        const canExpandInline = isElement && grandElems.length > 0;
+        const expKey = pathKey + '||' + i;
+        const isExp = expanded.has(expKey);
+
+        let labelHtml;
+        if (isElement) {
+          const sibLabel = siblingLabel(el, c, i);
+          // Render same-name index distinctly
+          const m = sibLabel.match(/^(.+?)(\[(\d+)\])$/);
+          if (m) {
+            labelHtml = `<span class="xi-tag"><span class="lt">&lt;</span><span class="name">${escapeHtml(m[1])}</span><span class="gt">&gt;</span><span class="idx">${m[2]}</span></span>`;
+          } else {
+            labelHtml = tagHtml(c.nodeName);
+          }
+        } else {
+          labelHtml = `<span class="xi-tag"><span class="name">${t === 'text' ? '#text' : t === 'cdata' ? '#cdata' : '#comment'}</span></span>`;
+        }
+
+        let info;
+        if (isElement) info = elementInfo(c);
+        else info = `<span class="preview">"${escapeHtml(truncate(c.nodeValue || '', 80))}"</span>`;
+
+        const inline = canExpandInline
+          ? `<span class="xi-collapse" data-expand="${i}" title="${isExp?'Collapse':'Expand'} children">${isExp?'−':'+'}</span>`
+          : '';
+
+        let sub = '';
+        if (canExpandInline && isExp) {
+          const subRows = grandKids.map((g, gi) => {
+            const isEl = g.nodeType === 1;
+            const gKids = isEl ? childNodes(g) : [];
+            const gElems = gKids.filter(x => x.nodeType === 1);
+            let gLabel;
+            if (isEl) {
+              const sl = siblingLabel(c, g, gi);
+              const mm = sl.match(/^(.+?)(\[(\d+)\])$/);
+              gLabel = mm
+                ? `<span class="xi-tag"><span class="lt">&lt;</span><span class="name">${escapeHtml(mm[1])}</span><span class="gt">&gt;</span><span class="idx">${mm[2]}</span></span>`
+                : tagHtml(g.nodeName);
+            } else {
+              gLabel = `<span class="xi-tag"><span class="name">${g.nodeType === 3 ? '#text' : g.nodeType === 4 ? '#cdata' : '#comment'}</span></span>`;
+            }
+            const gInfo = isEl ? elementInfo(g) : `<span class="preview">"${escapeHtml(truncate(g.nodeValue || '', 60))}"</span>`;
+            const drillable = (isEl && gElems.length > 0) || (isEl && g.attributes.length > 0) || (!isEl);
+            return `<li class="xi-row ${drillable?'':'leaf'}" data-drill="${i}" data-drill-sub="${gi}">
+              ${gLabel}
+              <span class="xi-info">${gInfo}</span>
+              ${drillable ? '<span class="xi-arrow">›</span>' : ''}
+            </li>`;
+          }).join('');
+          sub = `<ul class="xi-sublist">${subRows}</ul>`;
+        }
+
+        const drillable = isElement && (grandKids.length > 0 || c.attributes.length > 0);
+        const rowCls = 'xi-row' + (drillable ? '' : ' leaf') + (isExp ? ' expanded' : '');
+        // text/cdata/comment rows always drill (to leaf view)
+        const allowDrill = drillable || !isElement;
+        const drillAttr = allowDrill ? `data-drill="${i}"` : '';
+
+        return `<li>
+          <div class="${rowCls}" ${drillAttr}>
+            ${inline}
+            ${labelHtml}
+            <span class="xi-info">${info}</span>
+            ${allowDrill ? '<span class="xi-arrow">›</span>' : ''}
+          </div>
+          ${sub}
+        </li>`;
+      }).join('');
+
+      body += `<ul class="xi-list">${rows}</ul>`;
+      viewEl.innerHTML = header + body;
+    }
+
+    function refresh(){ renderCrumbs(); renderView(); }
+
+    // ---- Events ----
+    loadBtn.addEventListener('click', () => loadXml(srcEl.value));
+    sampleBtn.addEventListener('click', () => { srcEl.value = SAMPLE; fileMeta.hidden = true; loadXml(srcEl.value); });
+    clearBtn.addEventListener('click', () => {
+      srcEl.value = ''; DOC = null; path = []; expanded.clear();
+      crumbsEl.innerHTML = ''; viewEl.innerHTML = '<div class="xi-empty">Nothing loaded yet.</div>';
+      backBtn.disabled = rootBtn.disabled = true;
+      fileMeta.hidden = true; setStatus('Cleared.');
+    });
+    backBtn.addEventListener('click', () => {
+      if (!path.length) return;
+      path.pop(); expanded.clear(); refresh();
+    });
+    rootBtn.addEventListener('click', () => { path = []; expanded.clear(); refresh(); });
+
+    crumbsEl.addEventListener('click', e => {
+      const c = e.target.closest('.xi-crumb');
+      if (!c) return;
+      const idx = parseInt(c.dataset.idx, 10);
+      if (idx === -1) path = [];
+      else path = path.slice(0, idx + 1);
+      expanded.clear(); refresh();
+    });
+
+    viewEl.addEventListener('click', e => {
+      const exp = e.target.closest('.xi-collapse');
+      if (exp) {
+        e.stopPropagation();
+        const i = parseInt(exp.getAttribute('data-expand'), 10);
+        const pathKey = path.join('|');
+        const expKey = pathKey + '||' + i;
+        if (expanded.has(expKey)) expanded.delete(expKey);
+        else expanded.add(expKey);
+        renderView();
+        return;
+      }
+      const row = e.target.closest('.xi-row[data-drill]');
+      if (!row) return;
+      const i = parseInt(row.getAttribute('data-drill'), 10);
+      const sub = row.getAttribute('data-drill-sub');
+      path.push(i);
+      if (sub != null) path.push(parseInt(sub, 10));
+      expanded.clear(); refresh();
+    });
+
+    // ---- File handling (with content sniffing) ----
+    function handleFile(file){
+      if (!file) return;
+      // Soft size cap to prevent UI lockup
+      if (file.size > 25 * 1024 * 1024) {
+        setStatus('File too large (>25MB).', 'err');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const text = String(reader.result || '');
+        fileMeta.hidden = false;
+        const niceType = file.type || 'unknown';
+        const isXml = looksLikeXml(text);
+        fileMeta.innerHTML = `Loaded <b>${escapeHtml(file.name)}</b> · ${(file.size/1024).toFixed(1)} KB · type <b>${escapeHtml(niceType)}</b> · ${isXml ? '<span style="color:var(--success)">XML detected ✓</span>' : '<span style="color:var(--danger)">no XML signature</span>'}`;
+        srcEl.value = text;
+        loadXml(text, file.name);
+      };
+      reader.onerror = () => setStatus('Could not read file.', 'err');
+      reader.readAsText(file);
+    }
+
+    dropEl.addEventListener('click', () => fileEl.click());
+    fileEl.addEventListener('change', () => handleFile(fileEl.files[0]));
+    ['dragenter','dragover'].forEach(ev => dropEl.addEventListener(ev, e => {
+      e.preventDefault(); e.stopPropagation(); dropEl.classList.add('over');
+    }));
+    ['dragleave','drop'].forEach(ev => dropEl.addEventListener(ev, e => {
+      e.preventDefault(); e.stopPropagation(); dropEl.classList.remove('over');
+    }));
+    dropEl.addEventListener('drop', e => {
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) handleFile(f);
+    });
+
+    // Keyboard: Backspace navigates back
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' &&
+          !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) {
+        if (path.length) { e.preventDefault(); path.pop(); expanded.clear(); refresh(); }
+      }
+    });
+  })();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

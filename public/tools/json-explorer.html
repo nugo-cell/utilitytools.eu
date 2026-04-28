@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .ji-wrap { display:grid; grid-template-columns: 1fr; gap:16px; }
+    @media (min-width: 980px){ .ji-wrap{ grid-template-columns: 380px 1fr; } }
+
+    .ji-input { display:flex; flex-direction:column; gap:10px; }
+    .ji-input textarea {
+      min-height: 260px; font-family: var(--mono); font-size:13px;
+    }
+
+    .ji-toolbar {
+      display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+      padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius);
+      background:var(--panel-2);
+    }
+    .ji-toolbar .ji-status { margin-left:auto; font-size:13px; color:var(--muted); }
+    .ji-toolbar .ji-status.ok  { color: var(--success); }
+    .ji-toolbar .ji-status.err { color: var(--danger); }
+
+    .ji-crumbs {
+      display:flex; flex-wrap:wrap; align-items:center; gap:4px;
+      padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius);
+      background:var(--panel); font-family:var(--mono); font-size:13px; min-height:42px;
+    }
+    .ji-crumb {
+      display:inline-flex; align-items:center; padding:3px 9px; border-radius:6px;
+      cursor:pointer; border:1px solid transparent; transition:.15s; color:var(--text);
+      background: rgba(124,92,255,0.10);
+    }
+    .ji-crumb:hover { border-color: var(--accent); }
+    .ji-crumb.current {
+      background: var(--grad); color: var(--btn-text); font-weight:700;
+      border-color: transparent;
+    }
+    .ji-crumb-sep { color: var(--muted); padding: 0 2px; }
+    .ji-back-btn { background: var(--panel-2); }
+
+    .ji-view {
+      border:1px solid var(--border); border-radius:var(--radius);
+      background:var(--panel); padding:14px; min-height: 200px;
+    }
+    .ji-meta {
+      display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; font-size:13px; color:var(--muted);
+    }
+    .ji-pill {
+      display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px;
+      font-weight:600; font-size:12px; border:1px solid transparent;
+    }
+    .ji-pill.t-object { background: rgba(124,92,255,0.18); color:#c4b5ff; border-color: rgba(124,92,255,0.4); }
+    .ji-pill.t-array  { background: rgba(0,212,170,0.18);  color:#5eead4; border-color: rgba(0,212,170,0.4); }
+    .ji-pill.t-string { background: rgba(56,189,248,0.18); color:#7dd3fc; border-color: rgba(56,189,248,0.4); }
+    .ji-pill.t-number { background: rgba(255,181,71,0.18); color:#fcd34d; border-color: rgba(255,181,71,0.4); }
+    .ji-pill.t-boolean{ background: rgba(255,94,156,0.18); color:#f9a8d4; border-color: rgba(255,94,156,0.4); }
+    .ji-pill.t-null   { background: rgba(138,147,181,0.18); color:#cbd5e1; border-color: rgba(138,147,181,0.4); }
+
+    html[data-theme="light"] .ji-pill.t-object { color:#5b3ce0; }
+    html[data-theme="light"] .ji-pill.t-array  { color:#0d9488; }
+    html[data-theme="light"] .ji-pill.t-string { color:#0284c7; }
+    html[data-theme="light"] .ji-pill.t-number { color:#b45309; }
+    html[data-theme="light"] .ji-pill.t-boolean{ color:#be185d; }
+    html[data-theme="light"] .ji-pill.t-null   { color:#475569; }
+
+    .ji-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px; }
+    .ji-row {
+      display:flex; align-items:center; gap:10px; padding:9px 12px;
+      border:1px solid var(--border); border-radius:8px; background:var(--panel-2);
+      transition:.15s; cursor:pointer; min-width:0;
+    }
+    .ji-row:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,92,255,0.15); }
+    .ji-row.leaf { cursor: default; }
+    .ji-row.leaf:hover { transform:none; box-shadow:none; border-color: var(--border-strong); }
+
+    .ji-key {
+      font-family: var(--mono); font-size:13px; font-weight:700;
+      color: var(--text); flex-shrink:0;
+    }
+    .ji-key .idx { color: var(--accent-mint); }
+    .ji-arrow { margin-left:auto; color: var(--accent); font-weight:700; flex-shrink:0; }
+
+    .ji-val {
+      font-family: var(--mono); font-size:13px; color: var(--muted);
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0;
+    }
+    .ji-val .s-string { color: var(--accent-cyan); }
+    .ji-val .s-number { color: var(--warn); }
+    .ji-val .s-boolean{ color: var(--accent-pink); }
+    .ji-val .s-null   { color: var(--muted); font-style: italic; }
+    .ji-val .s-object { color: #c4b5ff; }
+    .ji-val .s-array  { color: var(--accent-mint); }
+
+    /* Inline collapsible for arrays inside object view */
+    .ji-collapse {
+      display:inline-flex; align-items:center; justify-content:center;
+      width:22px; height:22px; border-radius:6px; cursor:pointer;
+      background: rgba(0,212,170,0.18); color: var(--accent-mint);
+      border:1px solid rgba(0,212,170,0.4); font-weight:700; font-size:14px;
+      flex-shrink:0; user-select:none; transition:.15s;
+    }
+    .ji-collapse:hover { background: var(--accent-mint); color: var(--btn-text); }
+    .ji-row.expanded   { background: linear-gradient(135deg, rgba(0,212,170,0.06), rgba(124,92,255,0.06)); }
+
+    .ji-sublist {
+      list-style:none; margin: 6px 0 0 32px; padding:0;
+      display:flex; flex-direction:column; gap:4px;
+      border-left: 2px solid rgba(0,212,170,0.4); padding-left:10px;
+    }
+    .ji-sublist .ji-row { padding:6px 10px; }
+
+    .ji-leaf-card {
+      padding:18px; border:1px solid var(--border); border-radius:8px;
+      background: var(--panel-2);
+    }
+    .ji-leaf-card pre {
+      margin:0; font-family:var(--mono); font-size:14px; color: var(--text);
+      white-space:pre-wrap; word-break:break-word;
+    }
+
+    .ji-empty { text-align:center; color:var(--muted); padding: 40px 12px; font-size:14px; }
+
+    .sample-btn { background: transparent; border:1px dashed var(--border-strong); color: var(--muted); }
+    .sample-btn:hover { border-color: var(--accent); color: var(--text); }
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <!-- SEO:END -->
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>Interactive JSON Explorer — Click Through Any JSON</title>
+  <meta name="description" content="Paste JSON and explore it interactively. Drill into objects, expand or collapse arrays inline, navigate with breadcrumbs. 100% in-browser, no signup.">
+  <meta name="keywords" content="interactive json, json viewer, json explorer, json tree viewer, json browser, navigate json, expand collapse json">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/json-explorer">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="Interactive JSON Explorer — Click Through Any JSON">
+  <meta property="og:description" content="Paste JSON and explore it interactively. Drill into objects, expand or collapse arrays inline, navigate with breadcrumbs. 100% in-browser, no signup.">
+  <meta property="og:url" content="https://utilitytools.eu/json-explorer">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Interactive JSON Explorer — Click Through Any JSON">
+  <meta name="twitter:description" content="Paste JSON and explore it interactively. Drill into objects, expand or collapse arrays inline, navigate with breadcrumbs. 100% in-browser, no signup.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Interactive JSON Explorer",
+  "description": "Paste JSON and explore it interactively. Drill into objects, expand or collapse arrays inline, navigate with breadcrumbs. 100% in-browser, no signup.",
+  "url": "https://utilitytools.eu/json-explorer",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "Any (Web)",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "UtilityTools.eu",
+    "url": "https://utilitytools.eu"
+  }
+}</script>
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is my JSON sent anywhere?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Everything is parsed and rendered locally in your browser."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How big can the JSON be?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "It depends on your device, but multi-megabyte payloads work fine in modern browsers."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I expand arrays without leaving the current view?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — every array has a + button to expand it inline; click again to collapse."
+      }
+    }
+  ]
+}</script>
+  <!-- SEO:END -->
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>Interactive JSON Explorer</h1>
+      <p>Paste any JSON and click through it like folders. Drill into objects and arrays, expand or collapse on the spot, jump back via breadcrumbs. 100% in your browser.</p>
+    </div>
+
+    <div class="panel">
+      <div class="ji-wrap">
+        <!-- Left: input -->
+        <div class="ji-input">
+          <label for="ji-source">Paste JSON</label>
+          <textarea id="ji-source" spellcheck="false" placeholder='{
+  "user": { "name": "Ada", "active": true },
+  "tags": ["admin", "eu"],
+  "scores": [10, 20, 30]
+}'></textarea>
+          <div class="row" style="gap:8px;flex-wrap:wrap;">
+            <button id="ji-load">Explore →</button>
+            <button id="ji-sample" class="sample-btn" type="button">Try sample</button>
+            <button id="ji-clear"  class="secondary" type="button">Clear</button>
+          </div>
+        </div>
+
+        <!-- Right: explorer -->
+        <div>
+          <div class="ji-toolbar">
+            <button id="ji-back" class="ji-back-btn secondary" type="button" disabled>← Back</button>
+            <button id="ji-root" class="secondary" type="button" disabled>⌂ Root</button>
+            <span id="ji-status" class="ji-status">Paste JSON and click <b>Explore</b>.</span>
+          </div>
+
+          <div class="ji-crumbs" id="ji-crumbs" aria-label="Breadcrumb"></div>
+
+          <div class="ji-view" id="ji-view">
+            <div class="ji-empty">Nothing loaded yet.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    const srcEl   = document.getElementById('ji-source');
+    const loadBtn = document.getElementById('ji-load');
+    const sampleBtn = document.getElementById('ji-sample');
+    const clearBtn  = document.getElementById('ji-clear');
+    const backBtn = document.getElementById('ji-back');
+    const rootBtn = document.getElementById('ji-root');
+    const statusEl= document.getElementById('ji-status');
+    const crumbsEl= document.getElementById('ji-crumbs');
+    const viewEl  = document.getElementById('ji-view');
+
+    let DATA = null;          // parsed JSON
+    let path = [];            // current path, array of {key, label}
+    const expanded = new Set();// keys "path|childKey" of arrays expanded inline
+
+    const SAMPLE = {
+      user: {
+        id: 42,
+        name: "Ada Lovelace",
+        active: true,
+        roles: ["admin", "editor", "owner"],
+        address: { city: "London", country: "UK", zip: "SW1A 1AA" }
+      },
+      stats: { posts: 128, followers: 5420, ratio: 0.732 },
+      tags: ["math", "engine", "poetry"],
+      history: [
+        { date: "1843-10-01", event: "Notes on the Analytical Engine" },
+        { date: "1852-11-27", event: "Passed away" }
+      ],
+      meta: null
+    };
+
+    function typeOf(v){
+      if (v === null) return 'null';
+      if (Array.isArray(v)) return 'array';
+      return typeof v;
+    }
+
+    function setStatus(msg, kind){
+      statusEl.textContent = msg;
+      statusEl.className = 'ji-status' + (kind ? ' ' + kind : '');
+    }
+
+    function getNodeAt(p){
+      let n = DATA;
+      for (const seg of p) n = n[seg.key];
+      return n;
+    }
+
+    function previewValue(v){
+      const t = typeOf(v);
+      if (t === 'string')  return `<span class="s-string">"${escapeHtml(truncate(v, 60))}"</span>`;
+      if (t === 'number')  return `<span class="s-number">${v}</span>`;
+      if (t === 'boolean') return `<span class="s-boolean">${v}</span>`;
+      if (t === 'null')    return `<span class="s-null">null</span>`;
+      if (t === 'array')   return `<span class="s-array">Array(${v.length})</span>`;
+      if (t === 'object')  {
+        const keys = Object.keys(v);
+        return `<span class="s-object">{ ${keys.length} ${keys.length===1?'key':'keys'} }</span>`;
+      }
+      return String(v);
+    }
+
+    function truncate(s, n){ s = String(s); return s.length > n ? s.slice(0, n-1) + '…' : s; }
+    function escapeHtml(s){
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
+    }
+
+    function pillFor(t){
+      return `<span class="ji-pill t-${t}">${t}</span>`;
+    }
+
+    function renderCrumbs(){
+      const parts = [];
+      parts.push(`<span class="ji-crumb ${path.length===0?'current':''}" data-idx="-1">⌂ root</span>`);
+      path.forEach((seg, i) => {
+        parts.push(`<span class="ji-crumb-sep">›</span>`);
+        const cls = (i === path.length - 1) ? 'current' : '';
+        parts.push(`<span class="ji-crumb ${cls}" data-idx="${i}">${escapeHtml(seg.label)}</span>`);
+      });
+      crumbsEl.innerHTML = parts.join('');
+      backBtn.disabled = path.length === 0;
+      rootBtn.disabled = path.length === 0;
+    }
+
+    function renderView(){
+      if (DATA === null && DATA !== 0) {
+        viewEl.innerHTML = '<div class="ji-empty">Nothing loaded yet.</div>';
+        return;
+      }
+      const node = getNodeAt(path);
+      const t = typeOf(node);
+
+      let header = `<div class="ji-meta">${pillFor(t)}`;
+      if (t === 'array')  header += `<span>length: <b>${node.length}</b></span>`;
+      if (t === 'object') header += `<span>keys: <b>${Object.keys(node).length}</b></span>`;
+      header += `</div>`;
+
+      // Leaf (primitive)
+      if (t !== 'object' && t !== 'array') {
+        const pretty = (t === 'string') ? `"${node}"` : String(node);
+        viewEl.innerHTML = header +
+          `<div class="ji-leaf-card"><pre>${escapeHtml(pretty)}</pre></div>`;
+        return;
+      }
+
+      // Container
+      const isArray = (t === 'array');
+      const entries = isArray
+        ? node.map((v, i) => [i, v])
+        : Object.entries(node);
+
+      if (!entries.length) {
+        viewEl.innerHTML = header +
+          `<div class="ji-empty">${isArray ? 'Empty array' : 'Empty object'}</div>`;
+        return;
+      }
+
+      const pathKey = path.map(p => p.key).join('|');
+
+      const rows = entries.map(([k, v]) => {
+        const childT = typeOf(v);
+        const isContainer = childT === 'object' || childT === 'array';
+        const isArr = childT === 'array';
+        const expKey = pathKey + '||' + k;
+        const isExp = expanded.has(expKey);
+
+        const keyLabel = isArray
+          ? `<span class="idx">[${k}]</span>`
+          : escapeHtml(String(k));
+
+        let inline = '';
+        if (isContainer && !isArray && isArr) {
+          // object's child that is an array — allow inline expand
+          inline = `<span class="ji-collapse" data-expand="${escapeHtml(String(k))}" title="${isExp?'Collapse':'Expand'} array">${isExp?'−':'+'}</span>`;
+        } else if (isContainer && isArray && childT === 'array') {
+          // array of arrays — inline expand
+          inline = `<span class="ji-collapse" data-expand="${k}" title="${isExp?'Collapse':'Expand'} array">${isExp?'−':'+'}</span>`;
+        }
+
+        let sub = '';
+        if (isExp && isArr) {
+          const arr = v;
+          if (!arr.length) {
+            sub = `<ul class="ji-sublist"><li class="ji-row leaf"><span class="ji-val s-null">empty</span></li></ul>`;
+          } else {
+            sub = '<ul class="ji-sublist">' + arr.map((item, i) => {
+              const itT = typeOf(item);
+              const itContainer = itT === 'object' || itT === 'array';
+              return `<li class="ji-row ${itContainer?'':'leaf'}" data-drill="${escapeHtml(String(k))}" data-drill-idx="${i}">
+                <span class="ji-key"><span class="idx">[${i}]</span></span>
+                <span class="ji-val">${previewValue(item)}</span>
+                ${itContainer ? '<span class="ji-arrow">›</span>' : ''}
+              </li>`;
+            }).join('') + '</ul>';
+          }
+        }
+
+        const rowCls = 'ji-row' + (isContainer ? '' : ' leaf') + (isExp ? ' expanded' : '');
+        const drillAttr = isContainer ? `data-drill="${escapeHtml(String(k))}"` : '';
+
+        return `<li>
+          <div class="${rowCls}" ${drillAttr}>
+            ${inline}
+            <span class="ji-key">${keyLabel}</span>
+            <span class="ji-val">${previewValue(v)}</span>
+            ${isContainer ? '<span class="ji-arrow">›</span>' : ''}
+          </div>
+          ${sub}
+        </li>`;
+      }).join('');
+
+      viewEl.innerHTML = header + `<ul class="ji-list">${rows}</ul>`;
+    }
+
+    function refresh(){ renderCrumbs(); renderView(); }
+
+    function loadJson(text){
+      try {
+        DATA = JSON.parse(text);
+        path = [];
+        expanded.clear();
+        const t = typeOf(DATA);
+        setStatus(`Loaded ✓  (${t})`, 'ok');
+        refresh();
+      } catch (e) {
+        DATA = null;
+        path = [];
+        viewEl.innerHTML = `<div class="ji-empty" style="color:var(--danger)">Invalid JSON: ${escapeHtml(e.message)}</div>`;
+        crumbsEl.innerHTML = '';
+        backBtn.disabled = true; rootBtn.disabled = true;
+        setStatus('Invalid JSON', 'err');
+      }
+    }
+
+    // ---- events ----
+    loadBtn.addEventListener('click', () => loadJson(srcEl.value));
+    sampleBtn.addEventListener('click', () => {
+      srcEl.value = JSON.stringify(SAMPLE, null, 2);
+      loadJson(srcEl.value);
+    });
+    clearBtn.addEventListener('click', () => {
+      srcEl.value = ''; DATA = null; path = []; expanded.clear();
+      crumbsEl.innerHTML = ''; viewEl.innerHTML = '<div class="ji-empty">Nothing loaded yet.</div>';
+      backBtn.disabled = true; rootBtn.disabled = true;
+      setStatus('Cleared.');
+    });
+    backBtn.addEventListener('click', () => {
+      if (!path.length) return;
+      path.pop(); expanded.clear(); refresh();
+    });
+    rootBtn.addEventListener('click', () => {
+      path = []; expanded.clear(); refresh();
+    });
+
+    crumbsEl.addEventListener('click', e => {
+      const c = e.target.closest('.ji-crumb');
+      if (!c) return;
+      const idx = parseInt(c.dataset.idx, 10);
+      if (idx === -1) path = [];
+      else path = path.slice(0, idx + 1);
+      expanded.clear();
+      refresh();
+    });
+
+    viewEl.addEventListener('click', e => {
+      // Inline expand/collapse button
+      const exp = e.target.closest('.ji-collapse');
+      if (exp) {
+        e.stopPropagation();
+        const node = getNodeAt(path);
+        const isArrayParent = Array.isArray(node);
+        const rawKey = exp.getAttribute('data-expand');
+        const k = isArrayParent ? parseInt(rawKey, 10) : rawKey;
+        const pathKey = path.map(p => p.key).join('|');
+        const expKey = pathKey + '||' + k;
+        if (expanded.has(expKey)) expanded.delete(expKey);
+        else expanded.add(expKey);
+        renderView();
+        return;
+      }
+      // Drill
+      const row = e.target.closest('.ji-row[data-drill]');
+      if (!row) return;
+      const node = getNodeAt(path);
+      const isArrayParent = Array.isArray(node);
+
+      if (row.hasAttribute('data-drill-idx')) {
+        // sublist row inside expanded array
+        const arrKey = isArrayParent
+          ? parseInt(row.getAttribute('data-drill'), 10)
+          : row.getAttribute('data-drill');
+        const itemIdx = parseInt(row.getAttribute('data-drill-idx'), 10);
+        const arrVal = node[arrKey];
+        const itVal = arrVal[itemIdx];
+        const itT = typeOf(itVal);
+        if (itT !== 'object' && itT !== 'array') return; // leaf, no drill
+        path.push({ key: arrKey, label: isArrayParent ? `[${arrKey}]` : String(arrKey) });
+        path.push({ key: itemIdx, label: `[${itemIdx}]` });
+        expanded.clear();
+        refresh();
+        return;
+      }
+
+      const rawKey = row.getAttribute('data-drill');
+      const k = isArrayParent ? parseInt(rawKey, 10) : rawKey;
+      const childVal = node[k];
+      const childT = typeOf(childVal);
+      if (childT !== 'object' && childT !== 'array') return;
+      path.push({ key: k, label: isArrayParent ? `[${k}]` : String(k) });
+      expanded.clear();
+      refresh();
+    });
+
+    // Keyboard: Backspace on body navigates back
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' &&
+          !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) {
+        if (path.length) { e.preventDefault(); path.pop(); expanded.clear(); refresh(); }
+      }
+    });
+  })();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

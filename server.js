@@ -77,6 +77,7 @@ app.use(helmet({
 
 const TOOLS = [
   { slug: 'json',      name: 'JSON Formatter',          file: 'tools/json-formatter.html', icon: '{}',   tags: ['developer','text'],           desc: 'Pretty-print, minify, and validate JSON.' },
+  { slug: 'json-explorer', name: 'Interactive JSON',    file: 'tools/json-explorer.html',  icon: '🔎{}', tags: ['developer','text'],           desc: 'Paste JSON and click through it like folders. Drill into objects, expand arrays inline, navigate via breadcrumbs.' },
   { slug: 'base64',    name: 'Base64 Encode/Decode',    file: 'tools/base64.html',         icon: 'B64',  tags: ['developer','encoder'],        desc: 'Encode and decode Base64 strings.' },
   { slug: 'url',       name: 'URL Encode/Decode',       file: 'tools/url-encoder.html',    icon: '%20',  tags: ['developer','encoder'],        desc: 'Percent-encode and decode URL components.' },
   { slug: 'uuid',      name: 'UUID Generator',          file: 'tools/uuid.html',           icon: 'ID',   tags: ['developer','generator'],      desc: 'Generate v4 UUIDs, single or in bulk.' },
@@ -117,6 +118,7 @@ const TOOLS = [
   { slug: 'pdf-signer',   name: 'PDF Signer',              file: 'tools/pdf-signer.html',   icon: 'Sgn',  tags: ['documents','security'],       desc: 'Draw or type a signature, place it on any PDF page, download the signed file.' },
   { slug: 'excel-table',  name: 'Excel / CSV to Table',    file: 'tools/excel-table.html',  icon: 'Xls',  tags: ['documents','converter'],      desc: 'Open Excel/CSV/ODS files, search, sort, and print or export — all in your browser.' },
   { slug: 'xml',          name: 'XML Formatter',           file: 'tools/xml.html',          icon: 'XML',  tags: ['developer','text'],           desc: 'Pretty-print, minify and validate XML in your browser.' },
+  { slug: 'xml-explorer', name: 'Interactive XML',         file: 'tools/xml-explorer.html', icon: '🔎XML',tags: ['developer','text'],           desc: 'Paste XML or drop a file (auto-detects XML inside oddly-named files) and click through it like folders.' },
 
   // -------- Image Toolkit (browser-only, no upload) --------
   { slug: 'img-compress',     name: 'Image Compressor',         file: 'tools/img-compress.html',     icon: 'Cmp', tags: ['image','design'],            desc: 'Compress JPG, PNG, WebP with a quality slider. See size before/after.' },

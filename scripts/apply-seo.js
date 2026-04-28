@@ -22,6 +22,30 @@ const SEO = {
       ['Can I minify too?', 'Yes, the same tool does both pretty-print and minify.']
     ]
   },
+  'json-explorer': {
+    file: 'tools/json-explorer.html',
+    title: 'Interactive JSON Explorer — Click Through Any JSON',
+    desc:  'Paste JSON and explore it interactively. Drill into objects, expand or collapse arrays inline, navigate with breadcrumbs. 100% in-browser, no signup.',
+    kw:    'interactive json, json viewer, json explorer, json tree viewer, json browser, navigate json, expand collapse json',
+    name:  'Interactive JSON Explorer',
+    faq: [
+      ['Is my JSON sent anywhere?', 'No. Everything is parsed and rendered locally in your browser.'],
+      ['How big can the JSON be?', 'It depends on your device, but multi-megabyte payloads work fine in modern browsers.'],
+      ['Can I expand arrays without leaving the current view?', 'Yes — every array has a + button to expand it inline; click again to collapse.']
+    ]
+  },
+  'xml-explorer': {
+    file: 'tools/xml-explorer.html',
+    title: 'Interactive XML Explorer — Click Through Any XML File',
+    desc:  'Paste XML or drop any file (we sniff the contents — even .txt, .dat or .config files work if they are really XML) and explore the tree interactively. Drill into elements, expand children inline, view attributes. In-browser, no signup.',
+    kw:    'interactive xml, xml viewer, xml explorer, xml tree, xml browser, navigate xml, sniff xml file, detect xml',
+    name:  'Interactive XML Explorer',
+    faq: [
+      ['Is my file sent anywhere?', 'No. Parsing and rendering happen entirely in your browser.'],
+      ['What if the file does not have a .xml extension?', 'We sniff the content. If it starts with <?xml or a valid XML element, we will parse and explore it.'],
+      ['Can I see attributes and CDATA?', 'Yes — attributes are listed in their own section, and CDATA / text / comment nodes are shown as drill-in leaves.']
+    ]
+  },
   base64: {
     file: 'tools/base64.html',
     title: 'Base64 Encoder & Decoder Online — Free, In-Browser',
