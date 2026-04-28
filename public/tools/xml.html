@@ -6,18 +6,54 @@
   <meta name="theme-color" content="#7c5cff">
   <link rel="stylesheet" href="/styles.css">
   <style>
-    .xml-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
-    @media (max-width: 900px) { .xml-grid { grid-template-columns: 1fr; } }
-    .xml-pane h2 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); display: flex; justify-content: space-between; }
-    .xml-pane textarea, .xml-pane pre {
-      width: 100%; min-height: 60vh; box-sizing: border-box;
-      font-family: var(--mono); font-size: 13px; line-height: 1.5;
-      background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
-      color: var(--text); padding: 14px; margin: 0; overflow: auto; white-space: pre;
+    .xml-stack { display: flex; flex-direction: column; gap: 12px; }
+    .xml-pane h2 {
+      margin: 0 0 6px; font-size: 12px; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--muted); font-weight: 600;
+      display: flex; justify-content: space-between; align-items: baseline;
     }
-    .xml-pane textarea { resize: vertical; }
+    .xml-pane h2 .meta { font-size: 11px; letter-spacing: 0.5px; text-transform: none; color: var(--muted); font-weight: 400; }
+    #src {
+      width: 100%; box-sizing: border-box;
+      min-height: 140px; height: 140px; max-height: 30vh; resize: vertical;
+      font-family: var(--mono); font-size: 13px; line-height: 1.5;
+      background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); padding: 12px;
+    }
+    #out {
+      width: 100%; box-sizing: border-box;
+      min-height: 60vh; max-height: 75vh; overflow: auto;
+      font-family: var(--mono); font-size: 13px; line-height: 1.55;
+      background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); padding: 14px; margin: 0; white-space: pre; tab-size: 2;
+    }
+    #out .hl-tag      { color: #c4b5ff; }
+    #out .hl-name     { color: var(--accent); font-weight: 600; }
+    #out .hl-attr     { color: var(--accent-mint); }
+    #out .hl-eq       { color: var(--muted); }
+    #out .hl-string   { color: var(--warn); }
+    #out .hl-text     { color: var(--text); }
+    #out .hl-comment  { color: var(--muted); font-style: italic; }
+    #out .hl-cdata    { color: var(--accent-pink); }
+    #out .hl-decl     { color: var(--accent-cyan); }
+    /* Collapsible tree */
+    #out .node { display: block; }
+    #out .children { display: block; padding-left: 1.4em; border-left: 1px dashed transparent; }
+    #out .node.collapsed > .children { display: none; }
+    #out .node.collapsed > .open-tag .ellipsis { display: inline; }
+    #out .node.collapsed > .close-tag { display: none; }
+    #out .ellipsis { display: none; color: var(--muted); padding: 0 4px; }
+    #out .toggle {
+      display: inline-block; width: 14px; text-align: center; cursor: pointer;
+      color: var(--muted); user-select: none; margin-right: 2px;
+      transition: transform .12s ease;
+    }
+    #out .toggle:hover { color: var(--accent); }
+    #out .node.collapsed > .open-tag > .toggle { transform: rotate(-90deg); }
+    #out .leaf-indent { display: inline-block; width: 16px; }
     .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
     .toolbar select { padding: 8px 10px; }
+    .toolbar .spacer { flex: 1; }
   </style>
   <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
   <!-- SEO:END -->
@@ -100,16 +136,18 @@
         </select>
         <button id="copyBtn" class="secondary">Copy output</button>
         <button id="sampleBtn" class="secondary">Load sample</button>
+        <button id="expandBtn" class="secondary" title="Expand all">⊞ Expand all</button>
+        <button id="collapseBtn" class="secondary" title="Collapse all">⊟ Collapse all</button>
         <span class="status" id="status"></span>
       </div>
 
-      <div class="xml-grid">
+      <div class="xml-stack">
         <div class="xml-pane">
-          <h2>Input</h2>
+          <h2>Input <span class="meta" id="srcMeta"></span></h2>
           <textarea id="src" spellcheck="false" placeholder="<root><child attr='1'>hello</child></root>"></textarea>
         </div>
         <div class="xml-pane">
-          <h2>Output <span id="outMeta" style="color:var(--muted);font-weight:normal"></span></h2>
+          <h2>Output <span class="meta" id="outMeta"></span></h2>
           <pre id="out"></pre>
         </div>
       </div>
@@ -226,13 +264,160 @@
       return ser.replace(/>\s+</g, '><').trim();
     }
 
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function escAttr(v) {
+      return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+    }
+
+    function attrsHtml(el) {
+      return [...el.attributes].map(a =>
+        ` <span class="hl-attr">${escHtml(a.name)}</span><span class="hl-eq">=</span><span class="hl-string">"${escAttr(a.value)}"</span>`
+      ).join('');
+    }
+
+    // Build a collapsible DOM tree from parsed XML.
+    function buildXmlTree(doc, src) {
+      const root = document.createElement('div');
+
+      // Preserve XML declaration if the source had one.
+      const decl = src.match(/^\s*<\?xml[^?]*\?>/);
+      if (decl) {
+        const d = document.createElement('div');
+        d.innerHTML = `<span class="hl-decl">${escHtml(decl[0].trim())}</span>`;
+        root.appendChild(d);
+      }
+
+      function makeLine(html) {
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        return div;
+      }
+
+      function renderNode(node, parent) {
+        for (const child of node.childNodes) {
+          switch (child.nodeType) {
+            case 1: { // Element
+              const el = child;
+              const name = escHtml(el.nodeName);
+              const at = attrsHtml(el);
+
+              if (el.childNodes.length === 0) {
+                parent.appendChild(makeLine(
+                  `<span class="leaf-indent"></span><span class="hl-tag">&lt;</span><span class="hl-name">${name}</span>${at}<span class="hl-tag">/&gt;</span>`
+                ));
+                break;
+              }
+
+              // Single-line if only short inline text/CDATA.
+              const onlyText = [...el.childNodes].every(c =>
+                c.nodeType === 3 || c.nodeType === 4 || c.nodeType === 8) &&
+                el.textContent.length < 80 &&
+                !/[\r\n]/.test(el.textContent);
+
+              if (onlyText) {
+                let inner = '';
+                for (const c of el.childNodes) {
+                  if (c.nodeType === 4) inner += `<span class="hl-cdata">&lt;![CDATA[${escHtml(c.nodeValue)}]]&gt;</span>`;
+                  else if (c.nodeType === 8) inner += `<span class="hl-comment">&lt;!--${escHtml(c.nodeValue)}--&gt;</span>`;
+                  else inner += `<span class="hl-text">${escHtml(c.nodeValue.trim())}</span>`;
+                }
+                parent.appendChild(makeLine(
+                  `<span class="leaf-indent"></span><span class="hl-tag">&lt;</span><span class="hl-name">${name}</span>${at}<span class="hl-tag">&gt;</span>${inner}<span class="hl-tag">&lt;/</span><span class="hl-name">${name}</span><span class="hl-tag">&gt;</span>`
+                ));
+                break;
+              }
+
+              // Collapsible element.
+              const wrap = document.createElement('div');
+              wrap.className = 'node';
+
+              const openTag = document.createElement('div');
+              openTag.className = 'open-tag';
+              openTag.innerHTML =
+                `<span class="toggle">▾</span>` +
+                `<span class="hl-tag">&lt;</span><span class="hl-name">${name}</span>${at}<span class="hl-tag">&gt;</span>` +
+                `<span class="ellipsis">…</span>` +
+                `<span class="ellipsis-close hl-tag" style="display:none"></span>`;
+              wrap.appendChild(openTag);
+
+              const children = document.createElement('div');
+              children.className = 'children';
+              renderNode(el, children);
+              wrap.appendChild(children);
+
+              const closeTag = document.createElement('div');
+              closeTag.className = 'close-tag';
+              closeTag.innerHTML = `<span class="leaf-indent"></span><span class="hl-tag">&lt;/</span><span class="hl-name">${name}</span><span class="hl-tag">&gt;</span>`;
+              wrap.appendChild(closeTag);
+
+              // When collapsed, show a faux closing after the ellipsis on the same line.
+              const ellipseClose = openTag.querySelector('.ellipsis-close');
+              ellipseClose.innerHTML = `<span class="hl-tag">&lt;/</span><span class="hl-name">${name}</span><span class="hl-tag">&gt;</span>`;
+
+              const toggle = openTag.querySelector('.toggle');
+              toggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                wrap.classList.toggle('collapsed');
+                ellipseClose.style.display = wrap.classList.contains('collapsed') ? 'inline' : 'none';
+              });
+
+              parent.appendChild(wrap);
+              break;
+            }
+            case 3: { // Text
+              const t = child.nodeValue.trim();
+              if (t) parent.appendChild(makeLine(`<span class="leaf-indent"></span><span class="hl-text">${escHtml(t)}</span>`));
+              break;
+            }
+            case 4: // CDATA
+              parent.appendChild(makeLine(`<span class="leaf-indent"></span><span class="hl-cdata">&lt;![CDATA[${escHtml(child.nodeValue)}]]&gt;</span>`));
+              break;
+            case 7: // Processing instruction
+              parent.appendChild(makeLine(`<span class="leaf-indent"></span><span class="hl-decl">&lt;?${escHtml(child.nodeName)} ${escHtml(child.nodeValue)}?&gt;</span>`));
+              break;
+            case 8: // Comment
+              parent.appendChild(makeLine(`<span class="leaf-indent"></span><span class="hl-comment">&lt;!--${escHtml(child.nodeValue)}--&gt;</span>`));
+              break;
+          }
+        }
+      }
+
+      renderNode(doc, root);
+      return root;
+    }
+
+    function setAllCollapsed(collapsed) {
+      $('out').querySelectorAll('.node').forEach(n => {
+        n.classList.toggle('collapsed', collapsed);
+        const ec = n.querySelector(':scope > .open-tag > .ellipsis-close');
+        if (ec) ec.style.display = collapsed ? 'inline' : 'none';
+      });
+    }
+
+    let lastOut = '';
+    let lastMode = 'pretty';
+
+    function updateSrcMeta() {
+      const v = $('src').value;
+      $('srcMeta').textContent = v ? `${v.length.toLocaleString()} chars` : '';
+    }
+
     function pretty() {
       try {
+        const doc = parseXml($('src').value);
         const out = prettyXml($('src').value, getIndent());
-        $('out').textContent = out;
+        lastOut = out;
+        lastMode = 'pretty';
+        const tree = buildXmlTree(doc, $('src').value);
+        $('out').innerHTML = '';
+        $('out').appendChild(tree);
         $('outMeta').textContent = `· ${out.split('\n').length} lines · ${out.length.toLocaleString()} chars`;
         status('Valid XML ✓');
       } catch (e) {
+        lastOut = '';
         $('out').textContent = '';
         $('outMeta').textContent = '';
         status(e.message, false);
@@ -242,10 +427,28 @@
     function minify() {
       try {
         const out = minifyXml($('src').value);
-        $('out').textContent = out;
+        lastOut = out;
+        lastMode = 'minify';
+        // For minified view, plain highlighted line (no collapse).
+        $('out').textContent = '';
+        const pre = document.createElement('div');
+        pre.style.whiteSpace = 'pre-wrap';
+        pre.style.wordBreak = 'break-all';
+        // Simple tag colorization for the minified single line.
+        pre.innerHTML = escHtml(out)
+          .replace(/(&lt;\/?)([A-Za-z_][\w:.-]*)([^&]*?)(\/?&gt;)/g,
+            (m, op, n, at, cl) => {
+              const ah = at.replace(
+                /(\s+)([A-Za-z_][\w:.-]*)(\s*=\s*)(&quot;[^&]*?&quot;|&#39;[^&]*?&#39;)/g,
+                (mm, ws, an, eq, av) => `${ws}<span class="hl-attr">${an}</span><span class="hl-eq">${eq}</span><span class="hl-string">${av}</span>`
+              );
+              return `<span class="hl-tag">${op}</span><span class="hl-name">${n}</span>${ah}<span class="hl-tag">${cl}</span>`;
+            });
+        $('out').appendChild(pre);
         $('outMeta').textContent = `· minified · ${out.length.toLocaleString()} chars`;
         status('Valid XML ✓');
       } catch (e) {
+        lastOut = '';
         $('out').textContent = '';
         $('outMeta').textContent = '';
         status(e.message, false);
@@ -255,10 +458,12 @@
     function validate() {
       try {
         parseXml($('src').value);
-        $('out').textContent = '✓ XML is well-formed.';
+        lastOut = '✓ XML is well-formed.';
+        $('out').textContent = lastOut;
         $('outMeta').textContent = '';
         status('Valid XML ✓');
       } catch (e) {
+        lastOut = '';
         $('out').textContent = e.message;
         $('outMeta').textContent = '';
         status(e.message, false);
@@ -268,16 +473,23 @@
     $('prettyBtn').onclick = pretty;
     $('minifyBtn').onclick = minify;
     $('validateBtn').onclick = validate;
-    $('indent').onchange = () => { if ($('out').textContent) pretty(); };
-    $('sampleBtn').onclick = () => { $('src').value = SAMPLE; pretty(); };
+    $('expandBtn').onclick = () => setAllCollapsed(false);
+    $('collapseBtn').onclick = () => setAllCollapsed(true);
+    $('indent').onchange = () => { if (lastOut && lastMode === 'pretty') pretty(); };
+    $('sampleBtn').onclick = () => { $('src').value = SAMPLE; updateSrcMeta(); pretty(); };
     $('copyBtn').onclick = async () => {
-      try { await navigator.clipboard.writeText($('out').textContent); status('Copied ✓'); }
+      try { await navigator.clipboard.writeText(lastOut || $('out').textContent); status('Copied ✓'); }
       catch { status('Copy failed', false); }
     };
-    $('src').addEventListener('input', () => { if ($('src').value.trim()) pretty(); else { $('out').textContent=''; $('outMeta').textContent=''; status(''); } });
+    $('src').addEventListener('input', () => {
+      updateSrcMeta();
+      if ($('src').value.trim()) pretty();
+      else { lastOut=''; $('out').textContent=''; $('outMeta').textContent=''; status(''); }
+    });
 
     // Start with the sample so the page is useful on first load.
     $('src').value = SAMPLE;
+    updateSrcMeta();
     pretty();
   </script>
   <script src="/site.js"></script>

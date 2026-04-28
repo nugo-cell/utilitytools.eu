@@ -4,6 +4,51 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/styles.css">
+  <style>
+    .fmt-stack { display: flex; flex-direction: column; gap: 12px; }
+    .fmt-pane label, .fmt-pane h2 {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin: 0 0 6px; font-size: 12px; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--muted); font-weight: 600;
+    }
+    .fmt-pane h2 .meta { font-size: 11px; letter-spacing: 0.5px; text-transform: none; color: var(--muted); font-weight: 400; }
+    #input {
+      width: 100%; box-sizing: border-box; min-height: 140px; height: 140px;
+      max-height: 30vh; resize: vertical;
+      font-family: var(--mono); font-size: 13px; line-height: 1.5;
+      background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); padding: 12px;
+    }
+    .fmt-output {
+      width: 100%; box-sizing: border-box;
+      min-height: 60vh; max-height: 75vh; overflow: auto;
+      font-family: var(--mono); font-size: 13px; line-height: 1.55;
+      background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); padding: 14px; margin: 0; white-space: pre; tab-size: 2;
+    }
+    .fmt-output .hl-key    { color: #c4b5ff; }
+    .fmt-output .hl-string { color: var(--accent-mint); }
+    .fmt-output .hl-number { color: var(--warn); }
+    .fmt-output .hl-bool   { color: var(--accent-pink); font-weight: 600; }
+    .fmt-output .hl-null   { color: var(--muted); font-style: italic; }
+    .fmt-output .hl-punct  { color: var(--muted); }
+    .fmt-empty { color: var(--muted); font-style: italic; }
+    /* Collapsible tree */
+    .fmt-output .node { display: block; }
+    .fmt-output .children { display: block; padding-left: 1.4em; }
+    .fmt-output .node.collapsed > .children { display: none; }
+    .fmt-output .node.collapsed > .open .summary { display: inline; }
+    .fmt-output .node.collapsed > .close { display: none; }
+    .fmt-output .summary { display: none; color: var(--muted); padding: 0 4px; }
+    .fmt-output .toggle {
+      display: inline-block; width: 14px; text-align: center; cursor: pointer;
+      color: var(--muted); user-select: none; margin-right: 2px;
+      transition: transform .12s ease;
+    }
+    .fmt-output .toggle:hover { color: var(--accent); }
+    .fmt-output .node.collapsed > .open > .toggle { transform: rotate(-90deg); }
+    .fmt-output .leaf-indent { display: inline-block; width: 16px; }
+  </style>
   <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
   <!-- SEO:END -->
   <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
@@ -95,6 +140,8 @@
         <button id="validateBtn" class="secondary">Validate</button>
         <button id="copyBtn" class="secondary">Copy output</button>
         <button id="clearBtn" class="secondary">Clear</button>
+        <button id="expandBtn" class="secondary" title="Expand all">⊞ Expand</button>
+        <button id="collapseBtn" class="secondary" title="Collapse all">⊟ Collapse</button>
         <div style="margin-left:auto">
           <label for="indent" style="display:inline;margin-right:6px;">Indent:</label>
           <select id="indent" style="width:auto;display:inline-block;">
@@ -105,14 +152,14 @@
         </div>
       </div>
 
-      <div class="split">
-        <div>
-          <label for="input">Input</label>
-          <textarea id="input" placeholder='{"hello":"world","items":[1,2,3]}'></textarea>
+      <div class="fmt-stack">
+        <div class="fmt-pane">
+          <label for="input">Input <span class="meta" id="inMeta"></span></label>
+          <textarea id="input" spellcheck="false" placeholder='{"hello":"world","items":[1,2,3]}'></textarea>
         </div>
-        <div>
-          <label for="output">Output</label>
-          <textarea id="output" readonly></textarea>
+        <div class="fmt-pane">
+          <h2>Output <span class="meta" id="outMeta"></span></h2>
+          <pre id="output" class="fmt-output"><span class="fmt-empty">Formatted JSON will appear here…</span></pre>
         </div>
       </div>
       <div id="status" class="status"></div>
@@ -124,6 +171,9 @@
     const output   = document.getElementById('output');
     const indentEl = document.getElementById('indent');
     const status   = document.getElementById('status');
+    const inMeta   = document.getElementById('inMeta');
+    const outMeta  = document.getElementById('outMeta');
+    let lastText   = '';
 
     function setStatus(msg, ok) {
       status.textContent = msg;
@@ -143,17 +193,155 @@
       }
     }
 
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // Build a collapsible DOM tree for any JSON value.
+    function buildJsonTree(value) {
+      const root = document.createElement('div');
+      renderValue(value, root, true);
+      return root;
+    }
+
+    function valueSpan(v) {
+      const span = document.createElement('span');
+      if (v === null) { span.className = 'hl-null'; span.textContent = 'null'; }
+      else if (typeof v === 'boolean') { span.className = 'hl-bool'; span.textContent = String(v); }
+      else if (typeof v === 'number')  { span.className = 'hl-number'; span.textContent = String(v); }
+      else if (typeof v === 'string')  { span.className = 'hl-string'; span.textContent = JSON.stringify(v); }
+      else { span.textContent = String(v); }
+      return span;
+    }
+
+    function makeLine(html) {
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      return div;
+    }
+
+    // Render a value into `parent` as a single line or a collapsible block,
+    // optionally appending a trailing comma (when isLast=false).
+    function renderValue(value, parent, isLast, keyHtml = '') {
+      const isObj = value && typeof value === 'object' && !Array.isArray(value);
+      const isArr = Array.isArray(value);
+
+      if (!isObj && !isArr) {
+        const div = document.createElement('div');
+        div.innerHTML = `<span class="leaf-indent"></span>${keyHtml}`;
+        div.appendChild(valueSpan(value));
+        if (!isLast) div.insertAdjacentHTML('beforeend', '<span class="hl-punct">,</span>');
+        parent.appendChild(div);
+        return;
+      }
+
+      const entries = isArr ? value.map((v, i) => [i, v]) : Object.entries(value);
+      const openCh  = isArr ? '[' : '{';
+      const closeCh = isArr ? ']' : '}';
+
+      if (entries.length === 0) {
+        const div = document.createElement('div');
+        div.innerHTML = `<span class="leaf-indent"></span>${keyHtml}<span class="hl-punct">${openCh}${closeCh}</span>${isLast ? '' : '<span class="hl-punct">,</span>'}`;
+        parent.appendChild(div);
+        return;
+      }
+
+      const wrap = document.createElement('div');
+      wrap.className = 'node';
+
+      const open = document.createElement('div');
+      open.className = 'open';
+      const summary = isArr
+        ? `<span class="summary">${entries.length} item${entries.length===1?'':'s'}</span>`
+        : `<span class="summary">${entries.length} key${entries.length===1?'':'s'}</span>`;
+      open.innerHTML = `<span class="toggle">▾</span>${keyHtml}<span class="hl-punct">${openCh}</span>${summary}<span class="summary-close hl-punct" style="display:none">${closeCh}${isLast ? '' : ','}</span>`;
+      wrap.appendChild(open);
+
+      const children = document.createElement('div');
+      children.className = 'children';
+      entries.forEach(([k, v], i) => {
+        const last = i === entries.length - 1;
+        const kHtml = isArr
+          ? '' // arrays: no key shown
+          : `<span class="hl-key">"${escHtml(String(k))}"</span><span class="hl-punct">: </span>`;
+        renderValue(v, children, last, kHtml);
+      });
+      wrap.appendChild(children);
+
+      const close = document.createElement('div');
+      close.className = 'close';
+      close.innerHTML = `<span class="leaf-indent"></span><span class="hl-punct">${closeCh}${isLast ? '' : ','}</span>`;
+      wrap.appendChild(close);
+
+      const summaryClose = open.querySelector('.summary-close');
+      open.querySelector('.toggle').addEventListener('click', (e) => {
+        e.stopPropagation();
+        wrap.classList.toggle('collapsed');
+        summaryClose.style.display = wrap.classList.contains('collapsed') ? 'inline' : 'none';
+      });
+
+      parent.appendChild(wrap);
+    }
+
+    function setAllCollapsed(collapsed) {
+      output.querySelectorAll('.node').forEach(n => {
+        n.classList.toggle('collapsed', collapsed);
+        const sc = n.querySelector(':scope > .open > .summary-close');
+        if (sc) sc.style.display = collapsed ? 'inline' : 'none';
+      });
+    }
+
+    // Highlight a flat JSON string (used for minified output).
+    function highlightJson(jsonStr) {
+      const escaped = escHtml(jsonStr);
+      return escaped.replace(
+        /("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false)\b|\bnull\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|([{}\[\],])/g,
+        (m, str, colon, bool) => {
+          if (str) {
+            return colon
+              ? `<span class="hl-key">${str}</span><span class="hl-punct">${colon}</span>`
+              : `<span class="hl-string">${str}</span>`;
+          }
+          if (bool) return `<span class="hl-bool">${m}</span>`;
+          if (m === 'null') return `<span class="hl-null">null</span>`;
+          if (/[{}\[\],]/.test(m)) return `<span class="hl-punct">${m}</span>`;
+          return `<span class="hl-number">${m}</span>`;
+        }
+      );
+    }
+
+    function renderTree(data) {
+      output.innerHTML = '';
+      output.appendChild(buildJsonTree(data));
+      const text = JSON.stringify(data, null, indentValue());
+      lastText = text;
+      const lines = text.split('\n').length;
+      outMeta.textContent = `· ${lines} line${lines===1?'':'s'} · ${text.length.toLocaleString()} chars`;
+    }
+
+    function renderFlat(text) {
+      lastText = text;
+      output.innerHTML = `<div style="white-space:pre-wrap;word-break:break-all">${highlightJson(text)}</div>`;
+      outMeta.textContent = `· minified · ${text.length.toLocaleString()} chars`;
+    }
+
+    function updateInMeta() {
+      const v = input.value;
+      inMeta.textContent = v ? `${v.length.toLocaleString()} chars` : '';
+    }
+    input.addEventListener('input', updateInMeta);
+
     document.getElementById('prettyBtn').onclick = () => {
       const r = parseInput();
       if (!r.ok) { setStatus('Invalid JSON: ' + r.error, false); return; }
-      output.value = JSON.stringify(r.data, null, indentValue());
+      renderTree(r.data);
       setStatus('Formatted ✓', true);
     };
 
     document.getElementById('minifyBtn').onclick = () => {
       const r = parseInput();
       if (!r.ok) { setStatus('Invalid JSON: ' + r.error, false); return; }
-      output.value = JSON.stringify(r.data);
+      renderFlat(JSON.stringify(r.data));
       setStatus('Minified ✓', true);
     };
 
@@ -163,17 +351,32 @@
       setStatus('Valid JSON ✓', true);
     };
 
+    document.getElementById('expandBtn').onclick = () => setAllCollapsed(false);
+    document.getElementById('collapseBtn').onclick = () => setAllCollapsed(true);
+
     document.getElementById('copyBtn').onclick = async () => {
-      if (!output.value) { setStatus('Nothing to copy', false); return; }
+      if (!lastText) { setStatus('Nothing to copy', false); return; }
       try {
-        await navigator.clipboard.writeText(output.value);
+        await navigator.clipboard.writeText(lastText);
         setStatus('Copied to clipboard ✓', true);
       } catch { setStatus('Copy failed', false); }
     };
 
     document.getElementById('clearBtn').onclick = () => {
-      input.value = ''; output.value = ''; setStatus('', true);
+      input.value = '';
+      lastText = '';
+      output.innerHTML = '<span class="fmt-empty">Formatted JSON will appear here…</span>';
+      outMeta.textContent = '';
+      updateInMeta();
+      setStatus('', true);
     };
+
+    indentEl.addEventListener('change', () => {
+      if (lastText) {
+        const r = parseInput();
+        if (r.ok) renderTree(r.data);
+      }
+    });
   </script>
   <script src="/site.js"></script>
 </body>
