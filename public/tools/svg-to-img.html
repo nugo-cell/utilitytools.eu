@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#7c5cff">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .si-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    .si-toolbar select { padding: 7px 10px; }
+    .small { font-size: 12px; color: var(--muted); }
+    .field-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; flex-wrap: wrap; }
+    .field-row label { color: var(--muted); font-size: 12px; min-width: 130px; }
+    .field-row input[type=range] { flex: 1; min-width: 140px; }
+    .field-row input[type=number] { width: 110px; padding: 6px 8px; }
+
+    .drop {
+      border: 2px dashed var(--border); border-radius: 12px; padding: 28px;
+      text-align: center; color: var(--muted); cursor: pointer;
+      transition: border-color .12s, background .12s;
+    }
+    .drop.drag { border-color: var(--accent); background: rgba(124,92,255,.06); }
+    .drop input { display: none; }
+
+    .si-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
+    @media (min-width: 900px) { .si-grid { grid-template-columns: 1fr 1fr; } }
+    .si-card {
+      background: var(--panel-2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px;
+    }
+    .si-card h3 {
+      margin: 0 0 10px; font-size: 12px; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--muted); font-weight: 600;
+      display: flex; justify-content: space-between; align-items: baseline;
+    }
+    .si-card h3 .meta { font-size: 11px; letter-spacing: .5px; text-transform: none; color: var(--muted); font-weight: 400; }
+    .preview-box {
+      background:
+        linear-gradient(45deg, #00000022 25%, transparent 25%, transparent 75%, #00000022 75%),
+        linear-gradient(45deg, #00000022 25%, transparent 25%, transparent 75%, #00000022 75%);
+      background-size: 20px 20px; background-position: 0 0, 10px 10px;
+      border-radius: 8px;
+      min-height: 280px; max-height: 60vh; overflow: auto;
+      display: flex; align-items: center; justify-content: center; padding: 8px;
+    }
+    .preview-box img, .preview-box svg { max-width: 100%; max-height: 56vh; height: auto; display: block; }
+    #svgInput {
+      width: 100%; box-sizing: border-box;
+      min-height: 100px; max-height: 25vh; resize: vertical;
+      font-family: var(--mono), monospace; font-size: 12px; line-height: 1.5;
+      background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); padding: 10px;
+    }
+    .bg-pick { display: inline-flex; gap: 4px; align-items: center; }
+    .bg-pick input[type=color] { width: 32px; height: 28px; padding: 0; border: 1px solid var(--border); border-radius: 4px; background: transparent; cursor: pointer; }
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>SVG to PNG / JPG / WebP / AVIF — SVG Image Converter</title>
+  <meta name="description" content="Convert any SVG to a raster image: PNG, JPG, WebP or AVIF. Choose width, scale, quality and background. Free, browser-only.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/svg-to-img">
+  <!-- SEO:END -->
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span><span class="tld">.eu</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>SVG to Image</h1>
+      <p>Open any SVG file or paste markup, then export it as PNG, JPG, WebP or AVIF at any size. Runs entirely in your browser.</p>
+    </div>
+
+    <div class="panel">
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept=".svg,image/svg+xml">
+        <div><b>Click or drop</b> an .svg file — or paste markup below</div>
+        <div class="small" id="fileMeta"></div>
+      </label>
+
+      <details style="margin-top:10px;" open>
+        <summary class="small" style="cursor:pointer;">Paste / edit SVG markup</summary>
+        <textarea id="svgInput" spellcheck="false" style="margin-top:8px;"
+          placeholder='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#7c5cff"/></svg>'></textarea>
+        <div style="margin-top:6px;">
+          <button id="loadTextBtn" class="secondary">Load from text</button>
+          <button id="sampleBtn" class="secondary">Sample SVG</button>
+        </div>
+      </details>
+
+      <h3 style="margin:18px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);">Output</h3>
+
+      <div class="field-row">
+        <label for="fmt">Format</label>
+        <select id="fmt"></select>
+        <span class="small" id="fmtNote"></span>
+      </div>
+      <div class="field-row" id="qRow">
+        <label for="quality">Quality (lossy)</label>
+        <input type="range" id="quality" min="0.1" max="1" step="0.05" value="0.92">
+        <span class="small" id="qualityVal">92%</span>
+      </div>
+      <div class="field-row">
+        <label for="widthInput">Width</label>
+        <input type="number" id="widthInput" min="1" step="1" value="1024">
+        <label for="heightInput">Height</label>
+        <input type="number" id="heightInput" min="1" step="1" value="1024">
+        <label class="small" style="display:inline-flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="lockAspect" checked> Lock aspect
+        </label>
+      </div>
+      <div class="field-row">
+        <label for="scale">Scale (× original)</label>
+        <input type="range" id="scale" min="0.25" max="8" step="0.25" value="1">
+        <span class="small" id="scaleVal">1×</span>
+        <button id="applyScaleBtn" class="secondary">Apply scale</button>
+      </div>
+      <div class="field-row">
+        <label>Background</label>
+        <span class="bg-pick">
+          <label class="small"><input type="radio" name="bg" value="transparent" checked> Transparent</label>
+          <label class="small"><input type="radio" name="bg" value="white"> White</label>
+          <label class="small"><input type="radio" name="bg" value="black"> Black</label>
+          <label class="small"><input type="radio" name="bg" value="custom"> Custom</label>
+          <input type="color" id="bgColor" value="#ffffff">
+        </span>
+      </div>
+
+      <div class="si-toolbar" style="margin-top:14px;">
+        <button id="convertBtn" disabled>⚙ Convert</button>
+        <button id="downloadBtn" disabled>⬇ Download</button>
+        <span class="status" id="status"></span>
+      </div>
+
+      <div class="si-grid" style="margin-top:8px;">
+        <div class="si-card">
+          <h3>Source SVG <span class="meta" id="srcMeta"></span></h3>
+          <div class="preview-box" id="srcPreview"><span class="small">No SVG loaded</span></div>
+        </div>
+        <div class="si-card">
+          <h3>Rasterized result <span class="meta" id="outMeta"></span></h3>
+          <div class="preview-box" id="outPreview"><span class="small">Convert to see the result</span></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+  (function () {
+    const $ = id => document.getElementById(id);
+    const setStatus = (m, ok = true) => { $('status').textContent = m; $('status').className = 'status ' + (ok ? 'ok' : 'err'); };
+
+    let raw = '';
+    let baseW = 0, baseH = 0;
+    let baseName = 'image';
+    let outBlob = null, outExt = 'png';
+
+    const SAMPLE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c5cff"/>
+      <stop offset="100%" stop-color="#22d3ee"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="24" fill="url(#g)"/>
+  <text x="100" y="115" text-anchor="middle" font-family="Inter, sans-serif" font-size="36" fill="#fff" font-weight="700">SVG</text>
+</svg>`;
+
+    /* ---- Format detection ---- */
+    async function canEncode(type) {
+      try {
+        const c = document.createElement('canvas'); c.width = 2; c.height = 2;
+        return await new Promise(res => c.toBlob(b => res(!!b && b.type === type), type, 0.5));
+      } catch { return false; }
+    }
+    (async () => {
+      const formats = [
+        ['image/png',  'PNG'],
+        ['image/jpeg', 'JPEG (.jpg)'],
+        ['image/webp', 'WebP'],
+        ['image/avif', 'AVIF']
+      ];
+      for (const [t, l] of formats) {
+        const ok = await canEncode(t);
+        const o = document.createElement('option');
+        o.value = t;
+        o.textContent = l + (ok ? '' : ' (not supported)');
+        if (!ok) o.disabled = true;
+        $('fmt').appendChild(o);
+      }
+      $('fmt').dispatchEvent(new Event('change'));
+    })();
+    $('fmt').addEventListener('change', () => {
+      const lossy = $('fmt').value === 'image/jpeg' || $('fmt').value === 'image/webp' || $('fmt').value === 'image/avif';
+      $('qRow').style.display = lossy ? 'flex' : 'none';
+      $('fmtNote').textContent = $('fmt').value === 'image/jpeg' ? 'JPEG has no transparency — background will be applied.' : '';
+    });
+
+    /* ---- Inputs ---- */
+    $('quality').addEventListener('input', () => $('qualityVal').textContent = Math.round(parseFloat($('quality').value) * 100) + '%');
+    $('scale').addEventListener('input',   () => $('scaleVal').textContent   = parseFloat($('scale').value).toFixed(2) + '×');
+    $('applyScaleBtn').onclick = () => {
+      if (!baseW) return;
+      const s = parseFloat($('scale').value);
+      $('widthInput').value  = Math.round(baseW * s);
+      $('heightInput').value = Math.round(baseH * s);
+    };
+    $('widthInput').addEventListener('input', () => {
+      if (!baseW || !$('lockAspect').checked) return;
+      const w = Math.max(1, parseFloat($('widthInput').value) || 1);
+      $('heightInput').value = Math.round(w * (baseH / baseW));
+    });
+    $('heightInput').addEventListener('input', () => {
+      if (!baseH || !$('lockAspect').checked) return;
+      const h = Math.max(1, parseFloat($('heightInput').value) || 1);
+      $('widthInput').value = Math.round(h * (baseW / baseH));
+    });
+
+    /* ---- File / paste loading ---- */
+    const drop = $('drop');
+    ['dragover','dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => {
+      e.preventDefault();
+      drop.classList.toggle('drag', ev === 'dragover');
+    }));
+    drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) loadFile(f); });
+    $('file').addEventListener('change', e => { const f = e.target.files[0]; if (f) loadFile(f); });
+    $('loadTextBtn').onclick = () => loadText($('svgInput').value, 'pasted');
+    $('sampleBtn').onclick = () => { $('svgInput').value = SAMPLE; loadText(SAMPLE, 'sample'); };
+
+    function loadFile(file) {
+      if (!/\.svg$/i.test(file.name) && file.type !== 'image/svg+xml') {
+        setStatus('Please select an .svg file', false); return;
+      }
+      baseName = file.name.replace(/\.[^.]+$/, '') || 'image';
+      file.text().then(t => { $('svgInput').value = t; loadText(t, file.name); })
+                 .catch(() => setStatus('Failed to read file', false));
+    }
+
+    function loadText(text, label) {
+      const trimmed = (text || '').trim();
+      if (!trimmed) { setStatus('Empty SVG', false); return; }
+      const doc = new DOMParser().parseFromString(trimmed, 'image/svg+xml');
+      const err = doc.querySelector('parsererror');
+      if (err) { setStatus('Invalid SVG: ' + (err.textContent || '').replace(/\s+/g,' ').slice(0, 200), false); return; }
+      const root = doc.documentElement;
+      if (!root || root.nodeName.toLowerCase() !== 'svg') { setStatus('No <svg> root element found', false); return; }
+
+      raw = trimmed;
+      // Resolve intrinsic size
+      const wAttr = parseFloat(root.getAttribute('width'));
+      const hAttr = parseFloat(root.getAttribute('height'));
+      const vb = root.viewBox && root.viewBox.baseVal;
+      baseW = !isNaN(wAttr) && wAttr > 0 ? wAttr : (vb && vb.width  ? vb.width  : 300);
+      baseH = !isNaN(hAttr) && hAttr > 0 ? hAttr : (vb && vb.height ? vb.height : 150);
+
+      $('widthInput').value  = Math.round(baseW);
+      $('heightInput').value = Math.round(baseH);
+      $('fileMeta').textContent = `Loaded: ${label} — ${(trimmed.length/1024).toFixed(1)} KB`;
+      $('srcMeta').textContent = `${Math.round(baseW)} × ${Math.round(baseH)}`;
+      // Render source preview using a clone so we don't break re-parsing.
+      $('srcPreview').innerHTML = trimmed;
+      $('convertBtn').disabled = false;
+      setStatus('SVG loaded ✓');
+    }
+
+    /* ---- Convert ---- */
+    function getBg() {
+      const v = document.querySelector('input[name=bg]:checked').value;
+      if (v === 'transparent') return null;
+      if (v === 'white') return '#ffffff';
+      if (v === 'black') return '#000000';
+      return $('bgColor').value;
+    }
+
+    function convert() {
+      if (!raw) { setStatus('Load an SVG first', false); return; }
+      const w = Math.max(1, parseFloat($('widthInput').value) || 1);
+      const h = Math.max(1, parseFloat($('heightInput').value) || 1);
+      const fmt = $('fmt').value;
+      const quality = parseFloat($('quality').value);
+      const bg = getBg();
+
+      // For lossy formats with no transparency, fall back to white if user picked transparent.
+      const effectiveBg = (fmt === 'image/jpeg' && !bg) ? '#ffffff' : bg;
+
+      // Render at requested pixel size by setting svg width/height attrs.
+      const doc = new DOMParser().parseFromString(raw, 'image/svg+xml');
+      const root = doc.documentElement;
+      // Ensure viewBox exists (for proper scaling)
+      if (!root.getAttribute('viewBox')) {
+        root.setAttribute('viewBox', `0 0 ${baseW} ${baseH}`);
+      }
+      root.setAttribute('width',  String(w));
+      root.setAttribute('height', String(h));
+      // Make sure xmlns is present
+      if (!root.getAttribute('xmlns')) root.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+      const svgStr = new XMLSerializer().serializeToString(root);
+      const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (effectiveBg) { ctx.fillStyle = effectiveBg; ctx.fillRect(0, 0, w, h); }
+        ctx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(b => {
+          if (!b) { setStatus('Encoding to ' + fmt + ' failed', false); return; }
+          outBlob = b;
+          outExt = fmt.split('/')[1].replace('jpeg','jpg').replace('svg+xml','svg');
+          const oUrl = URL.createObjectURL(b);
+          $('outPreview').innerHTML = '';
+          const im = new Image(); im.src = oUrl;
+          $('outPreview').appendChild(im);
+          $('outMeta').textContent = `${w} × ${h} · ${(b.size/1024).toFixed(1)} KB · ${fmt}`;
+          $('downloadBtn').disabled = false;
+          setStatus(`Converted to ${outExt.toUpperCase()} ✓`);
+        }, fmt, quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); setStatus('Browser failed to render the SVG', false); };
+      img.src = url;
+    }
+
+    $('convertBtn').onclick = convert;
+    $('downloadBtn').onclick = () => {
+      if (!outBlob) return;
+      const url = URL.createObjectURL(outBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${baseName}.${outExt}`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 500);
+      setStatus('Downloaded ✓');
+    };
+  })();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

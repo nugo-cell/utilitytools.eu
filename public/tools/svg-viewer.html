@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#7c5cff">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .sv-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    .sv-toolbar input[type=range] { width: 160px; }
+    .small { font-size: 12px; color: var(--muted); }
+    .drop {
+      border: 2px dashed var(--border); border-radius: 12px; padding: 28px;
+      text-align: center; color: var(--muted); cursor: pointer;
+      transition: border-color .12s, background .12s;
+    }
+    .drop.drag { border-color: var(--accent); background: rgba(124,92,255,.06); }
+    .drop input { display: none; }
+
+    .stage {
+      position: relative; overflow: hidden;
+      background:
+        linear-gradient(45deg, #00000022 25%, transparent 25%, transparent 75%, #00000022 75%),
+        linear-gradient(45deg, #00000022 25%, transparent 25%, transparent 75%, #00000022 75%);
+      background-size: 20px 20px; background-position: 0 0, 10px 10px;
+      border: 1px solid var(--border); border-radius: 10px;
+      height: 60vh; min-height: 360px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: grab;
+    }
+    .stage.grabbing { cursor: grabbing; }
+    .stage.dark  { background: #1a1a1a; }
+    .stage.light { background: #ffffff; }
+    .stage-inner {
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+    .stage-inner svg { display: block; max-width: none; max-height: none; }
+
+    .info-grid {
+      display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px;
+      font-size: 13px; margin: 6px 0;
+    }
+    .info-grid dt { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .info-grid dd { margin: 0; word-break: break-word; }
+
+    #svgSource {
+      width: 100%; box-sizing: border-box;
+      min-height: 160px; max-height: 50vh; overflow: auto;
+      font-family: var(--mono), monospace; font-size: 12px; line-height: 1.5;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); padding: 12px; margin: 0; white-space: pre;
+    }
+    .bg-pick { display: inline-flex; gap: 4px; }
+    .bg-pick button {
+      background: var(--panel-2); border: 1px solid var(--border);
+      color: var(--muted); padding: 4px 8px; font-size: 12px; border-radius: 6px; cursor: pointer;
+    }
+    .bg-pick button.active { color: var(--accent); border-color: var(--accent); }
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>SVG Viewer — Open, Inspect &amp; Zoom Any SVG File</title>
+  <meta name="description" content="View, zoom and pan SVG files in your browser. See viewBox, dimensions, element counts and source. Free, no upload.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/svg-viewer">
+  <!-- SEO:END -->
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span><span class="tld">.eu</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>SVG Viewer</h1>
+      <p>Open any SVG file or paste markup, then zoom, pan and inspect it. Shows dimensions, viewBox and element counts. Everything stays in your browser.</p>
+    </div>
+
+    <div class="panel">
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept=".svg,image/svg+xml">
+        <div><b>Click or drop</b> an .svg file — or paste SVG markup below</div>
+        <div class="small" id="fileMeta"></div>
+      </label>
+
+      <details style="margin-top:10px;" open>
+        <summary class="small" style="cursor:pointer;">Paste / edit SVG markup</summary>
+        <textarea id="svgInput" spellcheck="false"
+          style="width:100%;min-height:120px;max-height:30vh;margin-top:8px;box-sizing:border-box;
+                 font-family:var(--mono),monospace;font-size:12px;line-height:1.5;
+                 background:var(--panel-2);border:1px solid var(--border);border-radius:10px;
+                 color:var(--text);padding:10px;"
+          placeholder='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#7c5cff"/></svg>'></textarea>
+        <div style="margin-top:6px;">
+          <button id="loadTextBtn" class="secondary">Load from text</button>
+        </div>
+      </details>
+
+      <div class="sv-toolbar" style="margin-top:14px;">
+        <button id="zoomOutBtn" class="secondary">−</button>
+        <input id="zoom" type="range" min="0.05" max="8" step="0.05" value="1">
+        <button id="zoomInBtn" class="secondary">+</button>
+        <span class="small" id="zoomVal">100%</span>
+        <button id="fitBtn" class="secondary">Fit</button>
+        <button id="actualBtn" class="secondary">1:1</button>
+        <span class="small">|</span>
+        <span class="small">Background:</span>
+        <span class="bg-pick" id="bgPick">
+          <button data-bg="checker" class="active">Checker</button>
+          <button data-bg="dark">Dark</button>
+          <button data-bg="light">Light</button>
+        </span>
+        <span class="small">|</span>
+        <button id="downloadBtn" class="secondary" disabled>⬇ Download .svg</button>
+        <button id="copyBtn" class="secondary" disabled>Copy source</button>
+        <span class="status" id="status"></span>
+      </div>
+
+      <div class="stage" id="stage">
+        <div class="stage-inner" id="stageInner"></div>
+      </div>
+
+      <h3 style="margin:18px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);">Info</h3>
+      <dl class="info-grid" id="info">
+        <dt>—</dt><dd class="small">No SVG loaded yet.</dd>
+      </dl>
+
+      <details style="margin-top:14px;">
+        <summary class="small" style="cursor:pointer;">View / copy SVG source</summary>
+        <pre id="svgSource" style="margin-top:8px;">&lt;!-- SVG source will appear here --&gt;</pre>
+      </details>
+    </div>
+  </main>
+
+  <script>
+  (function () {
+    const $ = id => document.getElementById(id);
+    const setStatus = (m, ok = true) => { $('status').textContent = m; $('status').className = 'status ' + (ok ? 'ok' : 'err'); };
+
+    let raw = '';
+    let svgEl = null;            // currently mounted <svg>
+    let baseName = 'image';
+    let scale = 1, tx = 0, ty = 0;
+    const stage = $('stage'), inner = $('stageInner');
+
+    /* ---- File / paste loading ---- */
+    const drop = $('drop');
+    ['dragover','dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => {
+      e.preventDefault();
+      drop.classList.toggle('drag', ev === 'dragover');
+    }));
+    drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) loadFile(f); });
+    $('file').addEventListener('change', e => { const f = e.target.files[0]; if (f) loadFile(f); });
+    $('loadTextBtn').onclick = () => loadText($('svgInput').value, 'pasted');
+
+    function loadFile(file) {
+      if (!/\.svg$/i.test(file.name) && file.type !== 'image/svg+xml') {
+        setStatus('Please select an .svg file', false); return;
+      }
+      baseName = file.name.replace(/\.[^.]+$/, '') || 'image';
+      file.text().then(t => {
+        $('svgInput').value = t;
+        loadText(t, file.name);
+      }).catch(() => setStatus('Failed to read file', false));
+    }
+
+    function loadText(text, label) {
+      const trimmed = (text || '').trim();
+      if (!trimmed) { setStatus('Empty SVG', false); return; }
+      // Parse with DOMParser to validate.
+      const doc = new DOMParser().parseFromString(trimmed, 'image/svg+xml');
+      const err = doc.querySelector('parsererror');
+      if (err) {
+        setStatus('Invalid SVG: ' + (err.textContent || '').replace(/\s+/g,' ').slice(0, 200), false);
+        return;
+      }
+      const root = doc.documentElement;
+      if (!root || root.nodeName.toLowerCase() !== 'svg') {
+        setStatus('No <svg> root element found', false); return;
+      }
+      raw = trimmed;
+      mount(root);
+      $('downloadBtn').disabled = false;
+      $('copyBtn').disabled = false;
+      $('fileMeta').textContent = `Loaded: ${label} — ${(trimmed.length/1024).toFixed(1)} KB`;
+      $('svgSource').textContent = trimmed;
+      fitToStage();
+      setStatus('Loaded ✓');
+    }
+
+    function mount(rootEl) {
+      // Clone the parsed <svg> into the stage so user CSS doesn't bleed through.
+      svgEl = document.importNode(rootEl, true);
+      // Strip width/height so it scales freely; keep viewBox.
+      const w = svgEl.getAttribute('width');
+      const h = svgEl.getAttribute('height');
+      if (!svgEl.getAttribute('viewBox') && w && h) {
+        svgEl.setAttribute('viewBox', `0 0 ${parseFloat(w)} ${parseFloat(h)}`);
+      }
+      svgEl.removeAttribute('width');
+      svgEl.removeAttribute('height');
+      // Force a sensible intrinsic size for zooming.
+      const vb = svgEl.viewBox && svgEl.viewBox.baseVal;
+      const baseW = vb && vb.width  ? vb.width  : (parseFloat(w) || 300);
+      const baseH = vb && vb.height ? vb.height : (parseFloat(h) || 150);
+      svgEl.style.width  = baseW + 'px';
+      svgEl.style.height = baseH + 'px';
+      inner.innerHTML = '';
+      inner.appendChild(svgEl);
+      buildInfo(rootEl, w, h, baseW, baseH);
+    }
+
+    function buildInfo(rootEl, attrW, attrH, baseW, baseH) {
+      const counts = {};
+      rootEl.querySelectorAll('*').forEach(n => {
+        const t = n.nodeName.toLowerCase();
+        counts[t] = (counts[t] || 0) + 1;
+      });
+      const ordered = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0, 12);
+      const vb = rootEl.getAttribute('viewBox') || '(none)';
+      const dl = $('info');
+      dl.innerHTML = '';
+      const add = (k, v) => {
+        const dt = document.createElement('dt'); dt.textContent = k;
+        const dd = document.createElement('dd'); dd.textContent = v;
+        dl.appendChild(dt); dl.appendChild(dd);
+      };
+      add('width attr',  attrW || '(none)');
+      add('height attr', attrH || '(none)');
+      add('viewBox',     vb);
+      add('Render size', `${Math.round(baseW)} × ${Math.round(baseH)} px`);
+      add('Total nodes', String(rootEl.querySelectorAll('*').length));
+      add('Top elements', ordered.map(([k,c]) => `${k} (${c})`).join(', ') || '(none)');
+      add('Source size', `${(raw.length/1024).toFixed(2)} KB · ${raw.length.toLocaleString()} chars`);
+    }
+
+    /* ---- Zoom / pan ---- */
+    function applyTransform() {
+      inner.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+      $('zoom').value = scale;
+      $('zoomVal').textContent = Math.round(scale * 100) + '%';
+    }
+
+    function fitToStage() {
+      if (!svgEl) return;
+      const sw = stage.clientWidth, sh = stage.clientHeight;
+      const w = parseFloat(svgEl.style.width) || svgEl.clientWidth || 300;
+      const h = parseFloat(svgEl.style.height) || svgEl.clientHeight || 150;
+      const s = Math.min(sw / w, sh / h) * 0.92;
+      scale = Math.max(0.01, Math.min(8, s));
+      tx = (sw - w * scale) / 2;
+      ty = (sh - h * scale) / 2;
+      applyTransform();
+    }
+
+    function actualSize() {
+      if (!svgEl) return;
+      scale = 1;
+      const sw = stage.clientWidth, sh = stage.clientHeight;
+      const w = parseFloat(svgEl.style.width) || 300;
+      const h = parseFloat(svgEl.style.height) || 150;
+      tx = (sw - w) / 2; ty = (sh - h) / 2;
+      applyTransform();
+    }
+
+    $('zoom').addEventListener('input', () => {
+      const old = scale;
+      scale = parseFloat($('zoom').value);
+      // Zoom around stage center
+      const sw = stage.clientWidth, sh = stage.clientHeight;
+      const cx = sw / 2, cy = sh / 2;
+      tx = cx - ((cx - tx) * (scale / old));
+      ty = cy - ((cy - ty) * (scale / old));
+      applyTransform();
+    });
+    $('zoomInBtn').onclick  = () => { scale = Math.min(8, scale * 1.25); applyTransform(); };
+    $('zoomOutBtn').onclick = () => { scale = Math.max(0.05, scale / 1.25); applyTransform(); };
+    $('fitBtn').onclick = fitToStage;
+    $('actualBtn').onclick = actualSize;
+
+    // Pan
+    let dragging = false, startX = 0, startY = 0, sx = 0, sy = 0;
+    stage.addEventListener('pointerdown', e => {
+      dragging = true; startX = e.clientX; startY = e.clientY; sx = tx; sy = ty;
+      stage.classList.add('grabbing');
+      stage.setPointerCapture(e.pointerId);
+    });
+    stage.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      tx = sx + (e.clientX - startX);
+      ty = sy + (e.clientY - startY);
+      applyTransform();
+    });
+    const endPan = () => { dragging = false; stage.classList.remove('grabbing'); };
+    stage.addEventListener('pointerup', endPan);
+    stage.addEventListener('pointercancel', endPan);
+
+    // Wheel zoom (cursor-anchored)
+    stage.addEventListener('wheel', e => {
+      if (!svgEl) return;
+      e.preventDefault();
+      const rect = stage.getBoundingClientRect();
+      const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      const factor = e.deltaY < 0 ? 1.1 : 1/1.1;
+      const ns = Math.max(0.05, Math.min(8, scale * factor));
+      tx = mx - ((mx - tx) * (ns / scale));
+      ty = my - ((my - ty) * (ns / scale));
+      scale = ns;
+      applyTransform();
+    }, { passive: false });
+
+    /* ---- Background switcher ---- */
+    $('bgPick').addEventListener('click', e => {
+      const b = e.target.closest('button[data-bg]');
+      if (!b) return;
+      [...$('bgPick').children].forEach(x => x.classList.toggle('active', x === b));
+      stage.classList.remove('dark', 'light');
+      if (b.dataset.bg !== 'checker') stage.classList.add(b.dataset.bg);
+    });
+
+    /* ---- Download / Copy ---- */
+    $('downloadBtn').onclick = () => {
+      const blob = new Blob([raw], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = baseName + '.svg';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 500);
+      setStatus('Downloaded ✓');
+    };
+    $('copyBtn').onclick = async () => {
+      try { await navigator.clipboard.writeText(raw); setStatus('Source copied ✓'); }
+      catch { setStatus('Copy failed', false); }
+    };
+
+    window.addEventListener('resize', () => { if (svgEl) fitToStage(); });
+  })();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,284 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#7c5cff">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .is-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    .small { font-size: 12px; color: var(--muted); }
+    .drop {
+      border: 2px dashed var(--border); border-radius: 12px; padding: 28px;
+      text-align: center; color: var(--muted); cursor: pointer;
+      transition: border-color .12s, background .12s;
+    }
+    .drop.drag { border-color: var(--accent); background: rgba(124,92,255,.06); }
+    .drop input { display: none; }
+    .stage {
+      position: relative;
+      background:
+        linear-gradient(45deg, #00000022 25%, transparent 25%, transparent 75%, #00000022 75%),
+        linear-gradient(45deg, #00000022 25%, transparent 25%, transparent 75%, #00000022 75%);
+      background-size: 20px 20px; background-position: 0 0, 10px 10px;
+      border: 1px solid var(--border); border-radius: 10px;
+      min-height: 420px; padding: 60px 80px;
+      overflow: auto;
+      display: flex; align-items: flex-start; justify-content: flex-start;
+    }
+    .resize-wrap {
+      position: relative; flex: 0 0 auto;
+      outline: 1px dashed var(--accent);
+      box-sizing: content-box;
+    }
+    .resize-wrap > img {
+      display: block; width: 100%; height: 100%;
+      max-width: none; max-height: none;
+      pointer-events: none; user-select: none; -webkit-user-drag: none;
+    }
+    .rh {
+      position: absolute; width: 14px; height: 14px;
+      background: var(--accent); border: 2px solid #fff;
+      border-radius: 3px; box-sizing: border-box; z-index: 5;
+      touch-action: none;
+    }
+    .rh.tl { top: -8px; left: -8px;   cursor: nwse-resize; }
+    .rh.tr { top: -8px; right: -8px;  cursor: nesw-resize; }
+    .rh.bl { bottom: -8px; left: -8px; cursor: nesw-resize; }
+    .rh.br { bottom: -8px; right: -8px; cursor: nwse-resize; }
+    .rh.t  { top: -8px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+    .rh.b  { bottom: -8px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+    .rh.l  { left: -8px; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
+    .rh.r  { right: -8px; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
+    .size-badge {
+      position: absolute; top: -28px; right: 0;
+      background: var(--panel); border: 1px solid var(--border); color: var(--text);
+      font-family: var(--mono), monospace; font-size: 11px; padding: 2px 8px; border-radius: 4px;
+      pointer-events: none; white-space: nowrap;
+    }
+    #svgSource {
+      width: 100%; box-sizing: border-box;
+      min-height: 140px; max-height: 40vh; overflow: auto;
+      font-family: var(--mono), monospace; font-size: 12px; line-height: 1.5;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); padding: 12px; margin: 0; white-space: pre;
+    }
+    .meta-line { color: var(--muted); font-size: 12px; margin: 8px 0; }
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>Image to SVG — Convert &amp; Resize Any Image to SVG</title>
+  <meta name="description" content="Convert PNG, JPG, WebP, GIF, BMP and more into a resizable SVG. Drag the corners or sides to scale, then download. Free, browser-only.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/img-to-svg">
+  <!-- SEO:END -->
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span><span class="tld">.eu</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+  <main class="container">
+    <div class="tool-header">
+      <h1>Image to SVG</h1>
+      <p>Drop any image (PNG, JPG, WebP, GIF, BMP, ICO, AVIF…) — it becomes an SVG you can resize by dragging the corners or sides. Download when it's the size you want.</p>
+    </div>
+    <div class="panel">
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept="image/*">
+        <div><b>Click or drop</b> an image</div>
+        <div class="small" id="fileMeta"></div>
+      </label>
+      <div class="is-toolbar" style="margin-top:14px;">
+        <button id="downloadBtn" disabled>⬇ Download .svg</button>
+        <button id="copyBtn" class="secondary" disabled>Copy SVG</button>
+        <button id="resetSizeBtn" class="secondary" disabled>↺ Reset size</button>
+        <label class="small" style="display:inline-flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="lockAspect" checked> Lock aspect ratio
+        </label>
+        <span class="small">|</span>
+        <label class="small" for="widthInput">W</label>
+        <input id="widthInput" type="number" min="1" step="1" style="width:90px;padding:6px 8px;" disabled>
+        <label class="small" for="heightInput">H</label>
+        <input id="heightInput" type="number" min="1" step="1" style="width:90px;padding:6px 8px;" disabled>
+        <span class="status" id="status"></span>
+      </div>
+      <div class="meta-line" id="metaLine">Drop an image above to begin.</div>
+      <div class="stage" id="stage"></div>
+      <details style="margin-top:14px;">
+        <summary class="small" style="cursor:pointer;">View / copy SVG source</summary>
+        <pre id="svgSource" style="margin-top:8px;">&lt;!-- SVG output will appear here --&gt;</pre>
+      </details>
+    </div>
+  </main>
+  <script>
+  (function () {
+    const $ = id => document.getElementById(id);
+    const setStatus = (m, ok = true) => { $('status').textContent = m; $('status').className = 'status ' + (ok ? 'ok' : 'err'); };
+    let img = null, srcDataUrl = null;
+    let baseW = 0, baseH = 0, curW = 0, curH = 0;
+    let baseName = 'image';
+    let wrapEl = null, badgeEl = null;
+    const drop = $('drop');
+    ['dragover','dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => {
+      e.preventDefault();
+      drop.classList.toggle('drag', ev === 'dragover');
+    }));
+    drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) load(f); });
+    $('file').addEventListener('change', e => { const f = e.target.files[0]; if (f) load(f); });
+    function load(file) {
+      if (!file.type.startsWith('image/') && !/\.(svg|ico|bmp|gif|tiff?|webp|avif|png|jpe?g)$/i.test(file.name)) {
+        setStatus('Please select an image file', false); return;
+      }
+      baseName = file.name.replace(/\.[^.]+$/, '') || 'image';
+      const reader = new FileReader();
+      reader.onload = () => {
+        srcDataUrl = reader.result;
+        const im = new Image();
+        im.onload = () => {
+          img = im; baseW = im.naturalWidth; baseH = im.naturalHeight;
+          curW = baseW; curH = baseH;
+          $('fileMeta').textContent = `Loaded: ${file.name} — ${baseW}×${baseH} · ${(file.size/1024).toFixed(1)} KB`;
+          buildStage();
+          ['downloadBtn','copyBtn','resetSizeBtn','widthInput','heightInput'].forEach(id => $(id).disabled = false);
+          setStatus('Ready — drag the handles to resize ✓');
+        };
+        im.onerror = () => setStatus('Cannot decode this image format in your browser', false);
+        im.src = reader.result;
+      };
+      reader.onerror = () => setStatus('Failed to read file', false);
+      reader.readAsDataURL(file);
+    }
+    function buildSvg(w, h) {
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${Math.round(w)}" height="${Math.round(h)}" viewBox="0 0 ${baseW} ${baseH}">
+  <image href="${srcDataUrl}" x="0" y="0" width="${baseW}" height="${baseH}" preserveAspectRatio="xMidYMid meet"/>
+</svg>`;
+    }
+    function buildStage() {
+      const stage = $('stage');
+      stage.innerHTML = '';
+      wrapEl = document.createElement('div');
+      wrapEl.className = 'resize-wrap';
+      wrapEl.style.width  = curW + 'px';
+      wrapEl.style.height = curH + 'px';
+      const im = document.createElement('img');
+      im.src = srcDataUrl; im.alt = '';
+      wrapEl.appendChild(im);
+      ['tl','t','tr','l','r','bl','b','br'].forEach(pos => {
+        const h = document.createElement('div');
+        h.className = 'rh ' + pos; h.dataset.pos = pos;
+        wrapEl.appendChild(h);
+      });
+      badgeEl = document.createElement('div');
+      badgeEl.className = 'size-badge';
+      wrapEl.appendChild(badgeEl);
+      stage.appendChild(wrapEl);
+      attachResize();
+      syncSize();
+    }
+    function syncSize() {
+      wrapEl.style.width  = Math.round(curW) + 'px';
+      wrapEl.style.height = Math.round(curH) + 'px';
+      badgeEl.textContent = `${Math.round(curW)} × ${Math.round(curH)} px`;
+      $('widthInput').value  = Math.round(curW);
+      $('heightInput').value = Math.round(curH);
+      const svg = buildSvg(curW, curH);
+      $('svgSource').textContent = svg;
+      $('metaLine').textContent =
+        `Original: ${baseW}×${baseH} px · Current: ${Math.round(curW)}×${Math.round(curH)} px · SVG file size ≈ ${(svg.length/1024).toFixed(1)} KB`;
+    }
+    function attachResize() {
+      const aspect = baseW / baseH;
+      wrapEl.querySelectorAll('.rh').forEach(handle => {
+        handle.addEventListener('pointerdown', e => {
+          e.preventDefault(); e.stopPropagation();
+          try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+          const startX = e.clientX, startY = e.clientY;
+          const startW = curW, startH = curH;
+          const pos = handle.dataset.pos;
+          const lock = $('lockAspect').checked;
+          const move = (ev) => {
+            let dx = ev.clientX - startX;
+            let dy = ev.clientY - startY;
+            if (pos.includes('l')) dx = -dx;
+            if (pos.includes('t')) dy = -dy;
+            let w = startW, h = startH;
+            const horizontal = pos === 'l' || pos === 'r';
+            const vertical   = pos === 't' || pos === 'b';
+            if (horizontal) {
+              w = Math.max(8, startW + dx);
+              h = lock ? w / aspect : startH;
+            } else if (vertical) {
+              h = Math.max(8, startH + dy);
+              w = lock ? h * aspect : startW;
+            } else {
+              if (lock) {
+                const r = Math.max((startW + dx) / startW, (startH + dy) / startH);
+                w = Math.max(8, startW * r);
+                h = Math.max(8, startH * r);
+              } else {
+                w = Math.max(8, startW + dx);
+                h = Math.max(8, startH + dy);
+              }
+            }
+            curW = w; curH = h;
+            wrapEl.style.width  = Math.round(w) + 'px';
+            wrapEl.style.height = Math.round(h) + 'px';
+            badgeEl.textContent = `${Math.round(w)} × ${Math.round(h)} px`;
+            $('widthInput').value  = Math.round(w);
+            $('heightInput').value = Math.round(h);
+          };
+          const up = () => {
+            window.removeEventListener('pointermove', move);
+            window.removeEventListener('pointerup', up);
+            window.removeEventListener('pointercancel', up);
+            syncSize();
+          };
+          window.addEventListener('pointermove', move);
+          window.addEventListener('pointerup', up);
+          window.addEventListener('pointercancel', up);
+        });
+      });
+    }
+    $('widthInput').addEventListener('input', () => {
+      if (!wrapEl) return;
+      const w = Math.max(1, parseFloat($('widthInput').value) || 1);
+      curW = w;
+      if ($('lockAspect').checked) curH = w * (baseH / baseW);
+      syncSize();
+    });
+    $('heightInput').addEventListener('input', () => {
+      if (!wrapEl) return;
+      const h = Math.max(1, parseFloat($('heightInput').value) || 1);
+      curH = h;
+      if ($('lockAspect').checked) curW = h * (baseW / baseH);
+      syncSize();
+    });
+    $('resetSizeBtn').onclick = () => {
+      if (!img) return;
+      curW = baseW; curH = baseH;
+      syncSize();
+      setStatus('Size reset ✓');
+    };
+    $('downloadBtn').onclick = () => {
+      if (!img) return;
+      const svg = buildSvg(curW, curH);
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${baseName}-${Math.round(curW)}x${Math.round(curH)}.svg`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 500);
+      setStatus('Downloaded ✓');
+    };
+    $('copyBtn').onclick = async () => {
+      if (!img) return;
+      try { await navigator.clipboard.writeText(buildSvg(curW, curH)); setStatus('SVG copied ✓'); }
+      catch { setStatus('Copy failed', false); }
+    };
+  })();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
