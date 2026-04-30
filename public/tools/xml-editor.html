@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#7c5cff">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .ed-stack { display: flex; flex-direction: column; gap: 12px; }
+    .ed-pane h2 {
+      margin: 0 0 6px; font-size: 12px; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--muted); font-weight: 600;
+      display: flex; justify-content: space-between; align-items: baseline;
+    }
+    .ed-pane h2 .meta { font-size: 11px; letter-spacing: .5px; text-transform: none; color: var(--muted); font-weight: 400; }
+    #src {
+      width: 100%; box-sizing: border-box;
+      min-height: 100px; height: 100px; max-height: 25vh; resize: vertical;
+      font-family: var(--mono); font-size: 13px; line-height: 1.5;
+      background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); padding: 12px;
+    }
+    #tree, #preview {
+      width: 100%; box-sizing: border-box;
+      min-height: 50vh; max-height: 70vh; overflow: auto;
+      font-family: var(--mono); font-size: 13px; line-height: 1.55;
+      background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); padding: 14px; margin: 0;
+    }
+    #preview { white-space: pre; tab-size: 2; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    .toolbar select { padding: 8px 10px; }
+
+    .node { display: block; }
+    .row { display: flex; align-items: center; gap: 4px; padding: 1px 0; border-radius: 4px; flex-wrap: wrap; }
+    .row:hover { background: rgba(255,255,255,.03); }
+    .row:hover .actions { opacity: 1; }
+    .actions { display: inline-flex; gap: 2px; margin-left: 6px; opacity: 0; transition: opacity .12s; }
+    .actions button {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); padding: 1px 6px; font-size: 11px;
+      border-radius: 4px; cursor: pointer; line-height: 1.4;
+    }
+    .actions button:hover { color: var(--accent); border-color: var(--accent); }
+    .actions button.danger:hover { color: var(--warn); border-color: var(--warn); }
+    .toggle {
+      display: inline-block; width: 14px; text-align: center; cursor: pointer;
+      color: var(--muted); user-select: none; transition: transform .12s ease;
+    }
+    .toggle.empty { cursor: default; visibility: hidden; }
+    .node.collapsed > .row > .toggle { transform: rotate(-90deg); }
+    .children { padding-left: 1.4em; }
+    .node.collapsed > .children { display: none; }
+    .node.collapsed > .closeRow { display: none; }
+    .node.collapsed > .row .summary { display: inline; color: var(--muted); padding: 0 4px; }
+    .summary { display: none; }
+
+    .tag      { color: #c4b5ff; }
+    .name     { color: var(--accent); font-weight: 600; }
+    .attr     { color: var(--accent-mint); }
+    .eq       { color: var(--muted); }
+    .str      { color: var(--warn); }
+    .text     { color: var(--text); }
+    .comment  { color: var(--muted); font-style: italic; }
+    .cdata    { color: var(--accent-pink); }
+    .decl     { color: var(--accent-cyan); }
+
+    .editable {
+      background: transparent; border: 1px dashed transparent; color: inherit;
+      font: inherit; padding: 0 3px; border-radius: 3px; min-width: 20px;
+      outline: none; display: inline-block;
+    }
+    .editable:hover { border-color: var(--border); }
+    .editable:focus { border-style: solid; border-color: var(--accent); background: var(--panel); }
+    .attr-pair { display: inline-flex; align-items: center; }
+    .attr-pair .x {
+      cursor: pointer; color: var(--muted); margin-left: 2px; opacity: 0;
+      transition: opacity .12s;
+    }
+    .attr-pair:hover .x { opacity: 1; }
+    .attr-pair .x:hover { color: var(--warn); }
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>XML Editor — Edit, Modify &amp; Download XML Online</title>
+  <meta name="description" content="Interactive XML editor in your browser. Rename tags, edit attributes and text, add or remove elements, then download the modified XML. Free, private, no upload.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/xml-editor">
+  <!-- SEO:END -->
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span><span class="tld">.eu</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>XML Editor</h1>
+      <p>Load, interactively edit tags / attributes / text, add or remove elements, then download the modified XML. Runs entirely in your browser.</p>
+    </div>
+
+    <div class="panel">
+      <div class="toolbar">
+        <button id="loadTextBtn">Load from text</button>
+        <label class="secondary" style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);padding:6px 10px;border-radius:8px;cursor:pointer;">
+          📂 Open .xml <input id="fileInput" type="file" accept="application/xml,text/xml,.xml,.svg,.html" style="display:none">
+        </label>
+        <button id="sampleBtn" class="secondary">Load sample</button>
+        <button id="downloadBtn">⬇ Download</button>
+        <button id="copyBtn" class="secondary">Copy</button>
+        <button id="previewBtn" class="secondary">Toggle preview</button>
+        <button id="expandBtn" class="secondary">⊞ Expand</button>
+        <button id="collapseBtn" class="secondary">⊟ Collapse</button>
+        <label>Indent</label>
+        <select id="indent">
+          <option value="2" selected>2 spaces</option>
+          <option value="4">4 spaces</option>
+          <option value="\t">Tab</option>
+        </select>
+        <span class="status" id="status"></span>
+      </div>
+
+      <div class="ed-stack">
+        <div class="ed-pane">
+          <h2>Source <span class="meta" id="srcMeta">paste here, then click "Load from text"</span></h2>
+          <textarea id="src" spellcheck="false" placeholder="<root><child attr='1'>hello</child></root>"></textarea>
+        </div>
+        <div class="ed-pane">
+          <h2>Editor <span class="meta" id="treeMeta"></span></h2>
+          <div id="tree"></div>
+        </div>
+        <div class="ed-pane" id="previewPane" style="display:none">
+          <h2>Preview <span class="meta" id="previewMeta"></span></h2>
+          <pre id="preview"></pre>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+  (function () {
+    const $ = id => document.getElementById(id);
+    const tree = $('tree'), src = $('src'), preview = $('preview');
+    const setStatus = (m, ok = true) => { $('status').textContent = m; $('status').className = 'status ' + (ok ? 'ok' : 'err'); };
+
+    let doc = null;          // current XMLDocument
+    let xmlDecl = '';        // preserved XML declaration if present in source
+
+    const SAMPLE =
+`<?xml version="1.0" encoding="UTF-8"?>
+<library updated="2026-04-25">
+  <book id="1" lang="en">
+    <title>The Art of Computer Programming</title>
+    <author>Donald Knuth</author>
+    <year>1968</year>
+    <tags>
+      <tag>algorithms</tag>
+      <tag>classic</tag>
+    </tags>
+  </book>
+  <book id="2" lang="en">
+    <title>SICP</title>
+    <author>Abelson</author>
+    <author>Sussman</author>
+    <year>1985</year>
+  </book>
+</library>`;
+
+    function indentStr() {
+      const v = $('indent').value;
+      return v === '\\t' ? '\t' : ' '.repeat(parseInt(v, 10) || 2);
+    }
+
+    function escText(t) {
+      return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    function escAttr(v) {
+      return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+    }
+
+    /* ----- Pretty serializer (walks live DOM) ----- */
+    function serialize() {
+      const out = [];
+      if (xmlDecl) out.push(xmlDecl);
+      const indent = indentStr();
+      function walk(node, depth) {
+        const pad = indent.repeat(depth);
+        for (const child of node.childNodes) {
+          switch (child.nodeType) {
+            case 1: { // element
+              const el = child;
+              const at = [...el.attributes].map(a => ` ${a.name}="${escAttr(a.value)}"`).join('');
+              if (el.childNodes.length === 0) {
+                out.push(`${pad}<${el.nodeName}${at}/>`);
+              } else {
+                const onlyText = [...el.childNodes].every(c =>
+                  c.nodeType === 3 || c.nodeType === 4 || c.nodeType === 8) &&
+                  el.textContent.length < 80 &&
+                  !/[\r\n]/.test(el.textContent);
+                if (onlyText) {
+                  let inner = '';
+                  for (const c of el.childNodes) {
+                    if (c.nodeType === 4) inner += `<![CDATA[${c.nodeValue}]]>`;
+                    else if (c.nodeType === 8) inner += `<!--${c.nodeValue}-->`;
+                    else inner += escText(c.nodeValue);
+                  }
+                  out.push(`${pad}<${el.nodeName}${at}>${inner.trim()}</${el.nodeName}>`);
+                } else {
+                  out.push(`${pad}<${el.nodeName}${at}>`);
+                  walk(el, depth + 1);
+                  out.push(`${pad}</${el.nodeName}>`);
+                }
+              }
+              break;
+            }
+            case 3: {
+              const t = child.nodeValue.trim();
+              if (t) out.push(pad + escText(t));
+              break;
+            }
+            case 4: out.push(`${pad}<![CDATA[${child.nodeValue}]]>`); break;
+            case 7: out.push(`${pad}<?${child.nodeName} ${child.nodeValue}?>`); break;
+            case 8: out.push(`${pad}<!--${child.nodeValue}-->`); break;
+          }
+        }
+      }
+      walk(doc, 0);
+      return out.join('\n');
+    }
+
+    function refreshMeta() {
+      const t = serialize();
+      const lines = t.split('\n').length;
+      $('treeMeta').textContent = `· ${lines} lines · ${t.length.toLocaleString()} chars`;
+      if ($('previewPane').style.display !== 'none') {
+        preview.textContent = t;
+        $('previewMeta').textContent = `${t.length.toLocaleString()} chars`;
+      }
+    }
+
+    function updateSrcMeta() {
+      const v = src.value;
+      $('srcMeta').textContent = v ? `${v.length.toLocaleString()} chars` : 'paste here, then click "Load from text"';
+    }
+    src.addEventListener('input', updateSrcMeta);
+
+    /* ----- Helpers ----- */
+
+    function makeBtn(label, cls, title, onClick) {
+      const b = document.createElement('button');
+      b.textContent = label;
+      if (cls) b.className = cls;
+      if (title) b.title = title;
+      b.addEventListener('click', e => { e.stopPropagation(); onClick(e); });
+      return b;
+    }
+
+    function editable(text, className, onCommit, validator) {
+      const span = document.createElement('span');
+      span.className = 'editable ' + (className || '');
+      span.contentEditable = 'true';
+      span.spellcheck = false;
+      span.textContent = text;
+      const original = text;
+      span.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); span.blur(); }
+        if (e.key === 'Escape') { span.textContent = original; span.blur(); }
+      });
+      span.addEventListener('blur', () => {
+        const v = span.textContent;
+        if (v === original) return;
+        if (validator && !validator(v)) {
+          setStatus('Invalid value', false);
+          span.textContent = original;
+          return;
+        }
+        onCommit(v);
+        setStatus('Updated ✓');
+      });
+      return span;
+    }
+
+    function isValidName(n) {
+      return /^[A-Za-z_][\w:.\-]*$/.test(n);
+    }
+
+    /* ----- Render ----- */
+
+    function renderElement(el, parent, isLast, out) {
+      const node = document.createElement('div');
+      node.className = 'node';
+      const row = document.createElement('div');
+      row.className = 'row';
+      node.appendChild(row);
+
+      const hasChildren = el.childNodes.length > 0;
+      const onlyText = hasChildren && [...el.childNodes].every(c =>
+        c.nodeType === 3 || c.nodeType === 4 || c.nodeType === 8) &&
+        el.textContent.length < 80 && !/[\r\n]/.test(el.textContent);
+
+      const collapsible = hasChildren && !onlyText;
+      const toggle = document.createElement('span');
+      toggle.className = 'toggle' + (collapsible ? '' : ' empty');
+      toggle.textContent = '▾';
+      row.appendChild(toggle);
+      if (collapsible) toggle.addEventListener('click', () => node.classList.toggle('collapsed'));
+
+      // <
+      const lt = document.createElement('span'); lt.className='tag'; lt.textContent='<'; row.appendChild(lt);
+
+      // tag name (editable)
+      row.appendChild(editable(el.nodeName, 'name', newName => {
+        try {
+          const newEl = doc.createElementNS(el.namespaceURI, newName);
+          for (const a of [...el.attributes]) newEl.setAttribute(a.name, a.value);
+          while (el.firstChild) newEl.appendChild(el.firstChild);
+          el.parentNode.replaceChild(newEl, el);
+          rerender();
+        } catch (e) {
+          setStatus('Invalid tag name: ' + e.message, false);
+        }
+      }, isValidName));
+
+      // attributes
+      const attrsBox = document.createElement('span');
+      attrsBox.className = 'attrs';
+      for (const a of [...el.attributes]) {
+        const pair = document.createElement('span');
+        pair.className = 'attr-pair';
+        const sp = document.createElement('span'); sp.textContent=' '; pair.appendChild(sp);
+        // attr name
+        const aname = a.name;
+        pair.appendChild(editable(aname, 'attr', newName => {
+          if (!isValidName(newName)) { setStatus('Invalid attr name', false); return; }
+          if (newName === aname) return;
+          if (el.hasAttribute(newName)) { setStatus('Attr already exists', false); rerender(); return; }
+          const v = el.getAttribute(aname);
+          el.removeAttribute(aname);
+          el.setAttribute(newName, v);
+          rerender();
+        }));
+        const eq = document.createElement('span'); eq.className='eq'; eq.textContent='='; pair.appendChild(eq);
+        const q1 = document.createElement('span'); q1.className='str'; q1.textContent='"'; pair.appendChild(q1);
+        pair.appendChild(editable(a.value, 'str', newVal => { el.setAttribute(aname, newVal); refreshMeta(); }));
+        const q2 = document.createElement('span'); q2.className='str'; q2.textContent='"'; pair.appendChild(q2);
+        const x = document.createElement('span'); x.className='x'; x.textContent='✕'; x.title='Remove attribute';
+        x.addEventListener('click', () => { el.removeAttribute(aname); rerender(); });
+        pair.appendChild(x);
+        attrsBox.appendChild(pair);
+      }
+      row.appendChild(attrsBox);
+
+      // > or />
+      if (!hasChildren) {
+        const sc = document.createElement('span'); sc.className='tag'; sc.textContent='/>'; row.appendChild(sc);
+      } else if (onlyText) {
+        const gt = document.createElement('span'); gt.className='tag'; gt.textContent='>'; row.appendChild(gt);
+        // single text content editable
+        const textNode = el.childNodes[0];
+        if (textNode.nodeType === 3) {
+          row.appendChild(editable(textNode.nodeValue.trim(), 'text', v => { textNode.nodeValue = v; refreshMeta(); }));
+        } else if (textNode.nodeType === 4) {
+          const c1 = document.createElement('span'); c1.className='cdata'; c1.textContent='<![CDATA['; row.appendChild(c1);
+          row.appendChild(editable(textNode.nodeValue, 'cdata', v => { textNode.nodeValue = v; refreshMeta(); }));
+          const c2 = document.createElement('span'); c2.className='cdata'; c2.textContent=']]>'; row.appendChild(c2);
+        } else {
+          const c = document.createElement('span'); c.className='comment'; c.textContent=`<!--${textNode.nodeValue}-->`; row.appendChild(c);
+        }
+        const close1 = document.createElement('span'); close1.className='tag'; close1.textContent='</'; row.appendChild(close1);
+        const cn = document.createElement('span'); cn.className='name'; cn.textContent=el.nodeName; row.appendChild(cn);
+        const close2 = document.createElement('span'); close2.className='tag'; close2.textContent='>'; row.appendChild(close2);
+      } else {
+        const gt = document.createElement('span'); gt.className='tag'; gt.textContent='>'; row.appendChild(gt);
+        const summary = document.createElement('span'); summary.className='summary';
+        const ec = el.childElementCount;
+        summary.textContent = ` ${ec} child${ec===1?'':'ren'} `;
+        row.appendChild(summary);
+        const closeInline = document.createElement('span');
+        closeInline.className = 'summary tag';
+        closeInline.textContent = `</${el.nodeName}>`;
+        row.appendChild(closeInline);
+
+        const children = document.createElement('div');
+        children.className = 'children';
+        renderChildren(el, children);
+        node.appendChild(children);
+
+        const closeRow = document.createElement('div'); closeRow.className='closeRow';
+        const cl1 = document.createElement('span'); cl1.className='tag'; cl1.textContent='</'; closeRow.appendChild(cl1);
+        const cln = document.createElement('span'); cln.className='name'; cln.textContent=el.nodeName; closeRow.appendChild(cln);
+        const cl2 = document.createElement('span'); cl2.className='tag'; cl2.textContent='>'; closeRow.appendChild(cl2);
+        node.appendChild(closeRow);
+      }
+
+      // actions
+      const actions = document.createElement('span');
+      actions.className = 'actions';
+      actions.appendChild(makeBtn('+attr', '', 'Add attribute', () => {
+        let i = 1, k = 'attr';
+        while (el.hasAttribute(k)) k = 'attr' + (++i);
+        el.setAttribute(k, '');
+        rerender();
+      }));
+      actions.appendChild(makeBtn('+child', '', 'Add child element', () => {
+        const name = prompt('New child element name:', 'item');
+        if (!name) return;
+        if (!isValidName(name)) { setStatus('Invalid name', false); return; }
+        const newEl = doc.createElement(name);
+        el.appendChild(newEl);
+        rerender();
+      }));
+      actions.appendChild(makeBtn('+text', '', 'Add text node', () => {
+        el.appendChild(doc.createTextNode('text'));
+        rerender();
+      }));
+      if (parent && parent !== doc) {
+        actions.appendChild(makeBtn('↑', '', 'Move up', () => {
+          if (el.previousElementSibling) el.parentNode.insertBefore(el, el.previousElementSibling);
+          rerender();
+        }));
+        actions.appendChild(makeBtn('↓', '', 'Move down', () => {
+          if (el.nextElementSibling) el.parentNode.insertBefore(el.nextElementSibling, el);
+          rerender();
+        }));
+      }
+      if (parent) {
+        actions.appendChild(makeBtn('×', 'danger', 'Delete element', () => {
+          if (parent === doc) { setStatus('Cannot delete root', false); return; }
+          el.parentNode.removeChild(el);
+          rerender();
+        }));
+      }
+      row.appendChild(actions);
+
+      out.appendChild(node);
+    }
+
+    function renderChildren(parent, out) {
+      const children = [...parent.childNodes];
+      children.forEach((child, i) => {
+        const isLast = i === children.length - 1;
+        switch (child.nodeType) {
+          case 1: renderElement(child, parent, isLast, out); break;
+          case 3: {
+            const t = child.nodeValue.trim();
+            if (!t) break;
+            const node = document.createElement('div'); node.className='node';
+            const row = document.createElement('div'); row.className='row';
+            const tg = document.createElement('span'); tg.className='toggle empty'; row.appendChild(tg);
+            row.appendChild(editable(t, 'text', v => { child.nodeValue = v; refreshMeta(); }));
+            const actions = document.createElement('span'); actions.className='actions';
+            actions.appendChild(makeBtn('×', 'danger', 'Delete text', () => { parent.removeChild(child); rerender(); }));
+            row.appendChild(actions);
+            node.appendChild(row); out.appendChild(node);
+            break;
+          }
+          case 4: {
+            const node = document.createElement('div'); node.className='node';
+            const row = document.createElement('div'); row.className='row';
+            const tg = document.createElement('span'); tg.className='toggle empty'; row.appendChild(tg);
+            const c1 = document.createElement('span'); c1.className='cdata'; c1.textContent='<![CDATA['; row.appendChild(c1);
+            row.appendChild(editable(child.nodeValue, 'cdata', v => { child.nodeValue = v; refreshMeta(); }));
+            const c2 = document.createElement('span'); c2.className='cdata'; c2.textContent=']]>'; row.appendChild(c2);
+            const actions = document.createElement('span'); actions.className='actions';
+            actions.appendChild(makeBtn('×', 'danger', 'Delete CDATA', () => { parent.removeChild(child); rerender(); }));
+            row.appendChild(actions);
+            node.appendChild(row); out.appendChild(node);
+            break;
+          }
+          case 8: {
+            const node = document.createElement('div'); node.className='node';
+            const row = document.createElement('div'); row.className='row';
+            const tg = document.createElement('span'); tg.className='toggle empty'; row.appendChild(tg);
+            const c1 = document.createElement('span'); c1.className='comment'; c1.textContent='<!--'; row.appendChild(c1);
+            row.appendChild(editable(child.nodeValue, 'comment', v => { child.nodeValue = v; refreshMeta(); }));
+            const c2 = document.createElement('span'); c2.className='comment'; c2.textContent='-->'; row.appendChild(c2);
+            const actions = document.createElement('span'); actions.className='actions';
+            actions.appendChild(makeBtn('×', 'danger', 'Delete comment', () => { parent.removeChild(child); rerender(); }));
+            row.appendChild(actions);
+            node.appendChild(row); out.appendChild(node);
+            break;
+          }
+        }
+      });
+    }
+
+    function rerender() {
+      tree.innerHTML = '';
+      if (!doc || !doc.documentElement) return;
+      renderElement(doc.documentElement, doc, true, tree);
+      refreshMeta();
+    }
+
+    /* ----- Load / Save ----- */
+
+    function loadFromText(text) {
+      try {
+        const m = text.match(/^\s*<\?xml[^?]*\?>/);
+        xmlDecl = m ? m[0].trim() : '';
+        const parsed = new DOMParser().parseFromString(text, 'application/xml');
+        const err = parsed.querySelector('parsererror');
+        if (err) {
+          const msg = (err.querySelector('div')?.textContent || err.textContent).trim();
+          throw new Error(msg.replace(/\s+/g, ' '));
+        }
+        doc = parsed;
+        rerender();
+        setStatus('Loaded ✓');
+      } catch (e) {
+        setStatus('Invalid XML: ' + e.message, false);
+      }
+    }
+
+    $('loadTextBtn').onclick = () => loadFromText(src.value);
+    $('sampleBtn').onclick = () => { src.value = SAMPLE; updateSrcMeta(); loadFromText(src.value); };
+    $('fileInput').onchange = async (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      const text = await f.text();
+      src.value = text;
+      updateSrcMeta();
+      loadFromText(text);
+    };
+    $('downloadBtn').onclick = () => {
+      const text = serialize();
+      const blob = new Blob([text], { type: 'application/xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'data.xml';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      setStatus('Downloaded ✓');
+    };
+    $('copyBtn').onclick = async () => {
+      try { await navigator.clipboard.writeText(serialize()); setStatus('Copied ✓'); }
+      catch { setStatus('Copy failed', false); }
+    };
+    $('previewBtn').onclick = () => {
+      const p = $('previewPane');
+      p.style.display = p.style.display === 'none' ? '' : 'none';
+      refreshMeta();
+    };
+    $('expandBtn').onclick = () => tree.querySelectorAll('.node').forEach(n => n.classList.remove('collapsed'));
+    $('collapseBtn').onclick = () => tree.querySelectorAll('.node').forEach(n => n.classList.add('collapsed'));
+    $('indent').onchange = refreshMeta;
+
+    src.value = SAMPLE;
+    updateSrcMeta();
+    loadFromText(src.value);
+  })();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

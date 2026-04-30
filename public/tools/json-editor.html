@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#7c5cff">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .ed-stack { display: flex; flex-direction: column; gap: 12px; }
+    .ed-pane h2 {
+      margin: 0 0 6px; font-size: 12px; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--muted); font-weight: 600;
+      display: flex; justify-content: space-between; align-items: baseline;
+    }
+    .ed-pane h2 .meta { font-size: 11px; letter-spacing: .5px; text-transform: none; color: var(--muted); font-weight: 400; }
+    #src {
+      width: 100%; box-sizing: border-box;
+      min-height: 100px; height: 100px; max-height: 25vh; resize: vertical;
+      font-family: var(--mono); font-size: 13px; line-height: 1.5;
+      background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); padding: 12px;
+    }
+    #tree, #preview {
+      width: 100%; box-sizing: border-box;
+      min-height: 50vh; max-height: 70vh; overflow: auto;
+      font-family: var(--mono); font-size: 13px; line-height: 1.55;
+      background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); padding: 14px; margin: 0;
+    }
+    #preview { white-space: pre; tab-size: 2; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    .toolbar select, .toolbar input[type=file] { padding: 8px 10px; }
+
+    /* Tree node styles */
+    .node { display: block; }
+    .row {
+      display: flex; align-items: center; gap: 4px; padding: 1px 0;
+      border-radius: 4px;
+    }
+    .row:hover { background: rgba(255,255,255,.03); }
+    .row:hover .actions { opacity: 1; }
+    .actions { display: inline-flex; gap: 2px; margin-left: 6px; opacity: 0; transition: opacity .12s; }
+    .actions button {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); padding: 1px 6px; font-size: 11px;
+      border-radius: 4px; cursor: pointer; line-height: 1.4;
+    }
+    .actions button:hover { color: var(--accent); border-color: var(--accent); }
+    .actions button.danger:hover { color: var(--warn); border-color: var(--warn); }
+    .toggle {
+      display: inline-block; width: 14px; text-align: center; cursor: pointer;
+      color: var(--muted); user-select: none; transition: transform .12s ease;
+    }
+    .toggle.empty { cursor: default; visibility: hidden; }
+    .node.collapsed > .row > .toggle { transform: rotate(-90deg); }
+    .children { padding-left: 1.4em; }
+    .node.collapsed > .children { display: none; }
+    .node.collapsed > .closeRow { display: none; }
+    .node.collapsed > .row .summary { display: inline; color: var(--muted); padding: 0 4px; }
+    .summary { display: none; }
+
+    .key   { color: #c4b5ff; }
+    .punct { color: var(--muted); }
+    .val-string { color: var(--accent-mint); }
+    .val-number { color: var(--warn); }
+    .val-bool   { color: var(--accent-pink); font-weight: 600; }
+    .val-null   { color: var(--muted); font-style: italic; }
+    .type-pill {
+      font-size: 10px; padding: 0 5px; margin-left: 4px;
+      border: 1px solid var(--border); border-radius: 3px; color: var(--muted);
+      cursor: pointer; user-select: none;
+    }
+    .type-pill:hover { color: var(--accent); border-color: var(--accent); }
+
+    .editable {
+      background: transparent; border: 1px dashed transparent; color: inherit;
+      font: inherit; padding: 0 3px; border-radius: 3px; min-width: 30px;
+      outline: none;
+    }
+    .editable:hover { border-color: var(--border); }
+    .editable:focus { border-style: solid; border-color: var(--accent); background: var(--panel); }
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>JSON Editor — Edit, Modify &amp; Download JSON Online</title>
+  <meta name="description" content="Interactive JSON editor in your browser. Edit values, rename keys, add/remove items, then download the modified JSON. Free, private, no upload.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/json-editor">
+  <!-- SEO:END -->
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span><span class="tld">.eu</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>JSON Editor</h1>
+      <p>Load, interactively edit values/keys, add or remove items, then download the modified JSON. Runs entirely in your browser.</p>
+    </div>
+
+    <div class="panel">
+      <div class="toolbar">
+        <button id="loadTextBtn">Load from text</button>
+        <label class="secondary" style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);padding:6px 10px;border-radius:8px;cursor:pointer;">
+          📂 Open .json <input id="fileInput" type="file" accept="application/json,.json,.txt" style="display:none">
+        </label>
+        <button id="sampleBtn" class="secondary">Load sample</button>
+        <button id="downloadBtn">⬇ Download</button>
+        <button id="copyBtn" class="secondary">Copy</button>
+        <button id="previewBtn" class="secondary">Toggle preview</button>
+        <button id="expandBtn" class="secondary">⊞ Expand</button>
+        <button id="collapseBtn" class="secondary">⊟ Collapse</button>
+        <label>Indent</label>
+        <select id="indent">
+          <option value="2" selected>2 spaces</option>
+          <option value="4">4 spaces</option>
+          <option value="\t">Tab</option>
+        </select>
+        <span class="status" id="status"></span>
+      </div>
+
+      <div class="ed-stack">
+        <div class="ed-pane">
+          <h2>Source <span class="meta" id="srcMeta">paste here, then click "Load from text"</span></h2>
+          <textarea id="src" spellcheck="false" placeholder='{"name":"Ada","skills":["math","code"],"age":36}'></textarea>
+        </div>
+        <div class="ed-pane">
+          <h2>Editor <span class="meta" id="treeMeta"></span></h2>
+          <div id="tree"></div>
+        </div>
+        <div class="ed-pane" id="previewPane" style="display:none">
+          <h2>Preview <span class="meta" id="previewMeta"></span></h2>
+          <pre id="preview"></pre>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+  (function () {
+    const $ = id => document.getElementById(id);
+    const tree = $('tree'), src = $('src'), preview = $('preview');
+    const setStatus = (m, ok = true) => { $('status').textContent = m; $('status').className = 'status ' + (ok ? 'ok' : 'err'); };
+
+    let model = null;          // current parsed JSON object/array/primitive (root container)
+    // We always wrap root in a holder { root: value } so the user can replace/edit the root value uniformly.
+    const holder = { root: null };
+
+    const SAMPLE = {
+      name: "Ada Lovelace",
+      born: 1815,
+      skills: ["mathematics", "programming", "writing"],
+      address: { city: "London", country: "UK" },
+      active: true,
+      notes: null
+    };
+
+    function indentValue() {
+      const v = $('indent').value;
+      return v === '\\t' ? '\t' : parseInt(v, 10);
+    }
+
+    function serialize() {
+      return JSON.stringify(holder.root, null, indentValue());
+    }
+
+    function refreshMeta() {
+      const t = serialize();
+      const lines = t.split('\n').length;
+      $('treeMeta').textContent = `· ${lines} lines · ${t.length.toLocaleString()} chars`;
+      if ($('previewPane').style.display !== 'none') {
+        preview.textContent = t;
+        $('previewMeta').textContent = `${t.length.toLocaleString()} chars`;
+      }
+    }
+
+    function updateSrcMeta() {
+      const v = src.value;
+      $('srcMeta').textContent = v ? `${v.length.toLocaleString()} chars` : 'paste here, then click "Load from text"';
+    }
+    src.addEventListener('input', updateSrcMeta);
+
+    /* -------- Render -------- */
+
+    function typeOf(v) {
+      if (v === null) return 'null';
+      if (Array.isArray(v)) return 'array';
+      return typeof v;
+    }
+
+    function makeBtn(label, cls, title, onClick) {
+      const b = document.createElement('button');
+      b.textContent = label;
+      if (cls) b.className = cls;
+      if (title) b.title = title;
+      b.addEventListener('click', e => { e.stopPropagation(); onClick(e); });
+      return b;
+    }
+
+    function makeKeyEditor(parentObj, currentKey, onRenamed) {
+      const inp = document.createElement('span');
+      inp.className = 'editable key';
+      inp.contentEditable = 'true';
+      inp.spellcheck = false;
+      inp.textContent = currentKey;
+      inp.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+        if (e.key === 'Escape') { inp.textContent = currentKey; inp.blur(); }
+      });
+      inp.addEventListener('blur', () => {
+        const newKey = inp.textContent.trim();
+        if (!newKey || newKey === currentKey) { inp.textContent = currentKey; return; }
+        if (Object.prototype.hasOwnProperty.call(parentObj, newKey)) {
+          setStatus('Key already exists: ' + newKey, false);
+          inp.textContent = currentKey;
+          return;
+        }
+        // Preserve key order by rebuilding
+        const newObj = {};
+        for (const k of Object.keys(parentObj)) {
+          if (k === currentKey) newObj[newKey] = parentObj[k];
+          else newObj[k] = parentObj[k];
+        }
+        // Mutate in place
+        for (const k of Object.keys(parentObj)) delete parentObj[k];
+        Object.assign(parentObj, newObj);
+        setStatus('Renamed key ✓');
+        onRenamed(newKey);
+        rerender();
+      });
+      return inp;
+    }
+
+    function makeValueEditor(parent, key, value, onChange) {
+      const t = typeOf(value);
+      if (t === 'boolean') {
+        const sel = document.createElement('select');
+        sel.className = 'editable val-bool';
+        for (const opt of ['true', 'false']) {
+          const o = document.createElement('option');
+          o.value = opt; o.textContent = opt;
+          if (String(value) === opt) o.selected = true;
+          sel.appendChild(o);
+        }
+        sel.addEventListener('change', () => { onChange(sel.value === 'true'); });
+        return sel;
+      }
+      if (t === 'null') {
+        const span = document.createElement('span');
+        span.className = 'val-null';
+        span.textContent = 'null';
+        return span;
+      }
+      // string or number → contenteditable
+      const span = document.createElement('span');
+      span.className = 'editable ' + (t === 'string' ? 'val-string' : 'val-number');
+      span.contentEditable = 'true';
+      span.spellcheck = false;
+      span.textContent = t === 'string' ? JSON.stringify(value) : String(value);
+      const original = span.textContent;
+      span.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); span.blur(); }
+        if (e.key === 'Escape') { span.textContent = original; span.blur(); }
+      });
+      span.addEventListener('blur', () => {
+        const txt = span.textContent.trim();
+        if (t === 'string') {
+          // accept either "..." or raw text
+          let parsed;
+          try { parsed = JSON.parse(txt); }
+          catch { parsed = txt.replace(/^"|"$/g, ''); }
+          if (typeof parsed !== 'string') parsed = String(parsed);
+          onChange(parsed);
+        } else {
+          const n = Number(txt);
+          if (!Number.isFinite(n)) { setStatus('Invalid number', false); span.textContent = original; return; }
+          onChange(n);
+        }
+        setStatus('Updated ✓');
+      });
+      return span;
+    }
+
+    function changeType(parent, key, currentValue) {
+      const types = ['string', 'number', 'boolean', 'null', 'object', 'array'];
+      const current = typeOf(currentValue);
+      const next = prompt('Change type to one of: ' + types.join(', '), current);
+      if (!next || !types.includes(next) || next === current) return;
+      let v;
+      switch (next) {
+        case 'string':  v = currentValue == null ? '' : String(currentValue); break;
+        case 'number':  v = Number(currentValue) || 0; break;
+        case 'boolean': v = !!currentValue; break;
+        case 'null':    v = null; break;
+        case 'object':  v = {}; break;
+        case 'array':   v = []; break;
+      }
+      parent[key] = v;
+      rerender();
+    }
+
+    function addEntry(container) {
+      if (Array.isArray(container)) {
+        container.push('');
+      } else if (container && typeof container === 'object') {
+        let i = 1, k = 'newKey';
+        while (Object.prototype.hasOwnProperty.call(container, k)) k = 'newKey' + (++i);
+        container[k] = '';
+      }
+      rerender();
+    }
+
+    function deleteEntry(parent, key) {
+      if (Array.isArray(parent)) parent.splice(Number(key), 1);
+      else delete parent[key];
+      rerender();
+    }
+
+    /**
+     * Render `value` as a row + (optional) children block, attached to `out`.
+     * `parent` and `key` describe how this value is reached, so we can mutate it.
+     * If `parent` is null, this is the root.
+     */
+    function renderValue(value, parent, key, isLast, out) {
+      const t = typeOf(value);
+      const isContainer = (t === 'object' || t === 'array');
+
+      const node = document.createElement('div');
+      node.className = 'node';
+      const row = document.createElement('div');
+      row.className = 'row';
+      node.appendChild(row);
+
+      const toggle = document.createElement('span');
+      toggle.className = 'toggle' + (isContainer ? '' : ' empty');
+      toggle.textContent = '▾';
+      row.appendChild(toggle);
+      if (isContainer) {
+        toggle.addEventListener('click', () => node.classList.toggle('collapsed'));
+      }
+
+      // key display
+      if (parent !== null) {
+        if (Array.isArray(parent)) {
+          const idx = document.createElement('span');
+          idx.className = 'key';
+          idx.textContent = key;
+          row.appendChild(idx);
+          const c = document.createElement('span');
+          c.className = 'punct'; c.textContent = ': ';
+          row.appendChild(c);
+        } else {
+          const q1 = document.createElement('span'); q1.className='punct'; q1.textContent='"';
+          row.appendChild(q1);
+          row.appendChild(makeKeyEditor(parent, key, () => {}));
+          const q2 = document.createElement('span'); q2.className='punct'; q2.textContent='": ';
+          row.appendChild(q2);
+        }
+      }
+
+      if (isContainer) {
+        const open = document.createElement('span');
+        open.className = 'punct';
+        open.textContent = t === 'array' ? '[' : '{';
+        row.appendChild(open);
+
+        const summary = document.createElement('span');
+        summary.className = 'summary';
+        const len = t === 'array' ? value.length : Object.keys(value).length;
+        summary.textContent = ` ${len} ${t === 'array' ? 'item' : 'key'}${len === 1 ? '' : 's'} `;
+        row.appendChild(summary);
+
+        const closeInline = document.createElement('span');
+        closeInline.className = 'summary punct';
+        closeInline.textContent = (t === 'array' ? ']' : '}') + (isLast ? '' : ',');
+        row.appendChild(closeInline);
+
+        const children = document.createElement('div');
+        children.className = 'children';
+        node.appendChild(children);
+
+        const entries = t === 'array'
+          ? value.map((v, i) => [i, v])
+          : Object.entries(value);
+        entries.forEach(([k, v], i) => renderValue(v, value, k, i === entries.length - 1, children));
+
+        const closeRow = document.createElement('div');
+        closeRow.className = 'closeRow';
+        const closePunct = document.createElement('span');
+        closePunct.className = 'punct';
+        closePunct.textContent = (t === 'array' ? ']' : '}') + (isLast ? '' : ',');
+        closeRow.appendChild(closePunct);
+        node.appendChild(closeRow);
+
+        // actions
+        const actions = document.createElement('span');
+        actions.className = 'actions';
+        actions.appendChild(makeBtn('+', '', 'Add ' + (t === 'array' ? 'item' : 'key'), () => addEntry(value)));
+        const pill = document.createElement('span');
+        pill.className = 'type-pill';
+        pill.textContent = t;
+        pill.title = 'Change type';
+        pill.addEventListener('click', e => { e.stopPropagation(); changeType(parent || holder, key === undefined ? 'root' : key, value); });
+        actions.appendChild(pill);
+        if (parent !== null) {
+          actions.appendChild(makeBtn('×', 'danger', 'Delete', () => deleteEntry(parent, key)));
+        }
+        row.appendChild(actions);
+      } else {
+        // primitive
+        const editor = makeValueEditor(parent, key, value, newVal => {
+          if (parent === null) holder.root = newVal;
+          else parent[key] = newVal;
+          refreshMeta();
+        });
+        row.appendChild(editor);
+        if (!isLast) {
+          const c = document.createElement('span');
+          c.className = 'punct'; c.textContent = ',';
+          row.appendChild(c);
+        }
+
+        const actions = document.createElement('span');
+        actions.className = 'actions';
+        const pill = document.createElement('span');
+        pill.className = 'type-pill';
+        pill.textContent = t;
+        pill.title = 'Change type';
+        pill.addEventListener('click', e => {
+          e.stopPropagation();
+          changeType(parent === null ? holder : parent, parent === null ? 'root' : key, value);
+        });
+        actions.appendChild(pill);
+        if (parent !== null) {
+          actions.appendChild(makeBtn('×', 'danger', 'Delete', () => deleteEntry(parent, key)));
+        }
+        row.appendChild(actions);
+      }
+
+      out.appendChild(node);
+    }
+
+    function rerender() {
+      tree.innerHTML = '';
+      if (holder.root === undefined) holder.root = null;
+      renderValue(holder.root, null, undefined, true, tree);
+      refreshMeta();
+    }
+
+    /* -------- Load / Save -------- */
+
+    function loadFromText(text) {
+      try {
+        const data = JSON.parse(text);
+        holder.root = data;
+        rerender();
+        setStatus('Loaded ✓');
+      } catch (e) {
+        setStatus('Invalid JSON: ' + e.message, false);
+      }
+    }
+
+    $('loadTextBtn').onclick = () => loadFromText(src.value);
+    $('sampleBtn').onclick = () => {
+      src.value = JSON.stringify(SAMPLE, null, 2);
+      updateSrcMeta();
+      loadFromText(src.value);
+    };
+    $('fileInput').onchange = async (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      const text = await f.text();
+      src.value = text;
+      updateSrcMeta();
+      loadFromText(text);
+    };
+    $('downloadBtn').onclick = () => {
+      const text = serialize();
+      const blob = new Blob([text], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'data.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      setStatus('Downloaded ✓');
+    };
+    $('copyBtn').onclick = async () => {
+      try { await navigator.clipboard.writeText(serialize()); setStatus('Copied ✓'); }
+      catch { setStatus('Copy failed', false); }
+    };
+    $('previewBtn').onclick = () => {
+      const p = $('previewPane');
+      p.style.display = p.style.display === 'none' ? '' : 'none';
+      refreshMeta();
+    };
+    $('expandBtn').onclick = () => tree.querySelectorAll('.node').forEach(n => n.classList.remove('collapsed'));
+    $('collapseBtn').onclick = () => tree.querySelectorAll('.node').forEach(n => n.classList.add('collapsed'));
+    $('indent').onchange = refreshMeta;
+
+    // Start with sample
+    src.value = JSON.stringify(SAMPLE, null, 2);
+    updateSrcMeta();
+    loadFromText(src.value);
+  })();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+
