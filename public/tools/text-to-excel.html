@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#7c5cff">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .te-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    .te-toolbar input[type=color] { width: 36px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 6px; background: transparent; cursor: pointer; }
+    .te-toolbar select, .te-toolbar input[type=text], .te-toolbar input[type=number] { padding: 7px 10px; }
+    .te-wrap { overflow: auto; max-height: 70vh; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-2); }
+    table.te-grid { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13px; }
+    table.te-grid th, table.te-grid td {
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 0; min-width: 90px; height: 30px;
+      vertical-align: middle; position: relative;
+    }
+    table.te-grid th {
+      background: var(--panel); color: var(--text); font-weight: 600;
+      position: sticky; top: 0; z-index: 2;
+    }
+    table.te-grid th.idx, table.te-grid td.idx {
+      background: var(--panel); color: var(--muted); text-align: center;
+      min-width: 36px; max-width: 36px; padding: 0 6px;
+      position: sticky; left: 0; z-index: 1;
+    }
+    table.te-grid th.idx { z-index: 3; }
+    table.te-grid th.corner { background: var(--panel); position: sticky; left: 0; top: 0; z-index: 4; }
+    table.te-grid td .cell, table.te-grid th .hcell {
+      display: block; padding: 6px 8px; outline: none; min-height: 18px;
+      cursor: text; word-break: break-word;
+    }
+    table.te-grid td .cell:focus, table.te-grid th .hcell:focus {
+      box-shadow: inset 0 0 0 2px var(--accent);
+    }
+    table.te-grid td.selected { box-shadow: inset 0 0 0 2px var(--accent); }
+    table.te-grid td.selected .cell { background: transparent; }
+    .col-actions, .row-actions {
+      position: absolute; display: none; gap: 2px; z-index: 5;
+    }
+    th:hover .col-actions, td.idx:hover .row-actions { display: inline-flex; }
+    .col-actions { top: 2px; right: 2px; }
+    .row-actions { left: 2px; top: 2px; }
+    .col-actions button, .row-actions button {
+      background: var(--panel-2); border: 1px solid var(--border);
+      color: var(--muted); font-size: 10px; padding: 1px 4px;
+      border-radius: 3px; cursor: pointer; line-height: 1.2;
+    }
+    .col-actions button:hover, .row-actions button:hover { color: var(--accent); border-color: var(--accent); }
+    .col-actions button.danger:hover, .row-actions button.danger:hover { color: var(--warn); border-color: var(--warn); }
+    .swatches { display: inline-flex; gap: 4px; align-items: center; }
+    .swatch {
+      width: 22px; height: 22px; border-radius: 4px; cursor: pointer;
+      border: 1px solid var(--border);
+    }
+    .swatch.clear {
+      background: linear-gradient(135deg, transparent 45%, var(--warn) 45%, var(--warn) 55%, transparent 55%);
+    }
+    .selection-info { color: var(--muted); font-size: 12px; margin-left: auto; }
+    .group-divider { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>Text to Excel — Build a Spreadsheet &amp; Color Cells, Export .xlsx</title>
+  <meta name="description" content="Interactively build a table in your browser: add columns &amp; rows, edit cells, color individual cells, then export as Excel (.xlsx) or CSV. Free, no upload.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/text-to-excel">
+  <!-- SEO:END -->
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span><span class="tld">.eu</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Text to Excel</h1>
+      <p>Build a spreadsheet interactively — add columns and rows, edit any cell, color cells (or whole rows / columns), then export as <strong>.xlsx</strong> or CSV. Everything happens in your browser.</p>
+    </div>
+
+    <div class="panel">
+      <div class="te-toolbar">
+        <button id="addColBtn">+ Column</button>
+        <button id="addRowBtn">+ Row</button>
+        <span class="group-divider"></span>
+        <span>Fill:</span>
+        <input type="color" id="colorPicker" value="#ffe066" title="Pick a color">
+        <button id="fillCellBtn" class="secondary" title="Fill selected cell(s)">Cell</button>
+        <button id="fillRowBtn" class="secondary" title="Fill selected row">Row</button>
+        <button id="fillColBtn" class="secondary" title="Fill selected column">Column</button>
+        <button id="clearFillBtn" class="secondary" title="Clear fill from selection">Clear</button>
+        <span class="swatches" id="swatches"></span>
+        <span class="group-divider"></span>
+        <button id="pasteTsvBtn" class="secondary" title="Paste TSV/CSV from clipboard">📋 Paste TSV/CSV</button>
+        <label class="secondary" style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);padding:6px 10px;border-radius:8px;cursor:pointer;">
+          📂 Import CSV <input id="importInput" type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values" style="display:none">
+        </label>
+        <span class="group-divider"></span>
+        <button id="exportXlsxBtn">⬇ Export .xlsx</button>
+        <button id="exportCsvBtn" class="secondary">⬇ Export .csv</button>
+        <button id="clearAllBtn" class="secondary">Reset</button>
+        <span class="selection-info" id="selInfo"></span>
+      </div>
+
+      <div class="te-toolbar">
+        <label for="sheetName">Sheet name</label>
+        <input id="sheetName" type="text" value="Sheet1" style="width:160px;">
+        <label for="fileName">File name</label>
+        <input id="fileName" type="text" value="my-spreadsheet" style="width:200px;">
+        <span id="status" class="status"></span>
+      </div>
+
+      <div class="te-wrap" id="wrap">
+        <table class="te-grid" id="grid"></table>
+      </div>
+    </div>
+  </main>
+
+  <!-- ExcelJS for styled .xlsx export, FileSaver for download -->
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+
+  <script>
+  (function () {
+    const $ = id => document.getElementById(id);
+    const setStatus = (m, ok = true) => { $('status').textContent = m; $('status').className = 'status ' + (ok ? 'ok' : 'err'); };
+
+    // ---- Model ----
+    // headers: ['A','B',...]; rows: array of arrays (strings); fills: Map "r,c" -> "#hex"
+    let headers = ['Name', 'Email', 'Score'];
+    let rows = [
+      ['Ada Lovelace',  'ada@example.com',     '95'],
+      ['Alan Turing',   'alan@example.com',    '99'],
+      ['Grace Hopper',  'grace@example.com',   '92']
+    ];
+    let fills = {};            // cell fills:    "r,c"  -> "#rrggbb"
+    let headerFills = {};      // column header: c      -> "#rrggbb"
+    let selected = { r: 0, c: 0 };
+
+    const PRESETS = ['#ffe066','#a3e635','#7dd3fc','#fca5a5','#f0abfc','#fdba74','#d4d4d8','#ffffff'];
+
+    function key(r, c) { return r + ',' + c; }
+
+    function ensureShape() {
+      for (const row of rows) {
+        while (row.length < headers.length) row.push('');
+        if (row.length > headers.length) row.length = headers.length;
+      }
+    }
+
+    // ---- Render ----
+    const grid = $('grid');
+
+    function render() {
+      ensureShape();
+      grid.innerHTML = '';
+
+      // Header row
+      const thead = document.createElement('thead');
+      const hr = document.createElement('tr');
+      const corner = document.createElement('th');
+      corner.className = 'corner';
+      hr.appendChild(corner);
+
+      headers.forEach((h, c) => {
+        const th = document.createElement('th');
+        if (headerFills[c]) th.style.background = headerFills[c];
+        const cell = document.createElement('div');
+        cell.className = 'hcell';
+        cell.contentEditable = 'true';
+        cell.spellcheck = false;
+        cell.textContent = h;
+        cell.addEventListener('blur', () => { headers[c] = cell.textContent; });
+        cell.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); cell.blur(); } });
+        cell.addEventListener('focus', () => { selected = { r: -1, c }; updateSelInfo(); });
+        th.appendChild(cell);
+
+        const acts = document.createElement('span');
+        acts.className = 'col-actions';
+        acts.innerHTML = '';
+        acts.appendChild(makeBtn('+', '', 'Insert column right', () => { insertCol(c + 1); }));
+        acts.appendChild(makeBtn('×', 'danger', 'Delete column', () => { deleteCol(c); }));
+        th.appendChild(acts);
+
+        hr.appendChild(th);
+      });
+      thead.appendChild(hr);
+      grid.appendChild(thead);
+
+      // Body
+      const tbody = document.createElement('tbody');
+      rows.forEach((row, r) => {
+        const tr = document.createElement('tr');
+        const idx = document.createElement('td');
+        idx.className = 'idx';
+        idx.textContent = String(r + 1);
+        const racts = document.createElement('span');
+        racts.className = 'row-actions';
+        racts.appendChild(makeBtn('+', '', 'Insert row below', () => { insertRow(r + 1); }));
+        racts.appendChild(makeBtn('×', 'danger', 'Delete row', () => { deleteRow(r); }));
+        idx.appendChild(racts);
+        tr.appendChild(idx);
+
+        row.forEach((val, c) => {
+          const td = document.createElement('td');
+          if (fills[key(r, c)]) td.style.background = fills[key(r, c)];
+          if (selected.r === r && selected.c === c) td.classList.add('selected');
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.contentEditable = 'true';
+          cell.spellcheck = false;
+          cell.textContent = val;
+          cell.addEventListener('focus', () => {
+            selected = { r, c };
+            grid.querySelectorAll('td.selected').forEach(x => x.classList.remove('selected'));
+            td.classList.add('selected');
+            updateSelInfo();
+          });
+          cell.addEventListener('blur', () => { rows[r][c] = cell.textContent; });
+          cell.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              rows[r][c] = cell.textContent;
+              if (r === rows.length - 1) insertRow(r + 1);
+              else focusCell(r + 1, c);
+            } else if (e.key === 'Tab') {
+              e.preventDefault();
+              rows[r][c] = cell.textContent;
+              const nc = e.shiftKey ? c - 1 : c + 1;
+              if (nc < 0) focusCell(r, headers.length - 1);
+              else if (nc >= headers.length) focusCell(r, 0);
+              else focusCell(r, nc);
+            }
+          });
+          td.appendChild(cell);
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      grid.appendChild(tbody);
+      updateSelInfo();
+    }
+
+    function makeBtn(label, cls, title, onClick) {
+      const b = document.createElement('button');
+      b.textContent = label; if (cls) b.className = cls; if (title) b.title = title;
+      b.addEventListener('click', e => { e.stopPropagation(); onClick(); });
+      return b;
+    }
+
+    function focusCell(r, c) {
+      const tr = grid.querySelectorAll('tbody tr')[r];
+      if (!tr) return;
+      const td = tr.querySelectorAll('td')[c + 1]; // +1 for index col
+      if (!td) return;
+      const inner = td.querySelector('.cell');
+      if (inner) inner.focus();
+    }
+
+    function updateSelInfo() {
+      if (selected.r === -1) $('selInfo').textContent = `Header • column ${selected.c + 1}`;
+      else $('selInfo').textContent = `Selected: row ${selected.r + 1}, column ${selected.c + 1}`;
+    }
+
+    /* ---- Mutations ---- */
+    function insertCol(at) {
+      headers.splice(at, 0, 'Column ' + (headers.length + 1));
+      for (const row of rows) row.splice(at, 0, '');
+      // shift fills
+      const newFills = {};
+      for (const k in fills) {
+        const [r, c] = k.split(',').map(Number);
+        newFills[key(r, c >= at ? c + 1 : c)] = fills[k];
+      }
+      fills = newFills;
+      const newH = {};
+      for (const c in headerFills) {
+        const ci = +c;
+        newH[ci >= at ? ci + 1 : ci] = headerFills[c];
+      }
+      headerFills = newH;
+      render();
+    }
+    function deleteCol(at) {
+      if (headers.length <= 1) { setStatus('At least one column required', false); return; }
+      headers.splice(at, 1);
+      for (const row of rows) row.splice(at, 1);
+      const newFills = {};
+      for (const k in fills) {
+        const [r, c] = k.split(',').map(Number);
+        if (c === at) continue;
+        newFills[key(r, c > at ? c - 1 : c)] = fills[k];
+      }
+      fills = newFills;
+      const newH = {};
+      for (const c in headerFills) {
+        const ci = +c;
+        if (ci === at) continue;
+        newH[ci > at ? ci - 1 : ci] = headerFills[c];
+      }
+      headerFills = newH;
+      render();
+    }
+    function insertRow(at) {
+      rows.splice(at, 0, headers.map(() => ''));
+      const newFills = {};
+      for (const k in fills) {
+        const [r, c] = k.split(',').map(Number);
+        newFills[key(r >= at ? r + 1 : r, c)] = fills[k];
+      }
+      fills = newFills;
+      render();
+      focusCell(at, 0);
+    }
+    function deleteRow(at) {
+      if (rows.length <= 1) { setStatus('At least one row required', false); return; }
+      rows.splice(at, 1);
+      const newFills = {};
+      for (const k in fills) {
+        const [r, c] = k.split(',').map(Number);
+        if (r === at) continue;
+        newFills[key(r > at ? r - 1 : r, c)] = fills[k];
+      }
+      fills = newFills;
+      render();
+    }
+
+    /* ---- Filling ---- */
+    function fillSelected(scope) {
+      const color = $('colorPicker').value;
+      if (selected.r === -1) {
+        // header selected
+        if (scope === 'col' || scope === 'cell') headerFills[selected.c] = color;
+        if (scope === 'col') for (let r = 0; r < rows.length; r++) fills[key(r, selected.c)] = color;
+      } else {
+        if (scope === 'cell') fills[key(selected.r, selected.c)] = color;
+        if (scope === 'row') for (let c = 0; c < headers.length; c++) fills[key(selected.r, c)] = color;
+        if (scope === 'col') {
+          headerFills[selected.c] = color;
+          for (let r = 0; r < rows.length; r++) fills[key(r, selected.c)] = color;
+        }
+      }
+      render();
+      setStatus('Filled ✓');
+    }
+    function clearSelectedFill() {
+      if (selected.r === -1) { delete headerFills[selected.c]; }
+      else { delete fills[key(selected.r, selected.c)]; }
+      render();
+    }
+
+    /* ---- Import / paste ---- */
+    function parseDelimited(text) {
+      // Detect tab vs comma
+      const firstLine = text.split(/\r?\n/, 1)[0];
+      const delim = firstLine.includes('\t') ? '\t' : ',';
+      // Tiny CSV/TSV parser supporting quoted values for comma case.
+      const out = [];
+      let row = [], cur = '', inQ = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (inQ) {
+          if (ch === '"' && text[i+1] === '"') { cur += '"'; i++; }
+          else if (ch === '"') { inQ = false; }
+          else cur += ch;
+        } else {
+          if (ch === '"' && delim === ',') inQ = true;
+          else if (ch === delim) { row.push(cur); cur = ''; }
+          else if (ch === '\r') { /* skip */ }
+          else if (ch === '\n') { row.push(cur); out.push(row); row = []; cur = ''; }
+          else cur += ch;
+        }
+      }
+      if (cur.length || row.length) { row.push(cur); out.push(row); }
+      // Drop trailing empty row
+      while (out.length && out[out.length-1].every(v => v === '')) out.pop();
+      return out;
+    }
+
+    function loadFromMatrix(matrix) {
+      if (!matrix.length) return;
+      headers = matrix[0].map((h, i) => h || ('Column ' + (i + 1)));
+      rows = matrix.slice(1).map(r => {
+        const out = r.slice(0, headers.length);
+        while (out.length < headers.length) out.push('');
+        return out;
+      });
+      if (rows.length === 0) rows = [headers.map(() => '')];
+      fills = {}; headerFills = {};
+      render();
+      setStatus(`Loaded ${rows.length} row${rows.length===1?'':'s'} ✓`);
+    }
+
+    /* ---- Export ---- */
+    function toCsv() {
+      const esc = v => {
+        const s = String(v ?? '');
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+      };
+      const lines = [headers.map(esc).join(',')];
+      for (const r of rows) lines.push(r.map(esc).join(','));
+      return lines.join('\r\n');
+    }
+
+    function downloadBlob(blob, name) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 500);
+    }
+
+    async function exportXlsx() {
+      // Commit any in-progress edits
+      grid.querySelectorAll('[contenteditable="true"]').forEach(el => el.blur());
+      if (typeof ExcelJS === 'undefined') { setStatus('ExcelJS failed to load', false); return; }
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet($('sheetName').value || 'Sheet1');
+      ws.addRow(headers);
+      const headerRow = ws.getRow(1);
+      headerRow.font = { bold: true };
+      headers.forEach((_, c) => {
+        const cell = headerRow.getCell(c + 1);
+        const fill = headerFills[c];
+        if (fill) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + fill.slice(1).toUpperCase() } };
+        } else {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEEEEE' } };
+        }
+      });
+      rows.forEach((r, ri) => {
+        ws.addRow(r);
+        const xr = ws.getRow(ri + 2);
+        r.forEach((_, ci) => {
+          const f = fills[key(ri, ci)];
+          if (f) {
+            xr.getCell(ci + 1).fill = {
+              type: 'pattern', pattern: 'solid',
+              fgColor: { argb: 'FF' + f.slice(1).toUpperCase() }
+            };
+          }
+        });
+      });
+      // Auto column widths
+      headers.forEach((h, i) => {
+        let max = String(h).length;
+        for (const r of rows) max = Math.max(max, String(r[i] ?? '').length);
+        ws.getColumn(i + 1).width = Math.min(60, Math.max(10, max + 2));
+      });
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      downloadBlob(blob, ($('fileName').value || 'spreadsheet') + '.xlsx');
+      setStatus('Exported .xlsx ✓');
+    }
+
+    function exportCsv() {
+      grid.querySelectorAll('[contenteditable="true"]').forEach(el => el.blur());
+      const blob = new Blob([toCsv()], { type: 'text/csv;charset=utf-8' });
+      downloadBlob(blob, ($('fileName').value || 'spreadsheet') + '.csv');
+      setStatus('Exported .csv ✓ (note: cell colors are not preserved in CSV)');
+    }
+
+    /* ---- Wire up ---- */
+    $('addColBtn').onclick = () => insertCol(headers.length);
+    $('addRowBtn').onclick = () => insertRow(rows.length);
+    $('fillCellBtn').onclick = () => fillSelected('cell');
+    $('fillRowBtn').onclick  = () => fillSelected('row');
+    $('fillColBtn').onclick  = () => fillSelected('col');
+    $('clearFillBtn').onclick = clearSelectedFill;
+    $('exportXlsxBtn').onclick = exportXlsx;
+    $('exportCsvBtn').onclick = exportCsv;
+    $('clearAllBtn').onclick = () => {
+      if (!confirm('Reset the entire spreadsheet?')) return;
+      headers = ['Column 1','Column 2','Column 3'];
+      rows = [['','',''], ['','',''], ['','','']];
+      fills = {}; headerFills = {};
+      render();
+    };
+    $('pasteTsvBtn').onclick = async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (!text.trim()) { setStatus('Clipboard is empty', false); return; }
+        loadFromMatrix(parseDelimited(text));
+      } catch { setStatus('Clipboard read failed (browser permission?)', false); }
+    };
+    $('importInput').onchange = async (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      const text = await f.text();
+      loadFromMatrix(parseDelimited(text));
+    };
+
+    // Color preset swatches
+    const sw = $('swatches');
+    PRESETS.forEach(c => {
+      const s = document.createElement('span');
+      s.className = 'swatch'; s.style.background = c; s.title = c;
+      s.addEventListener('click', () => { $('colorPicker').value = c; fillSelected('cell'); });
+      sw.appendChild(s);
+    });
+    const clr = document.createElement('span');
+    clr.className = 'swatch clear'; clr.title = 'Clear cell color';
+    clr.addEventListener('click', clearSelectedFill);
+    sw.appendChild(clr);
+
+    // Allow drag-paste of TSV/CSV into the grid wrapper
+    $('wrap').addEventListener('paste', e => {
+      // Only handle when not inside an editable cell (cell paste = plain paste)
+      if (e.target.closest('[contenteditable="true"]')) return;
+      const text = (e.clipboardData || window.clipboardData).getData('text');
+      if (!text) return;
+      e.preventDefault();
+      loadFromMatrix(parseDelimited(text));
+    });
+
+    render();
+  })();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

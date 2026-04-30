@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#7c5cff">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .pg-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    .pg-toolbar select, .pg-toolbar input { padding: 8px 10px; }
+    .pg-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
+    @media (min-width: 900px) { .pg-grid { grid-template-columns: 1.1fr .9fr; } }
+    .pg-card {
+      background: var(--panel-2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px;
+    }
+    .pg-card h3 {
+      margin: 0 0 12px; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px;
+      color: var(--muted); font-weight: 600;
+    }
+    .persona-name {
+      font-size: 26px; font-weight: 700; margin: 0 0 4px; color: var(--accent);
+      letter-spacing: .3px;
+    }
+    .persona-sub { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
+    .field-list { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; font-size: 14px; }
+    .field-list dt { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; align-self: center; }
+    .field-list dd { margin: 0; word-break: break-word; }
+    .field-list dd .copy {
+      cursor: pointer; color: var(--muted); margin-left: 6px; font-size: 11px;
+      border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px;
+      opacity: 0; transition: opacity .12s;
+    }
+    .field-list dd:hover .copy { opacity: 1; }
+    .field-list dd .copy:hover { color: var(--accent); border-color: var(--accent); }
+    .group-header {
+      grid-column: 1 / -1; margin-top: 10px; padding-top: 10px;
+      border-top: 1px dashed var(--border); color: var(--accent-mint);
+      font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600;
+    }
+    .relation { display: block; padding: 2px 0; }
+    .relation .role { color: var(--muted); margin-right: 6px; }
+    #json {
+      width: 100%; box-sizing: border-box;
+      min-height: 50vh; max-height: 70vh; overflow: auto;
+      font-family: var(--mono); font-size: 12.5px; line-height: 1.55;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); padding: 14px; margin: 0; white-space: pre; tab-size: 2;
+    }
+    .era-pill {
+      display: inline-block; padding: 2px 10px; border-radius: 999px;
+      background: rgba(124,92,255,.15); color: var(--accent);
+      font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+      margin-left: 8px; vertical-align: middle;
+    }
+    .hl-key    { color: #c4b5ff; }
+    .hl-string { color: var(--accent-mint); }
+    .hl-number { color: var(--warn); }
+    .hl-bool   { color: var(--accent-pink); font-weight: 600; }
+    .hl-null   { color: var(--muted); font-style: italic; }
+    .hl-punct  { color: var(--muted); }
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>Random Persona Generator — Medieval, Modern, Biblical &amp; Sci-Fi</title>
+  <meta name="description" content="Generate random fictional people from four eras: medieval, modern, biblical or a galaxy far away. Names, addresses, coordinates, family, contact details. Free, browser-only.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/persona">
+  <!-- SEO:END -->
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span><span class="tld">.eu</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Random Persona Generator</h1>
+      <p>Conjure a fully fictional person from medieval times, modern day, the biblical era, or a galaxy far, far away. Useful for test data, story writing, RPG NPCs, or just for fun.</p>
+    </div>
+
+    <div class="panel">
+      <div class="pg-toolbar">
+        <label for="era">Era</label>
+        <select id="era">
+          <option value="medieval">⚔️ Medieval (years 500–1500)</option>
+          <option value="modern" selected>🌆 Modern (years 1900–today)</option>
+          <option value="biblical">📜 Biblical (years -2000 to 100 AD)</option>
+          <option value="galaxy">🚀 A galaxy far, far away</option>
+        </select>
+        <label for="gender">Gender</label>
+        <select id="gender">
+          <option value="any" selected>Any</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+        <label for="seed">Seed</label>
+        <input id="seed" type="text" placeholder="(random)" style="width: 120px;">
+        <button id="genBtn">🎲 Generate</button>
+        <button id="copyJsonBtn" class="secondary">Copy JSON</button>
+        <button id="downloadBtn" class="secondary">⬇ Download .json</button>
+        <span class="status" id="status"></span>
+      </div>
+
+      <div class="pg-grid">
+        <div class="pg-card" id="personaCard">
+          <h3>Persona <span class="era-pill" id="eraPill">modern</span></h3>
+          <h2 class="persona-name" id="personaName">—</h2>
+          <p class="persona-sub" id="personaSub">Click Generate to create a random persona.</p>
+          <dl class="field-list" id="fields"></dl>
+        </div>
+        <div class="pg-card">
+          <h3>Raw JSON</h3>
+          <pre id="json"></pre>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+  (function () {
+    const $ = id => document.getElementById(id);
+    const setStatus = (m, ok = true) => { $('status').textContent = m; $('status').className = 'status ' + (ok ? 'ok' : 'err'); };
+
+    /* ---------- Seeded RNG (mulberry32) ---------- */
+    function hashStr(s) {
+      let h = 2166136261 >>> 0;
+      for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+      return h >>> 0;
+    }
+    function mulberry32(seed) {
+      let t = seed >>> 0;
+      return function () {
+        t = (t + 0x6D2B79F5) >>> 0;
+        let r = t;
+        r = Math.imul(r ^ (r >>> 15), r | 1);
+        r ^= r + Math.imul(r ^ (r >>> 7), r | 61);
+        return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+    let R = Math.random;
+    const pick = arr => arr[Math.floor(R() * arr.length)];
+    const intBetween = (a, b) => Math.floor(R() * (b - a + 1)) + a;
+    const chance = p => R() < p;
+
+    /* ---------- Data tables per era ---------- */
+    const DATA = {
+      medieval: {
+        male: ['Alaric','Edmund','Godfrey','Harald','Leofric','Roland','Thoros','Wulfric','Cedric','Baldwin','Tristan','Percival','Eadric','Osric','Dunstan'],
+        female: ['Æthelflæd','Brigid','Constance','Eleanor','Gwendolyn','Isolde','Mathilda','Rowena','Adelaide','Brunhild','Edith','Hilda','Avelina','Maud'],
+        surnames: ['of York','of Aquitaine','the Bold','Ironheart','Blackwood','of Normandy','the Wise','Greycloak','of Rivenshire','Stormcrow','of the Glen','the Just','Fairhand','Wolfsbane'],
+        titles: ['Sir','Lady','Brother','Sister','Master','Mistress','Lord','Dame','Squire'],
+        streets: ['Cobbler\'s Lane','Mill Road','Thieves\' Alley','Knight\'s Way','Abbey Path','Smithy Row','Crown Square','Tannery Bend','Friar\'s Crossing'],
+        cities: ['Wessex','Calais','Brügge','Aachen','York','Florence','Avignon','Constantinople','Ravenna','Toledo','Krakow'],
+        regions: ['Kingdom of England','Holy Roman Empire','Kingdom of France','Republic of Venice','Kingdom of Castile','Byzantine Empire','Duchy of Burgundy'],
+        emails: ['raven','scroll','quill','herald','crow','parchment'],
+        domains: ['carrierpigeon.realm','townhall.shire','abbey.holy','market.guild'],
+        phoneFmt: () => `Send raven #${intBetween(100,999)} to ${pick(['North Tower','Bell Tower','East Gate','Inn'])}`,
+        satellite: () => `Watchtower beacon: ${intBetween(1,12)} fires lit`,
+        years: [500, 1500],
+        professions: ['blacksmith','knight errant','herbalist','scribe','minstrel','falconer','wool merchant','cooper','stonemason','alchemist','court jester'],
+        familySurnameRule: 'shared'
+      },
+      modern: {
+        male: ['Liam','Noah','Mateo','Oliver','Ethan','Lucas','Elijah','Aiden','Henry','Leo','Daniel','James','Felix','Hugo','Ravi','Kenji','Hiroshi','Diego','Andrei','Sven'],
+        female: ['Emma','Olivia','Sophia','Ava','Mia','Isabella','Charlotte','Amelia','Luna','Aria','Layla','Zara','Nia','Yuki','Ingrid','Priya','Anya','Sofia','Mira'],
+        surnames: ['Anderson','Bennett','Carter','Davis','Evans','Foster','Garcia','Hughes','Ito','Johansson','Kowalski','López','Müller','Novak','O\'Brien','Patel','Quinn','Reyes','Singh','Tanaka','Vargas','Williams','Xu','Yamamoto','Zhao'],
+        streets: ['Maple Ave','Oak Street','Sunset Blvd','5th Avenue','River Road','Park Lane','Birch Court','Hilltop Drive','Linden Way','Market Street'],
+        cities: ['New York','London','Tokyo','Berlin','Sydney','Toronto','Madrid','Amsterdam','Singapore','São Paulo','Cape Town','Dubai','Vienna'],
+        regions: ['United States','United Kingdom','Japan','Germany','Australia','Canada','Spain','Netherlands','Singapore','Brazil','South Africa','UAE','Austria'],
+        emails: null, // built from name
+        domains: ['gmail.example','outlook.example','proton.example','yahoo.example','fastmail.example'],
+        phoneFmt: () => {
+          const cc = pick(['+1','+44','+81','+49','+61','+34','+31','+65','+55']);
+          return `${cc} ${intBetween(100,999)}-${intBetween(100,999)}-${intBetween(1000,9999)}`;
+        },
+        satellite: () => chance(.4) ? `Starlink terminal ${randHex(6).toUpperCase()}` : `LTE / 5G (Carrier ${pick(['Vodafone','AT&T','NTT','O2','Orange','Bell'])})`,
+        years: [1900, 2025],
+        professions: ['software engineer','nurse','teacher','barista','data analyst','plumber','UX designer','accountant','journalist','firefighter','therapist','baker','musician','park ranger'],
+        familySurnameRule: 'shared'
+      },
+      biblical: {
+        male: ['Abram','Aaron','Boaz','Caleb','Daniel','Elias','Gideon','Hezekiah','Isaac','Jonah','Joash','Levi','Malachi','Nathan','Obed','Reuben','Saul','Tobias','Uriah','Zebedee'],
+        female: ['Abigail','Bathsheba','Deborah','Esther','Hannah','Jael','Leah','Miriam','Naomi','Rachel','Ruth','Salome','Tamar','Tabitha','Zipporah'],
+        surnames: ['son of Jacob','daughter of Eli','of Bethlehem','of Galilee','of the tribe of Judah','of the tribe of Benjamin','of Nazareth','the Levite','the Cushite','of Samaria'],
+        streets: ['Olive Grove Path','Well Road','Temple Steps','Caravan Route','Shepherd\'s Trail','Vineyard Way','Synagogue Square'],
+        cities: ['Jerusalem','Bethlehem','Nazareth','Damascus','Jericho','Babylon','Hebron','Capernaum','Tyre','Sidon','Antioch'],
+        regions: ['Judea','Galilee','Samaria','Idumea','Decapolis','Phoenicia','Mesopotamia','Egypt'],
+        emails: ['scroll','tablet','seal','herald','dove'],
+        domains: ['caravan.route','temple.gates','well.cistern'],
+        phoneFmt: () => `Messenger to be found at ${pick(['the well','the city gates','the marketplace','the synagogue'])} at ${pick(['dawn','noon','dusk'])}`,
+        satellite: () => `Pillar of fire visible ${intBetween(1,5)} leagues to the ${pick(['north','south','east','west'])}`,
+        years: [-2000, 100],
+        professions: ['shepherd','fisherman','tentmaker','carpenter','potter','vinedresser','tax collector','scribe','high priest','prophet','weaver','merchant'],
+        familySurnameRule: 'patronymic' // 'son/daughter of <father>'
+      },
+      galaxy: {
+        male: ['Kael','Zorr','Vex','Drannik','Thal','Ryloth','Korso','Veldar','Xen','Quor','Brennix','Tarn','Jarek','Ozun','Sykar'],
+        female: ['Lyra','Zhae','Vora','Nyx','Saira','Kelana','Tessari','Mira','Quenya','Shaela','Vela','Inara','Noora','Talee'],
+        surnames: ['Voss','Korr','Drelth','Tarn','Vexis','Mor\'kal','Sundrak','Veth','Xal\'thar','Brokk','Quaide','Ren\'sai','Velo','Nylith','Zhar'],
+        species: ['Human','Twi\'lek','Wookiee','Zabrak','Mirialan','Togruta','Rodian','Mon Calamari','Chiss','Sullustan','Cathar','Bothan'],
+        streets: ['Sublevel 17','Skylane 88','Docking Bay 94','Spire Tower 12','Underbelt Walk','Hyperlane Plaza','Coreward Promenade'],
+        cities: ['Coruscant','Mos Eisley','Cloud City','Theed','Nar Shaddaa','Kaas City','Bespin Reach','Tipoca','Aldera Vault'],
+        regions: ['Outer Rim','Mid Rim','Core Worlds','Wild Space','Hutt Space','Unknown Regions','Expansion Region'],
+        emails: ['holo','beacon','signal','transmit','comm'],
+        domains: ['holonet.gx','outerrim.net','core.imperial','smuggler.run'],
+        phoneFmt: () => `HoloComm ${randHex(4).toUpperCase()}-${randHex(4).toUpperCase()}-${randHex(4).toUpperCase()}`,
+        satellite: () => `Hyperspace relay node ${pick(['Alpha','Beta','Gamma','Delta','Epsilon'])}-${intBetween(100,999)} (latency ${intBetween(2,180)} ms)`,
+        years: [-25000, 5000], // "ABY/BBY" feel; we'll format specially
+        professions: ['bounty hunter','pilot','smuggler','moisture farmer','Jedi initiate','Sith acolyte','engineer','medic','cantina owner','spice trader','droid mechanic','senator\'s aide'],
+        familySurnameRule: 'shared'
+      }
+    };
+
+    function randHex(n) {
+      let s = '';
+      for (let i = 0; i < n; i++) s += Math.floor(R() * 16).toString(16);
+      return s;
+    }
+
+    function pickName(era, gender) {
+      const d = DATA[era];
+      let g = gender;
+      if (g === 'any') g = chance(.5) ? 'male' : 'female';
+      return { gender: g, first: pick(d[g]) };
+    }
+
+    function makeEmail(first, last, era) {
+      const d = DATA[era];
+      const slug = (first + (last || '')).toLowerCase().replace(/[^a-z0-9]/g, '');
+      const local = d.emails
+        ? `${pick(d.emails)}.${slug.slice(0, 8)}${intBetween(1, 99)}`
+        : `${slug}${intBetween(1, 99)}`;
+      return `${local}@${pick(d.domains)}`;
+    }
+
+    function formatYear(y, era) {
+      if (era === 'galaxy') {
+        const aby = Math.abs(y) > 0 ? y : 0;
+        return aby >= 0 ? `${aby} ABY` : `${-aby} BBY`;
+      }
+      if (y < 0) return `${Math.abs(y)} BC`;
+      if (era === 'biblical' || era === 'medieval') return `${y} AD`;
+      return String(y);
+    }
+
+    function makeAddress(era) {
+      const d = DATA[era];
+      const num = intBetween(1, 999);
+      return {
+        street: `${num} ${pick(d.streets)}`,
+        city: pick(d.cities),
+        region: pick(d.regions),
+        postal: era === 'galaxy'
+          ? `${randHex(2).toUpperCase()}-${intBetween(1000,9999)}`
+          : era === 'biblical' || era === 'medieval'
+            ? '—'
+            : `${intBetween(10000, 99999)}`
+      };
+    }
+
+    function makeCoordinates(era) {
+      if (era === 'galaxy') {
+        // Star Wars-style galactic coordinates: sector L-12 / grid (x,y,z) parsecs
+        return {
+          sector: `${pick(['K','L','M','N','O','R','S'])}-${intBetween(1,30)}`,
+          grid:   `(${(R()*200-100).toFixed(2)}, ${(R()*200-100).toFixed(2)}, ${(R()*40-20).toFixed(2)}) parsecs`,
+          system: `${pick(['Tython','Bothawui','Ryloth','Iridonia','Mandalore','Kashyyyk','Dantooine','Csilla'])} system`
+        };
+      }
+      const lat = (R() * 180 - 90).toFixed(5);
+      const lon = (R() * 360 - 180).toFixed(5);
+      return { lat: parseFloat(lat), lon: parseFloat(lon) };
+    }
+
+    function makeRelations(era, person) {
+      const d = DATA[era];
+      const opposite = person.gender === 'male' ? 'female' : 'male';
+      const relations = {};
+
+      // Father / Mother
+      const father = { name: `${pick(d.male)} ${pick(d.surnames)}`, age: person.age + intBetween(20, 45) };
+      const mother = { name: `${pick(d.female)} ${pick(d.surnames)}`, age: person.age + intBetween(18, 42) };
+      relations.father = father;
+      relations.mother = mother;
+
+      // Surname inheritance for biblical = patronymic
+      if (d.familySurnameRule === 'patronymic') {
+        person.lastName = `${person.gender === 'male' ? 'son' : 'daughter'} of ${father.name.split(' ')[0]}`;
+      }
+
+      // Spouse
+      if (person.age >= 16 && chance(.75)) {
+        const sg = opposite;
+        const spouseLast = d.familySurnameRule === 'shared' ? person.lastName : `${pick(d[sg])} ${pick(d.surnames)}`;
+        const spouseFirst = pick(d[sg]);
+        relations.spouse = {
+          name: d.familySurnameRule === 'patronymic'
+            ? `${spouseFirst} ${sg === 'male' ? 'son' : 'daughter'} of ${pick(d.male)}`
+            : `${spouseFirst} ${person.lastName.split(' ').slice(-1)[0] === person.lastName ? person.lastName : person.lastName}`,
+          gender: sg,
+          age: person.age + intBetween(-5, 5)
+        };
+
+        // Children
+        const childCount = chance(.3) ? 0 : intBetween(1, 4);
+        if (childCount > 0) {
+          const children = [];
+          for (let i = 0; i < childCount; i++) {
+            const cg = chance(.5) ? 'male' : 'female';
+            const cf = pick(d[cg]);
+            const cAge = Math.max(0, intBetween(0, Math.min(person.age - 16, 30)));
+            const cLast = d.familySurnameRule === 'patronymic'
+              ? `${cg === 'male' ? 'son' : 'daughter'} of ${person.firstName}`
+              : person.lastName;
+            children.push({ name: `${cf} ${cLast}`, gender: cg, age: cAge });
+          }
+          relations.children = children;
+        }
+      }
+
+      // Sibling(s)
+      const sibCount = intBetween(0, 3);
+      if (sibCount > 0) {
+        const siblings = [];
+        for (let i = 0; i < sibCount; i++) {
+          const sg = chance(.5) ? 'male' : 'female';
+          const sLast = d.familySurnameRule === 'patronymic'
+            ? `${sg === 'male' ? 'son' : 'daughter'} of ${father.name.split(' ')[0]}`
+            : person.lastName.startsWith('son of') || person.lastName.startsWith('daughter of')
+              ? person.lastName.replace(/^(son|daughter)/, sg === 'male' ? 'son' : 'daughter')
+              : person.lastName;
+          siblings.push({ name: `${pick(d[sg])} ${sLast}`, gender: sg, age: person.age + intBetween(-15, 15) });
+        }
+        relations.siblings = siblings;
+      }
+
+      return relations;
+    }
+
+    function buildPersona(era, gender) {
+      const d = DATA[era];
+      const { gender: g, first } = pickName(era, gender);
+
+      // base persona without family-derived surname yet
+      const surname = pick(d.surnames);
+      const title = era === 'medieval' ? (chance(.5) ? pick(d.titles) + ' ' : '') : '';
+      const age = intBetween(15, 78);
+      const birthYear = intBetween(d.years[0], d.years[1]);
+
+      const person = {
+        firstName: first,
+        lastName: surname,
+        gender: g,
+        title: title.trim() || null,
+        age,
+        birthYear,
+        birthYearFormatted: formatYear(birthYear, era),
+        profession: pick(d.professions),
+      };
+
+      if (era === 'galaxy') person.species = pick(d.species);
+
+      const relations = makeRelations(era, person);
+
+      // Final composed name (after possible patronymic mutation)
+      person.fullName = `${title}${person.firstName} ${person.lastName}`.trim();
+
+      const address = makeAddress(era);
+      const coordinates = makeCoordinates(era);
+      const email = makeEmail(person.firstName, person.lastName.split(' ').pop(), era);
+      const phone = d.phoneFmt();
+      const satellite = d.satellite();
+
+      return {
+        era,
+        ...person,
+        address,
+        coordinates,
+        contact: { email, phone, satellite },
+        family: relations
+      };
+    }
+
+    /* ---------- Render ---------- */
+
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function highlightJson(jsonStr) {
+      const escaped = escHtml(jsonStr);
+      return escaped.replace(
+        /("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false)\b|\bnull\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|([{}\[\],])/g,
+        (m, str, colon, bool) => {
+          if (str) return colon
+            ? `<span class="hl-key">${str}</span><span class="hl-punct">${colon}</span>`
+            : `<span class="hl-string">${str}</span>`;
+          if (bool) return `<span class="hl-bool">${m}</span>`;
+          if (m === 'null') return `<span class="hl-null">null</span>`;
+          if (/[{}\[\],]/.test(m)) return `<span class="hl-punct">${m}</span>`;
+          return `<span class="hl-number">${m}</span>`;
+        }
+      );
+    }
+
+    function copyBtnEl(text) {
+      const b = document.createElement('span');
+      b.className = 'copy';
+      b.textContent = 'copy';
+      b.title = 'Copy';
+      b.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(text); setStatus('Copied ✓'); }
+        catch { setStatus('Copy failed', false); }
+      });
+      return b;
+    }
+
+    function addField(dl, label, value, isGroup) {
+      if (isGroup) {
+        const h = document.createElement('div');
+        h.className = 'group-header';
+        h.textContent = label;
+        dl.appendChild(h);
+        return;
+      }
+      const dt = document.createElement('dt'); dt.textContent = label;
+      const dd = document.createElement('dd');
+      if (Array.isArray(value)) {
+        for (const v of value) {
+          const r = document.createElement('span');
+          r.className = 'relation';
+          r.innerHTML = `<span class="role">${escHtml(v.role || '')}</span>${escHtml(v.text)}`;
+          dd.appendChild(r);
+        }
+      } else {
+        dd.appendChild(document.createTextNode(value));
+        dd.appendChild(copyBtnEl(value));
+      }
+      dl.appendChild(dt); dl.appendChild(dd);
+    }
+
+    function renderPersona(p) {
+      $('eraPill').textContent = p.era;
+      $('personaName').textContent = p.fullName;
+      const sub = [];
+      sub.push(`${p.gender}, age ${p.age}`);
+      if (p.species) sub.push(p.species);
+      sub.push(p.profession);
+      sub.push(`born ${p.birthYearFormatted}`);
+      $('personaSub').textContent = sub.join(' · ');
+
+      const dl = $('fields');
+      dl.innerHTML = '';
+
+      addField(dl, 'Address', null, true);
+      addField(dl, 'Street', p.address.street);
+      addField(dl, 'City', p.address.city);
+      addField(dl, 'Region', p.address.region);
+      addField(dl, 'Postal', p.address.postal);
+
+      addField(dl, 'Coordinates', null, true);
+      if (p.era === 'galaxy') {
+        addField(dl, 'Sector', p.coordinates.sector);
+        addField(dl, 'Grid', p.coordinates.grid);
+        addField(dl, 'System', p.coordinates.system);
+      } else {
+        addField(dl, 'Latitude', String(p.coordinates.lat));
+        addField(dl, 'Longitude', String(p.coordinates.lon));
+      }
+
+      addField(dl, 'Contact', null, true);
+      addField(dl, 'Email', p.contact.email);
+      addField(dl, 'Phone', p.contact.phone);
+      addField(dl, 'Satellite', p.contact.satellite);
+
+      addField(dl, 'Family', null, true);
+      addField(dl, 'Father', `${p.family.father.name} (age ${p.family.father.age})`);
+      addField(dl, 'Mother', `${p.family.mother.name} (age ${p.family.mother.age})`);
+      if (p.family.spouse) addField(dl, 'Spouse', `${p.family.spouse.name} (${p.family.spouse.gender}, age ${p.family.spouse.age})`);
+      if (p.family.children) {
+        addField(dl, 'Children', p.family.children.map(c => ({ role: c.gender + ',', text: `${c.name} (age ${c.age})` })));
+      }
+      if (p.family.siblings) {
+        addField(dl, 'Siblings', p.family.siblings.map(s => ({ role: s.gender + ',', text: `${s.name} (age ${s.age})` })));
+      }
+
+      const json = JSON.stringify(p, null, 2);
+      $('json').innerHTML = highlightJson(json);
+      $('json').dataset.raw = json;
+    }
+
+    let lastPersona = null;
+
+    function generate() {
+      const seed = $('seed').value.trim();
+      if (seed) {
+        const s = /^\d+$/.test(seed) ? parseInt(seed, 10) : hashStr(seed);
+        R = mulberry32(s);
+      } else {
+        R = Math.random;
+      }
+      const era = $('era').value;
+      const gender = $('gender').value;
+      const p = buildPersona(era, gender);
+      lastPersona = p;
+      renderPersona(p);
+      setStatus('Generated ✓');
+    }
+
+    $('genBtn').onclick = generate;
+    $('era').onchange = generate;
+    $('gender').onchange = generate;
+    $('seed').addEventListener('keydown', e => { if (e.key === 'Enter') generate(); });
+
+    $('copyJsonBtn').onclick = async () => {
+      if (!lastPersona) return;
+      try { await navigator.clipboard.writeText(JSON.stringify(lastPersona, null, 2)); setStatus('JSON copied ✓'); }
+      catch { setStatus('Copy failed', false); }
+    };
+
+    $('downloadBtn').onclick = () => {
+      if (!lastPersona) return;
+      const text = JSON.stringify(lastPersona, null, 2);
+      const blob = new Blob([text], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `persona-${lastPersona.era}-${lastPersona.firstName.toLowerCase()}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      setStatus('Downloaded ✓');
+    };
+
+    generate();
+  })();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

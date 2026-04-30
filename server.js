@@ -118,6 +118,7 @@ const TOOLS = [
   { slug: 'pdf-editor',   name: 'PDF Editor',              file: 'tools/pdf-editor.html',   icon: 'Pdf',  tags: ['documents','converter'],      desc: 'Reorder, rotate, delete pages, and merge multiple PDFs. Browser-only, no upload.' },
   { slug: 'pdf-signer',   name: 'PDF Signer',              file: 'tools/pdf-signer.html',   icon: 'Sgn',  tags: ['documents','security'],       desc: 'Draw or type a signature, place it on any PDF page, download the signed file.' },
   { slug: 'excel-table',  name: 'Excel / CSV to Table',    file: 'tools/excel-table.html',  icon: 'Xls',  tags: ['documents','converter'],      desc: 'Open Excel/CSV/ODS files, search, sort, and print or export — all in your browser.' },
+  { slug: 'text-to-excel',name: 'Text to Excel',           file: 'tools/text-to-excel.html',icon: '📊',  tags: ['documents','converter','developer'], desc: 'Interactively build a table — add columns/rows, edit any cell, color cells, then export as styled .xlsx or CSV.' },
   { slug: 'xml',          name: 'XML Formatter',           file: 'tools/xml.html',          icon: 'XML',  tags: ['developer','text'],           desc: 'Pretty-print, minify and validate XML in your browser.' },
   { slug: 'xml-explorer', name: 'Interactive XML',         file: 'tools/xml-explorer.html', icon: '🔎XML',tags: ['developer','text'],           desc: 'Paste XML or drop a file (auto-detects XML inside oddly-named files) and click through it like folders.' },
   { slug: 'xml-editor',   name: 'XML Editor',              file: 'tools/xml-editor.html',   icon: '✎XML', tags: ['developer','text'],           desc: 'Interactively edit XML tags, attributes and text, add/remove elements, then download the modified file.' },
@@ -163,7 +164,8 @@ const TOOLS = [
   // -------- Stand-alone fun + productivity tools --------
   { slug: 'certificate',      name: 'Certificate Generator',    file: 'tools/certificate.html',      icon: '🏆',  tags: ['fun','generator','design'],   desc: 'Make a fake certificate with 4 design templates. Download as PNG or print.' },
   { slug: 'typing-test',      name: 'Typing Speed Test',        file: 'tools/typing-test.html',      icon: '⌨',   tags: ['fun','productivity'],         desc: 'Measure your typing speed (WPM), accuracy, and errors with 30/60/120-second tests.' },
-  { slug: 'encrypt',          name: 'File Encryption (AES-256)',file: 'tools/encrypt.html',          icon: '🔐',  tags: ['security','privacy','developer'], desc: 'Encrypt any file with a generated AES-256 key. The encrypted file can only be opened by that key.' }
+  { slug: 'encrypt',          name: 'File Encryption (AES-256)',file: 'tools/encrypt.html',          icon: '🔐',  tags: ['security','privacy','developer'], desc: 'Encrypt any file with a generated AES-256 key. The encrypted file can only be opened by that key.' },
+  { slug: 'persona',          name: 'Random Persona Generator', file: 'tools/persona.html',          icon: '🧙',  tags: ['fun','generator','developer','writing'], desc: 'Generate a fictional person from medieval, modern, biblical or galaxy-far-away eras. Names, address, coordinates, family, contact details. Great for test data, RPG NPCs and stories.' }
 ];
 
 const ALL_TAGS = [...new Set(TOOLS.flatMap(t => t.tags))].sort();
