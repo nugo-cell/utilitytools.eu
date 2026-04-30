@@ -168,7 +168,8 @@ const TOOLS = [
   { slug: 'certificate',      name: 'Certificate Generator',    file: 'tools/certificate.html',      icon: '🏆',  tags: ['fun','generator','design'],   desc: 'Make a fake certificate with 4 design templates. Download as PNG or print.' },
   { slug: 'typing-test',      name: 'Typing Speed Test',        file: 'tools/typing-test.html',      icon: '⌨',   tags: ['fun','productivity'],         desc: 'Measure your typing speed (WPM), accuracy, and errors with 30/60/120-second tests.' },
   { slug: 'encrypt',          name: 'File Encryption (AES-256)',file: 'tools/encrypt.html',          icon: '🔐',  tags: ['security','privacy','developer'], desc: 'Encrypt any file with a generated AES-256 key. The encrypted file can only be opened by that key.' },
-  { slug: 'persona',          name: 'Random Persona Generator', file: 'tools/persona.html',          icon: '🧙',  tags: ['fun','generator','developer','writing'], desc: 'Generate a fictional person from medieval, modern, biblical or galaxy-far-away eras. Names, address, coordinates, family, contact details. Great for test data, RPG NPCs and stories.' }
+  { slug: 'persona',          name: 'Random Persona Generator', file: 'tools/persona.html',          icon: '🧙',  tags: ['fun','generator','developer','writing'], desc: 'Generate a fictional person from medieval, modern, biblical or galaxy-far-away eras. Names, address, coordinates, family, contact details. Great for test data, RPG NPCs and stories.' },
+  { slug: 'ftp-explorer',     name: 'FTP Explorer',             file: 'tools/ftp-explorer.html',     icon: '📡',  tags: ['developer','network','documents'], desc: 'Connect to any FTP / FTPS server with your credentials, browse folders and files, and download. Credentials are sent over HTTPS to our server only to perform the FTP operation; nothing is stored.' }
 ];
 
 const ALL_TAGS = [...new Set(TOOLS.flatMap(t => t.tags))].sort();
@@ -351,6 +352,211 @@ app.get('/api/ip-lookup', async (req, res) => {
     res.json(data);
   } catch (e) {
     res.status(502).json({ success: false, message: 'Upstream lookup failed: ' + e.message });
+  }
+});
+
+// ---------------- FTP explorer (server-side, ephemeral connection) ----------------
+// Browsers can't speak FTP/FTPS, so the FTP-Explorer tool POSTs credentials here
+// over HTTPS. We open a fresh control connection per request, perform the
+// operation, and close it. Nothing is stored or logged (no passwords ever
+// reach the access log).
+//
+// Hardening:
+//   - Strict input validation (host shape, port range, path traversal in cwd)
+//   - Outbound connect timeout + idle timeout
+//   - Block private/loopback/link-local hosts unless FTP_ALLOW_INTERNAL=1
+//   - Hard caps on listing count, listing time, downloaded bytes
+//   - Reject CRLF in any field (defence-in-depth around basic-ftp)
+const dns = require('dns').promises;
+const net = require('net');
+
+let ftpLib = null;
+function getFtpLib() {
+  if (ftpLib) return ftpLib;
+  try { ftpLib = require('basic-ftp'); }
+  catch (e) {
+    console.error('[ftp] basic-ftp not installed. Run `npm install` to add it.', e.message);
+    throw new Error('FTP module not installed on the server');
+  }
+  return ftpLib;
+}
+
+const FTP_ALLOW_INTERNAL = process.env.FTP_ALLOW_INTERNAL === '1';
+const FTP_CONNECT_TIMEOUT_MS = 8000;
+const FTP_LIST_MAX_ENTRIES   = 5000;
+const FTP_LIST_TIMEOUT_MS    = 15000;
+const FTP_DOWNLOAD_MAX_BYTES = 200 * 1024 * 1024; // 200 MB
+const FTP_DOWNLOAD_TIMEOUT_MS = 5 * 60 * 1000;     // 5 min
+
+function isPrivateIp(ip) {
+  if (!ip) return true;
+  if (ip === '::1' || ip === '127.0.0.1') return true;
+  if (/^10\./.test(ip)) return true;
+  if (/^192\.168\./.test(ip)) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(ip)) return true;
+  if (/^169\.254\./.test(ip)) return true;       // link-local
+  if (/^fe80:/i.test(ip)) return true;           // IPv6 link-local
+  if (/^f[cd][0-9a-f]{2}:/i.test(ip)) return true; // IPv6 ULA
+  if (/^::ffff:127\./i.test(ip)) return true;
+  return false;
+}
+
+async function resolveAndCheckHost(host) {
+  // Block obvious internal targets unless explicitly allowed.
+  if (!FTP_ALLOW_INTERNAL) {
+    if (/^(localhost|0\.0\.0\.0|metadata\.google\.internal)$/i.test(host)) {
+      throw new Error('Internal hosts are not allowed');
+    }
+    if (net.isIP(host) && isPrivateIp(host)) {
+      throw new Error('Private/loopback IPs are not allowed');
+    }
+    try {
+      const addrs = await dns.lookup(host, { all: true });
+      for (const a of addrs) {
+        if (isPrivateIp(a.address)) throw new Error('Host resolves to a private/loopback IP');
+      }
+    } catch (e) {
+      if (e.message && /private|loopback/.test(e.message)) throw e;
+      throw new Error('Unable to resolve host: ' + e.message);
+    }
+  }
+}
+
+function validateFtpInput(body) {
+  const host = String(body.host || '').trim();
+  const port = parseInt(body.port, 10) || 21;
+  const user = String(body.user || 'anonymous');
+  const password = String(body.password || '');
+  const secure = body.secure === true || body.secure === 'true' || body.secure === 'implicit';
+  const secureType = body.secure === 'implicit' ? 'implicit' : (secure ? true : false);
+  const cwd = String(body.path || '/');
+
+  if (!host) throw new Error('Host is required');
+  if (host.length > 253) throw new Error('Host too long');
+  if (!/^[A-Za-z0-9._:\-\[\]]+$/.test(host)) throw new Error('Invalid host');
+  if (!Number.isFinite(port) || port < 1 || port > 65535) throw new Error('Invalid port');
+  if (/[\r\n\0]/.test(user) || /[\r\n\0]/.test(password)) throw new Error('Invalid credentials');
+  if (cwd.length > 1024) throw new Error('Path too long');
+  if (/[\r\n\0]/.test(cwd)) throw new Error('Invalid path');
+  return { host, port, user, password, secureType, cwd };
+}
+
+async function withFtp(opts, fn) {
+  const { Client } = getFtpLib();
+  await resolveAndCheckHost(opts.host);
+  const client = new Client(FTP_CONNECT_TIMEOUT_MS);
+  client.ftp.verbose = false;
+  try {
+    await client.access({
+      host: opts.host,
+      port: opts.port,
+      user: opts.user,
+      password: opts.password,
+      secure: opts.secureType
+    });
+    return await fn(client);
+  } finally {
+    try { client.close(); } catch (_) {}
+  }
+}
+
+app.post('/api/ftp/list', express.json({ limit: '8kb' }), async (req, res) => {
+  let opts;
+  try { opts = validateFtpInput(req.body || {}); }
+  catch (e) { return res.status(400).json({ ok: false, error: e.message }); }
+  try {
+    const data = await withFtp(opts, async client => {
+      // Some servers reject blank cwd; default to "/"
+      if (opts.cwd && opts.cwd !== '/') {
+        try { await client.cd(opts.cwd); }
+        catch (e) { throw new Error('Cannot change directory: ' + e.message); }
+      }
+      const pwd = await client.pwd().catch(() => opts.cwd || '/');
+      const list = await Promise.race([
+        client.list(),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('Listing timed out')), FTP_LIST_TIMEOUT_MS))
+      ]);
+      const entries = list.slice(0, FTP_LIST_MAX_ENTRIES).map(f => ({
+        name: f.name,
+        size: f.size,
+        type: f.isDirectory ? 'dir' : (f.isSymbolicLink ? 'link' : 'file'),
+        modifiedAt: f.modifiedAt ? f.modifiedAt.toISOString() : (f.rawModifiedAt || null),
+        permissions: f.rawPermissions || null
+      }));
+      return { ok: true, cwd: pwd, truncated: list.length > FTP_LIST_MAX_ENTRIES, entries };
+    });
+    res.json(data);
+  } catch (e) {
+    console.log('[ftp][list] error host=' + opts.host + ':' + opts.port + ' ' + (e && e.message));
+    res.status(502).json({ ok: false, error: e.message || 'FTP listing failed' });
+  }
+});
+
+app.post('/api/ftp/download', express.json({ limit: '8kb' }), async (req, res) => {
+  let opts;
+  try { opts = validateFtpInput(req.body || {}); }
+  catch (e) { return res.status(400).json({ ok: false, error: e.message }); }
+  const filename = String((req.body || {}).filename || '');
+  if (!filename || /[\r\n\0/\\]/.test(filename)) {
+    return res.status(400).json({ ok: false, error: 'Invalid filename' });
+  }
+  if (filename.length > 512) {
+    return res.status(400).json({ ok: false, error: 'Filename too long' });
+  }
+  try {
+    await withFtp(opts, async client => {
+      if (opts.cwd && opts.cwd !== '/') await client.cd(opts.cwd);
+      let size = 0;
+      try { size = await client.size(filename); } catch (_) { /* not all servers support SIZE */ }
+      if (size > FTP_DOWNLOAD_MAX_BYTES) {
+        res.status(413).json({ ok: false, error: 'File exceeds download size limit (200 MB)' });
+        return;
+      }
+
+      // Stream straight to the HTTP response with a hard byte cap + timeout.
+      const safeName = filename.replace(/["\\]/g, '_');
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
+      if (size > 0) res.setHeader('Content-Length', String(size));
+
+      let bytes = 0;
+      let aborted = false;
+      const { Writable } = require('stream');
+      const sink = new Writable({
+        write(chunk, _, cb) {
+          bytes += chunk.length;
+          if (bytes > FTP_DOWNLOAD_MAX_BYTES) {
+            aborted = true;
+            cb(new Error('Download exceeded size limit'));
+            return;
+          }
+          res.write(chunk, cb);
+        }
+      });
+      const timer = setTimeout(() => {
+        aborted = true;
+        try { client.close(); } catch (_) {}
+      }, FTP_DOWNLOAD_TIMEOUT_MS);
+      try {
+        await client.downloadTo(sink, filename);
+        clearTimeout(timer);
+        if (!aborted) res.end();
+      } catch (e) {
+        clearTimeout(timer);
+        if (!res.headersSent) {
+          res.status(502).json({ ok: false, error: e.message });
+        } else {
+          try { res.end(); } catch (_) {}
+        }
+      }
+    });
+  } catch (e) {
+    console.log('[ftp][download] error host=' + opts.host + ':' + opts.port + ' file=' + filename + ' ' + (e && e.message));
+    if (!res.headersSent) {
+      res.status(502).json({ ok: false, error: e.message || 'FTP download failed' });
+    } else {
+      try { res.end(); } catch (_) {}
+    }
   }
 });
 

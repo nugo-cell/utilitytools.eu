@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#7c5cff">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .ftp-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
+    @media (min-width: 1000px) { .ftp-grid { grid-template-columns: 320px 1fr; } }
+    .ftp-card {
+      background: var(--panel-2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px;
+    }
+    .ftp-card h3 {
+      margin: 0 0 10px; font-size: 12px; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--muted); font-weight: 600;
+      display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+    }
+    .ftp-card h3 .meta { font-size: 11px; letter-spacing: .5px; text-transform: none; color: var(--muted); font-weight: 400; }
+    .small { font-size: 12px; color: var(--muted); }
+    .field { display: block; margin: 8px 0; }
+    .field label { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+    .field input[type=text], .field input[type=password], .field input[type=number] {
+      width: 100%; box-sizing: border-box; padding: 8px 10px;
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-family: inherit; font-size: 13px;
+    }
+    .row2 { display: flex; gap: 8px; }
+    .row2 > * { flex: 1; }
+    .row2 .port { flex: 0 0 90px; }
+
+    .breadcrumb {
+      display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+      padding: 6px 8px; background: var(--panel); border: 1px solid var(--border);
+      border-radius: 8px; font-family: var(--mono), monospace; font-size: 12px;
+      margin-bottom: 10px;
+    }
+    .breadcrumb .crumb {
+      color: var(--accent); cursor: pointer; padding: 1px 5px; border-radius: 4px;
+    }
+    .breadcrumb .crumb:hover { background: rgba(124,92,255,.1); }
+    .breadcrumb .sep { color: var(--muted); }
+
+    table.ftp-list {
+      width: 100%; border-collapse: collapse; font-size: 13px;
+    }
+    table.ftp-list th, table.ftp-list td {
+      text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    table.ftp-list th {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+      font-weight: 600; background: var(--panel); position: sticky; top: 0;
+    }
+    table.ftp-list tr:hover td { background: rgba(255,255,255,.03); }
+    table.ftp-list td.name {
+      cursor: pointer; color: var(--text); user-select: none;
+      display: flex; align-items: center; gap: 8px; word-break: break-all;
+    }
+    table.ftp-list td.name .ic { font-size: 16px; width: 18px; text-align: center; }
+    table.ftp-list td.name .dir { color: var(--accent); }
+    table.ftp-list td.size, table.ftp-list td.modified, table.ftp-list td.perms {
+      font-family: var(--mono), monospace; color: var(--muted); white-space: nowrap;
+    }
+    table.ftp-list td.actions { text-align: right; white-space: nowrap; }
+    table.ftp-list td.actions button {
+      padding: 3px 8px; font-size: 11px;
+    }
+
+    .list-wrap { max-height: 65vh; overflow: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-2); }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+    .filter-input { padding: 7px 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; min-width: 200px; }
+
+    .empty { padding: 30px; text-align: center; color: var(--muted); font-size: 13px; }
+    .privacy-note { font-size: 11px; color: var(--muted); margin-top: 12px; line-height: 1.5; }
+    .privacy-note code { background: var(--panel); padding: 1px 4px; border-radius: 3px; font-size: 11px; }
+    .progress {
+      height: 4px; background: var(--panel); border-radius: 2px; overflow: hidden;
+      margin-top: 8px; display: none;
+    }
+    .progress.active { display: block; }
+    .progress > div {
+      width: 30%; height: 100%; background: var(--accent);
+      animation: slide 1s linear infinite;
+    }
+    @keyframes slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(400%); } }
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>FTP Explorer — Browse FTP / FTPS Servers in Your Browser</title>
+  <meta name="description" content="Connect to any FTP or FTPS server with your credentials, browse folders and files, and download. No software install — runs from your browser.">
+  <meta name="robots" content="noindex,follow">
+  <link rel="canonical" href="https://utilitytools.eu/ftp-explorer">
+  <!-- SEO:END -->
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span><span class="tld">.eu</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>FTP Explorer</h1>
+      <p>Connect to any FTP or FTPS server, browse folders, and download files — no client install needed. Browsers can't speak FTP, so credentials are sent over HTTPS to our server which performs the FTP connection on your behalf and forwards the result. Nothing is stored.</p>
+    </div>
+
+    <div class="panel">
+      <div class="ftp-grid">
+        <!-- Connection panel -->
+        <div class="ftp-card">
+          <h3>Connection <span class="meta" id="connStatus">disconnected</span></h3>
+          <div class="field">
+            <label for="host">Host</label>
+            <input id="host" type="text" autocomplete="off" spellcheck="false" placeholder="ftp.example.com">
+          </div>
+          <div class="row2">
+            <div class="field" style="flex:1;">
+              <label for="user">Username</label>
+              <input id="user" type="text" autocomplete="username" value="anonymous">
+            </div>
+            <div class="field port">
+              <label for="port">Port</label>
+              <input id="port" type="number" min="1" max="65535" value="21">
+            </div>
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" type="password" autocomplete="current-password" placeholder="(blank for anonymous)">
+          </div>
+          <div class="field">
+            <label for="secure">Security</label>
+            <select id="secure" style="width:100%; padding:8px 10px; background:var(--panel); border:1px solid var(--border); border-radius:8px; color:var(--text);">
+              <option value="false" selected>Plain FTP (port 21)</option>
+              <option value="true">FTPS — explicit (AUTH TLS, usually port 21)</option>
+              <option value="implicit">FTPS — implicit (usually port 990)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="startPath">Start path (optional)</label>
+            <input id="startPath" type="text" value="/" autocomplete="off" spellcheck="false">
+          </div>
+          <button id="connectBtn" style="width:100%; margin-top:6px;">📡 Connect &amp; list</button>
+          <div class="progress" id="progress"><div></div></div>
+          <div id="status" class="status" style="margin-top:8px; display:block;"></div>
+
+          <p class="privacy-note">
+            🔒 Credentials are sent over HTTPS to <code>utilitytools.eu</code> only to perform the FTP request, then dropped — never written to disk or logs. For full privacy, use the
+            <a href="/p2p-file" style="color:var(--accent);">P2P File Transfer</a> tool, where files never touch our server.
+          </p>
+        </div>
+
+        <!-- File browser -->
+        <div class="ftp-card">
+          <h3>Files <span class="meta" id="filesMeta"></span></h3>
+          <div class="toolbar">
+            <button id="upBtn" class="secondary" disabled title="Parent directory">⬆ Up</button>
+            <button id="refreshBtn" class="secondary" disabled title="Refresh listing">↻ Refresh</button>
+            <input id="filter" class="filter-input" placeholder="Filter by name…" disabled>
+            <span id="dirCount" class="small"></span>
+          </div>
+          <div class="breadcrumb" id="breadcrumb"><span class="small">Connect to start browsing.</span></div>
+          <div class="list-wrap">
+            <table class="ftp-list" id="list" style="display:none;">
+              <thead>
+                <tr>
+                  <th data-sort="name" style="cursor:pointer;">Name</th>
+                  <th data-sort="size" style="cursor:pointer; width:110px;">Size</th>
+                  <th data-sort="modified" style="cursor:pointer; width:170px;">Modified</th>
+                  <th style="width:120px;">Permissions</th>
+                  <th style="width:130px;"></th>
+                </tr>
+              </thead>
+              <tbody id="rows"></tbody>
+            </table>
+            <div id="empty" class="empty">No connection yet. Fill in your FTP credentials on the left and click <b>Connect</b>.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+  (function () {
+    const $ = id => document.getElementById(id);
+    const setStatus = (m, ok = true) => {
+      $('status').textContent = m;
+      $('status').className = 'status ' + (ok ? 'ok' : 'err');
+    };
+
+    let creds = null;     // { host, port, user, password, secure }
+    let cwd = '/';
+    let entries = [];
+    let sortKey = 'name';
+    let sortDir = 1;
+
+    function busy(b) {
+      $('progress').classList.toggle('active', b);
+      $('connectBtn').disabled = b;
+      $('refreshBtn').disabled = b || !creds;
+      $('upBtn').disabled = b || !creds || cwd === '/' || cwd === '';
+    }
+
+    function readForm() {
+      const sec = $('secure').value;
+      return {
+        host:     $('host').value.trim(),
+        port:     parseInt($('port').value, 10) || 21,
+        user:     $('user').value || 'anonymous',
+        password: $('password').value || 'guest',
+        secure:   sec === 'true' ? true : (sec === 'implicit' ? 'implicit' : false)
+      };
+    }
+
+    async function callList(path) {
+      const body = Object.assign({}, creds, { path });
+      const r = await fetch('/api/ftp/list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      let data;
+      try { data = await r.json(); }
+      catch { throw new Error('Server returned an invalid response'); }
+      if (!r.ok || !data.ok) throw new Error(data && data.error || 'Listing failed');
+      return data;
+    }
+
+    function fmtSize(n) {
+      if (n == null || n < 0) return '';
+      const u = ['B','KB','MB','GB','TB'];
+      let i = 0, x = n;
+      while (x >= 1024 && i < u.length-1) { x /= 1024; i++; }
+      return (i === 0 ? x : x.toFixed(x < 10 ? 2 : 1)) + ' ' + u[i];
+    }
+    function fmtDate(d) {
+      if (!d) return '';
+      try {
+        const dt = new Date(d);
+        if (isNaN(dt)) return String(d).slice(0, 16);
+        return dt.toISOString().replace('T', ' ').slice(0, 16);
+      } catch { return String(d); }
+    }
+
+    function joinPath(base, name) {
+      if (!base || base === '/') return '/' + name;
+      return base.replace(/\/+$/, '') + '/' + name;
+    }
+    function parentPath(p) {
+      if (!p || p === '/') return '/';
+      const trimmed = p.replace(/\/+$/, '');
+      const idx = trimmed.lastIndexOf('/');
+      if (idx <= 0) return '/';
+      return trimmed.slice(0, idx) || '/';
+    }
+
+    function renderBreadcrumb() {
+      const bc = $('breadcrumb');
+      bc.innerHTML = '';
+      const parts = cwd.split('/').filter(Boolean);
+      const root = document.createElement('span');
+      root.className = 'crumb'; root.textContent = '/';
+      root.onclick = () => navigate('/');
+      bc.appendChild(root);
+      let acc = '';
+      parts.forEach((p, i) => {
+        const sep = document.createElement('span'); sep.className = 'sep'; sep.textContent = '›';
+        bc.appendChild(sep);
+        acc += '/' + p;
+        const span = document.createElement('span');
+        span.className = 'crumb';
+        span.textContent = p;
+        const target = acc;
+        span.onclick = () => navigate(target);
+        bc.appendChild(span);
+      });
+    }
+
+    function applySort(rows) {
+      return rows.slice().sort((a, b) => {
+        // Folders first
+        if (a.type === 'dir' && b.type !== 'dir') return -1;
+        if (b.type === 'dir' && a.type !== 'dir') return 1;
+        let av = a[sortKey], bv = b[sortKey];
+        if (sortKey === 'size') { av = av || 0; bv = bv || 0; return (av - bv) * sortDir; }
+        if (sortKey === 'modified') {
+          const ad = av ? new Date(av).getTime() : 0;
+          const bd = bv ? new Date(bv).getTime() : 0;
+          return (ad - bd) * sortDir;
+        }
+        return String(av || '').localeCompare(String(bv || '')) * sortDir;
+      });
+    }
+
+    function renderList() {
+      const filter = $('filter').value.trim().toLowerCase();
+      const rows = applySort(entries.filter(e => !filter || e.name.toLowerCase().includes(filter)));
+      const tbody = $('rows');
+      tbody.innerHTML = '';
+      if (rows.length === 0) {
+        $('list').style.display = 'none';
+        $('empty').textContent = 'Empty directory (or nothing matches the filter).';
+        $('empty').style.display = 'block';
+      } else {
+        $('list').style.display = '';
+        $('empty').style.display = 'none';
+      }
+      const dirCount = rows.filter(e => e.type === 'dir').length;
+      const fileCount = rows.length - dirCount;
+      $('dirCount').textContent = `${dirCount} folder${dirCount===1?'':'s'} · ${fileCount} file${fileCount===1?'':'s'}`;
+
+      for (const e of rows) {
+        const tr = document.createElement('tr');
+        const isDir = e.type === 'dir';
+        const ic = isDir ? '📁' : (e.type === 'link' ? '🔗' : '📄');
+
+        const tdName = document.createElement('td');
+        tdName.className = 'name';
+        tdName.innerHTML = `<span class="ic">${ic}</span><span class="${isDir ? 'dir' : ''}">${escHtml(e.name)}</span>`;
+        if (isDir) tdName.onclick = () => navigate(joinPath(cwd, e.name));
+
+        const tdSize = document.createElement('td');
+        tdSize.className = 'size';
+        tdSize.textContent = isDir ? '' : fmtSize(e.size);
+
+        const tdMod = document.createElement('td');
+        tdMod.className = 'modified';
+        tdMod.textContent = fmtDate(e.modifiedAt);
+
+        const tdPerm = document.createElement('td');
+        tdPerm.className = 'perms';
+        tdPerm.textContent = e.permissions ? formatPerms(e.permissions) : '';
+
+        const tdAct = document.createElement('td');
+        tdAct.className = 'actions';
+        if (!isDir && e.type !== 'link') {
+          const b = document.createElement('button');
+          b.textContent = '⬇ Download';
+          b.title = 'Download ' + e.name;
+          b.onclick = () => downloadFile(e.name);
+          tdAct.appendChild(b);
+        } else if (isDir) {
+          const b = document.createElement('button');
+          b.className = 'secondary';
+          b.textContent = 'Open';
+          b.onclick = () => navigate(joinPath(cwd, e.name));
+          tdAct.appendChild(b);
+        }
+
+        tr.appendChild(tdName);
+        tr.appendChild(tdSize);
+        tr.appendChild(tdMod);
+        tr.appendChild(tdPerm);
+        tr.appendChild(tdAct);
+        tbody.appendChild(tr);
+      }
+    }
+
+    function formatPerms(p) {
+      if (typeof p === 'string') return p;
+      if (p && typeof p === 'object') {
+        const parts = [];
+        for (const who of ['user','group','world']) {
+          const v = p[who] || 0;
+          let s = '';
+          s += (v & 4) ? 'r' : '-';
+          s += (v & 2) ? 'w' : '-';
+          s += (v & 1) ? 'x' : '-';
+          parts.push(s);
+        }
+        return parts.join('');
+      }
+      return '';
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    async function navigate(path) {
+      if (!creds) return;
+      busy(true);
+      setStatus('Listing ' + path + '…');
+      try {
+        const data = await callList(path);
+        cwd = data.cwd || path;
+        entries = data.entries || [];
+        $('filesMeta').textContent = data.truncated ? `${entries.length}+ entries (truncated)` : `${entries.length} entries`;
+        renderBreadcrumb();
+        renderList();
+        setStatus('Listed ' + cwd + ' ✓');
+      } catch (e) {
+        setStatus(e.message, false);
+      } finally {
+        busy(false);
+      }
+    }
+
+    async function downloadFile(name) {
+      if (!creds) return;
+      const body = Object.assign({}, creds, { path: cwd, filename: name });
+      setStatus('Downloading ' + name + '…');
+      busy(true);
+      try {
+        const r = await fetch('/api/ftp/download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (!r.ok) {
+          let msg = 'Download failed';
+          try { const j = await r.json(); msg = j.error || msg; } catch {}
+          throw new Error(msg);
+        }
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setStatus('Downloaded ' + name + ' ✓');
+      } catch (e) {
+        setStatus(e.message, false);
+      } finally {
+        busy(false);
+      }
+    }
+
+    $('connectBtn').onclick = async () => {
+      const c = readForm();
+      if (!c.host) { setStatus('Host is required', false); return; }
+      creds = c;
+      $('connStatus').textContent = `${c.host}:${c.port} (${c.secure === true ? 'FTPS' : c.secure === 'implicit' ? 'FTPS implicit' : 'plain FTP'})`;
+      const start = $('startPath').value.trim() || '/';
+      await navigate(start);
+    };
+
+    $('upBtn').onclick = () => navigate(parentPath(cwd));
+    $('refreshBtn').onclick = () => navigate(cwd);
+    $('filter').addEventListener('input', renderList);
+
+    document.querySelectorAll('th[data-sort]').forEach(th => {
+      th.addEventListener('click', () => {
+        const k = th.dataset.sort;
+        if (sortKey === k) sortDir = -sortDir;
+        else { sortKey = k; sortDir = 1; }
+        renderList();
+      });
+    });
+
+    // Submit on Enter in any field of the form
+    ['host','user','port','password','startPath'].forEach(id => {
+      $(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') $('connectBtn').click();
+      });
+    });
+  })();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+
