@@ -4,15 +4,49 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" id="hljsTheme">
   <style>
-    .diff-out { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 0; font-family: var(--mono); font-size: 13px; max-height: 520px; overflow:auto; }
-    .diff-line { padding: 2px 12px; white-space: pre-wrap; word-break: break-word; }
-    .diff-add { background: rgba(74,222,128,0.12); color: #c8f7d8; }
-    .diff-add::before { content: "+ "; color: var(--success); }
-    .diff-del { background: rgba(248,113,113,0.12); color: #ffd7d7; }
-    .diff-del::before { content: "- "; color: var(--danger); }
-    .diff-eq { color: var(--muted); }
-    .diff-eq::before { content: "  "; }
+    .diff-out {
+      background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+      padding: 0; font-family: var(--mono); font-size: 13px; max-height: 600px; overflow:auto;
+    }
+    .diff-line {
+      padding: 2px 12px 2px 8px; white-space: pre-wrap; word-break: break-word;
+      border-left: 3px solid transparent; display: flex; gap: 8px;
+    }
+    .diff-line .ln { color: var(--muted); opacity:.6; min-width: 2.5ch; text-align:right; user-select:none; flex:0 0 auto; }
+    .diff-line .sg { flex:0 0 auto; width: 1ch; user-select:none; font-weight:700; }
+    .diff-line .tx { flex:1 1 auto; min-width:0; }
+
+    /* Dark theme (default) */
+    .diff-add { background: rgba(74,222,128,0.13); border-left-color:#22c55e; }
+    .diff-add .sg { color:#4ade80; }
+    .diff-del { background: rgba(248,113,113,0.13); border-left-color:#ef4444; }
+    .diff-del .sg { color:#f87171; }
+    .diff-eq  { color: var(--muted); }
+    .diff-eq  .sg { color: transparent; }
+
+    /* Light theme — much stronger contrast */
+    html[data-theme="light"] .diff-out { background:#fbfbfd; }
+    html[data-theme="light"] .diff-add { background:#d6f5dd; border-left-color:#16a34a; color:#0a3d18; }
+    html[data-theme="light"] .diff-add .sg { color:#15803d; }
+    html[data-theme="light"] .diff-del { background:#ffd7d7; border-left-color:#dc2626; color:#5a1010; }
+    html[data-theme="light"] .diff-del .sg { color:#b91c1c; }
+    html[data-theme="light"] .diff-eq  { color:#475569; }
+    html[data-theme="light"] .diff-eq  .sg { color: transparent; }
+    /* Make hljs colours readable on the green/red row backgrounds in light mode */
+    html[data-theme="light"] .diff-line .hljs-keyword,
+    html[data-theme="light"] .diff-line .hljs-selector-tag,
+    html[data-theme="light"] .diff-line .hljs-built_in { color:#7c3aed; }
+    html[data-theme="light"] .diff-line .hljs-string,
+    html[data-theme="light"] .diff-line .hljs-attr   { color:#0e7490; }
+    html[data-theme="light"] .diff-line .hljs-number,
+    html[data-theme="light"] .diff-line .hljs-literal{ color:#b45309; }
+    html[data-theme="light"] .diff-line .hljs-comment{ color:#64748b; font-style: italic; }
+    html[data-theme="light"] .diff-line .hljs-title,
+    html[data-theme="light"] .diff-line .hljs-class .hljs-title { color:#1d4ed8; }
+
+    .lang-pill { display:inline-block; background:var(--panel-2); border:1px solid var(--border); border-radius:999px; padding:2px 10px; font-size:12px; color:var(--muted); margin-left:6px; }
   </style>
   <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
   <!-- SEO:END -->
@@ -85,12 +119,34 @@
     </div>
 
     <div class="panel">
-      <div class="row" style="margin-bottom:12px">
+      <div class="row" style="margin-bottom:12px; flex-wrap:wrap; gap:8px">
         <button id="runBtn">Compare</button>
         <button id="swapBtn" class="secondary">Swap</button>
         <button id="clearBtn" class="secondary">Clear</button>
         <label class="checkbox"><input type="checkbox" id="ignoreWs"> Ignore whitespace</label>
         <label class="checkbox"><input type="checkbox" id="ignoreCase"> Ignore case</label>
+        <span style="flex:1"></span>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)">
+          Language:
+          <select id="lang" style="padding:4px 8px">
+            <option value="auto">Auto-detect</option>
+            <option value="plaintext">Plain text</option>
+            <option value="javascript">JavaScript</option>
+            <option value="typescript">TypeScript</option>
+            <option value="python">Python</option>
+            <option value="c">C</option>
+            <option value="cpp">C++</option>
+            <option value="csharp">C#</option>
+            <option value="sql">SQL</option>
+            <option value="json">JSON</option>
+            <option value="xml">HTML / XML</option>
+            <option value="css">CSS</option>
+            <option value="bash">Bash</option>
+          </select>
+          <span id="detected" class="lang-pill"></span>
+        </label>
+        <button id="dlTxt" class="secondary" type="button">⬇ .diff</button>
+        <button id="dlPng" class="secondary" type="button">🖼 PNG</button>
       </div>
       <div class="split">
         <div>
@@ -108,10 +164,24 @@
     </div>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
     const $ = id => document.getElementById(id);
     const status = $('status'), out = $('out');
     const set = (m, ok=true) => { status.textContent = m; status.className = 'status ' + (ok ? 'ok' : 'err'); };
+
+    // ---- theme-aware highlight.js stylesheet ----
+    const hljsThemeLink = document.getElementById('hljsTheme');
+    function applyHljsTheme(){
+      const light = document.documentElement.getAttribute('data-theme') === 'light';
+      const want = light
+        ? 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css'
+        : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
+      if (hljsThemeLink.href !== want) hljsThemeLink.href = want;
+    }
+    applyHljsTheme();
+    new MutationObserver(applyHljsTheme).observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
 
     function norm(line){
       let s = line;
@@ -120,7 +190,6 @@
       return s;
     }
 
-    // Standard LCS-based line diff
     function diff(a, b){
       const an = a.map(norm), bn = b.map(norm);
       const m = an.length, n = bn.length;
@@ -143,26 +212,118 @@
 
     function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
 
+    // ---- language detection (heuristic + hljs.highlightAuto fallback) ----
+    const SUPPORTED = new Set(['javascript','typescript','python','c','cpp','csharp','sql','json','xml','css','bash','plaintext']);
+    function heuristicLang(text){
+      const t = text.slice(0, 4000);
+      if (/^\s*</.test(t) && /<\/?\w+[\s>]/.test(t)) return 'xml';
+      if (/^\s*[\{\[]/.test(t) && /["']?\w+["']?\s*:/.test(t)) { try { JSON.parse(t); return 'json'; } catch(e){} }
+      if (/\bdef\s+\w+\s*\(.*\)\s*:/.test(t) || /^\s*import\s+\w+/m.test(t) || /\bprint\s*\(/.test(t)) return 'python';
+      if (/\busing\s+System\b/.test(t) || /\bnamespace\s+\w+/.test(t) || /\bConsole\.Write/.test(t)) return 'csharp';
+      if (/#include\s*<[^>]+>/.test(t)) {
+        if (/\bstd::|\bclass\s+\w+|\btemplate\s*</.test(t) || /\busing\s+namespace\s+std/.test(t)) return 'cpp';
+        return 'c';
+      }
+      if (/\b(SELECT|INSERT|UPDATE|DELETE|CREATE\s+TABLE|FROM|WHERE|JOIN)\b/i.test(t) && /;\s*$/m.test(t)) return 'sql';
+      if (/\binterface\s+\w+|:\s*(string|number|boolean|any|void)\b|\bas\s+\w+|\benum\s+\w+/.test(t)) return 'typescript';
+      if (/\b(function|const|let|var)\b|=>|\bconsole\.log\b|\brequire\s*\(/.test(t)) return 'javascript';
+      if (/^\s*\.[\w-]+\s*\{|^\s*#[\w-]+\s*\{|@media\s/m.test(t)) return 'css';
+      if (/^#!\s*\/(bin|usr)\b|\becho\s+|\bgrep\s+|\bawk\s+/m.test(t)) return 'bash';
+      return null;
+    }
+    function detectLang(text){
+      if (!text.trim()) return 'plaintext';
+      const h = heuristicLang(text);
+      if (h) return h;
+      try {
+        const r = window.hljs && hljs.highlightAuto(text.slice(0, 4000), ['javascript','typescript','python','c','cpp','csharp','sql','json','xml','css','bash']);
+        if (r && r.language && SUPPORTED.has(r.language)) return r.language;
+      } catch(e){}
+      return 'plaintext';
+    }
+
+    function hl(line, lang){
+      if (!line) return '&nbsp;';
+      if (!window.hljs || lang === 'plaintext') return escapeHtml(line);
+      try { return hljs.highlight(line, { language: lang, ignoreIllegals: true }).value; }
+      catch(e){ return escapeHtml(line); }
+    }
+
+    let currentLang = 'plaintext';
+
     function run(){
-      const a = $('a').value.split('\n');
-      const b = $('b').value.split('\n');
+      const aText = $('a').value, bText = $('b').value;
+      const a = aText.split('\n'), b = bText.split('\n');
+
+      // language
+      let lang = $('lang').value;
+      if (lang === 'auto') {
+        lang = detectLang(bText.trim() ? bText : aText);
+        $('detected').textContent = 'detected: ' + lang;
+      } else {
+        $('detected').textContent = '';
+      }
+      currentLang = lang;
+
       const ops = diff(a,b);
-      let adds=0, dels=0;
+      let adds=0, dels=0, ai=0, bi=0;
       const html = ops.map(([op,line]) => {
-        if (op==='add') adds++; else if (op==='del') dels++;
-        return `<div class="diff-line diff-${op}">${escapeHtml(line)||'&nbsp;'}</div>`;
+        let lnA='', lnB='';
+        if (op==='add'){ adds++; bi++; lnB = String(bi); }
+        else if (op==='del'){ dels++; ai++; lnA = String(ai); }
+        else { ai++; bi++; lnA = String(ai); }
+        const sign = op==='add' ? '+' : op==='del' ? '-' : ' ';
+        return `<div class="diff-line diff-${op}"><span class="ln">${lnA||lnB}</span><span class="sg">${sign}</span><span class="tx">${hl(line, lang)}</span></div>`;
       }).join('');
-      out.innerHTML = html || '<div class="diff-line diff-eq">(empty)</div>';
-      set(`Done: +${adds} / -${dels}`);
+      out.innerHTML = html || '<div class="diff-line diff-eq"><span class="ln"></span><span class="sg"></span><span class="tx">(empty)</span></div>';
+      set(`Done: +${adds} / -${dels}  (language: ${lang})`);
+    }
+
+    // ---- downloads ----
+    function downloadBlob(blob, name){
+      const u = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = u; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(u), 1000);
+    }
+    function downloadDiffText(){
+      const lines = [...out.querySelectorAll('.diff-line')].map(d => {
+        const sg = d.querySelector('.sg')?.textContent || ' ';
+        const tx = d.querySelector('.tx')?.textContent || '';
+        return sg + ' ' + tx;
+      });
+      const header = `# diff (language: ${currentLang})\n# generated by utilitytools.eu/diff\n\n`;
+      downloadBlob(new Blob([header + lines.join('\n')], {type:'text/plain'}), 'diff.txt');
+    }
+    async function downloadDiffPng(){
+      if (!window.html2canvas) { set('PNG library still loading…', false); return; }
+      // Snapshot a wrapper so we capture full content even if it's scrolled
+      const clone = out.cloneNode(true);
+      clone.style.maxHeight = 'none';
+      clone.style.overflow = 'visible';
+      clone.style.width = Math.max(out.scrollWidth, out.clientWidth) + 'px';
+      const wrap = document.createElement('div');
+      const cs = getComputedStyle(document.body);
+      wrap.style.cssText = 'position:fixed; left:-99999px; top:0; padding:16px; background:' + cs.backgroundColor + ';';
+      wrap.appendChild(clone);
+      document.body.appendChild(wrap);
+      try {
+        const canvas = await html2canvas(wrap, { backgroundColor: cs.backgroundColor, scale: 2, useCORS: true });
+        canvas.toBlob(b => { if (b) downloadBlob(b, 'diff.png'); }, 'image/png');
+      } catch(e){ set('PNG export failed: ' + e.message, false); }
+      finally { wrap.remove(); }
     }
 
     $('runBtn').onclick = run;
     $('swapBtn').onclick = () => { const t = $('a').value; $('a').value = $('b').value; $('b').value = t; run(); };
-    $('clearBtn').onclick = () => { $('a').value=''; $('b').value=''; out.innerHTML=''; set(''); };
+    $('clearBtn').onclick = () => { $('a').value=''; $('b').value=''; out.innerHTML=''; set(''); $('detected').textContent=''; };
     $('a').addEventListener('input', run);
     $('b').addEventListener('input', run);
     $('ignoreWs').onchange = run;
     $('ignoreCase').onchange = run;
+    $('lang').onchange = run;
+    $('dlTxt').onclick = downloadDiffText;
+    $('dlPng').onclick = downloadDiffPng;
   </script>
   <script src="/site.js"></script>
 </body>
