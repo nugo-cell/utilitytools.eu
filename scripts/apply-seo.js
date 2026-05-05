@@ -711,6 +711,72 @@ const SEO = {
       ['Algorithm?', 'AES-256-GCM with PBKDF2 key derivation.'],
       ['Can you recover my password?', 'No — the file is unrecoverable without it.']
     ]
+  },
+  yoda: {
+    file: 'tools/yoda.html',
+    title: 'Yoda-speak Translator — English to Yoda Online',
+    desc:  'Convert English to Yoda\'s famous Object–Subject–Verb word order. Free, in-browser, no signup.',
+    kw:    'yoda translator, yoda speak, english to yoda, yoda generator, star wars yoda translator',
+    name:  'Yoda-speak Translator',
+    faq: [
+      ['Is it perfect Yoda grammar?', 'No — a heuristic that swaps clauses around the first verb. Short sentences work best.'],
+      ['Is anything sent to a server?', 'No, all conversion runs in your browser.']
+    ]
+  },
+  pirate: {
+    file: 'tools/pirate.html',
+    title: 'Pirate Translator — English to Pirate-speak (Arrr!)',
+    desc:  'Turn ordinary English into salty pirate-speak. Friends become mateys, money becomes doubloons. Free, in-browser.',
+    kw:    'pirate translator, english to pirate, talk like a pirate, pirate speak generator, arrr translator',
+    name:  'Pirate Translator',
+    faq: [
+      ['Will it translate any sentence?', 'It swaps the words it knows; conversational sentences look the most pirate-y.'],
+      ['Can I turn off the "Arrr!" interjections?', 'Yes — uncheck the sprinkle option above the text box.']
+    ]
+  },
+  shakespeare: {
+    file: 'tools/shakespeare.html',
+    title: 'Shakespeare Translator — Modern to Early Modern English',
+    desc:  'Convert modern English into Shakespearean Early Modern English: thou, thee, hast, dost, wherefore. Free, in-browser.',
+    kw:    'shakespeare translator, english to shakespeare, early modern english, thou thee translator, shakespeare generator',
+    name:  'Shakespeare Translator',
+    faq: [
+      ['Is this real Elizabethan grammar?', 'A stylised approximation. Real verb conjugation depends on the subject; this catches the famous swaps.'],
+      ['Is the text uploaded?', 'No — translation runs locally in your browser.']
+    ]
+  },
+  'old-english': {
+    file: 'tools/old-english.html',
+    title: 'Old English Letters Converter — þ, ð, ƿ, æ, ȝ',
+    desc:  'Re-spell modern English with thorn (þ), eth (ð), wynn (ƿ), ash (æ) and yogh (ȝ). Free, in-browser.',
+    kw:    'old english converter, thorn letter, eth letter, wynn letter, ash letter, old english font generator, anglo saxon text',
+    name:  'Old English Letters Converter',
+    faq: [
+      ['Is this real Old English?', 'No — modern English re-spelled with the lost letters. Great for tattoos, logos and fantasy text.'],
+      ['Why are characters showing as boxes?', 'Your device is missing a font with extended Latin support — try Times, Georgia or another system serif.']
+    ]
+  },
+  'pdf-to-images': {
+    file: 'tools/pdf-to-images.html',
+    title: 'PDF to Images — PNG, JPG, WebP, Free Online',
+    desc:  'Extract every page of a PDF as PNG, JPG or WebP at any DPI. Download single pages or all in a ZIP. Free, in-browser, no upload.',
+    kw:    'pdf to images, pdf to png, pdf to jpg, pdf page extractor, pdf to webp, convert pdf pages to images',
+    name:  'PDF to Images',
+    faq: [
+      ['Is my PDF uploaded?', 'No — pages are rendered locally with PDF.js.'],
+      ['What DPI should I use?', '150 DPI for screen, 300 DPI for print.']
+    ]
+  },
+  'images-to-pdf': {
+    file: 'tools/images-to-pdf.html',
+    title: 'Images to PDF Converter — Combine JPG/PNG to PDF',
+    desc:  'Combine JPG, PNG and WebP images into one PDF. Drag to reorder, set page size, orientation, fit and margin. Free, in-browser.',
+    kw:    'images to pdf, jpg to pdf, png to pdf, combine images pdf, image pdf converter, photos to pdf',
+    name:  'Images to PDF Converter',
+    faq: [
+      ['Is anything uploaded?', 'No — the PDF is built locally with pdf-lib.'],
+      ['Which formats are supported?', 'JPG and PNG are embedded directly; other formats are auto-converted to JPG.']
+    ]
   }
 };
 

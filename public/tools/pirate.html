@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tt-out{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px;min-height:64px;font-size:18px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+    .help{font-size:13px;color:var(--muted);margin-top:10px;padding:10px 12px;border-left:3px solid var(--accent);background:rgba(124,92,255,0.06);border-radius:0 6px 6px 0}
+    .siblings{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .siblings a{padding:6px 12px;border-radius:999px;background:var(--panel-2);border:1px solid var(--border);color:var(--muted);font-size:13px;text-decoration:none}
+    .siblings a:hover{color:var(--text);border-color:var(--accent)}
+    .faq-item{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
+    .faq-item h3{margin:0 0 6px;font-size:15px}.faq-item p{margin:0;color:var(--muted);font-size:14px}
+    .opt-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:14px;color:var(--muted)}
+    .opt-row label{display:flex;gap:6px;align-items:center;cursor:pointer}
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <!-- SEO:END -->
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>Pirate Translator — English to Pirate-speak (Arrr!)</title>
+  <meta name="description" content="Turn ordinary English into salty pirate-speak. Friends become mateys, money becomes doubloons. Free, in-browser.">
+  <meta name="keywords" content="pirate translator, english to pirate, talk like a pirate, pirate speak generator, arrr translator">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/pirate">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="Pirate Translator — English to Pirate-speak (Arrr!)">
+  <meta property="og:description" content="Turn ordinary English into salty pirate-speak. Friends become mateys, money becomes doubloons. Free, in-browser.">
+  <meta property="og:url" content="https://utilitytools.eu/pirate">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Pirate Translator — English to Pirate-speak (Arrr!)">
+  <meta name="twitter:description" content="Turn ordinary English into salty pirate-speak. Friends become mateys, money becomes doubloons. Free, in-browser.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Pirate Translator",
+  "description": "Turn ordinary English into salty pirate-speak. Friends become mateys, money becomes doubloons. Free, in-browser.",
+  "url": "https://utilitytools.eu/pirate",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "Any (Web)",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "UtilityTools.eu",
+    "url": "https://utilitytools.eu"
+  }
+}</script>
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Will it translate any sentence?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "It swaps the words it knows; conversational sentences look the most pirate-y."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I turn off the \"Arrr!\" interjections?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — uncheck the sprinkle option above the text box."
+      }
+    }
+  ]
+}</script>
+  <!-- SEO:END -->
+</head>
+<body>
+  <header class="topnav"><a href="/" class="brand">Utility<span>Tools</span></a><nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav></header>
+  <main class="container">
+    <div class="tool-header">
+      <h1>Pirate Translator <span style="font-size:14px;font-weight:500;color:var(--muted)">— Arrr! 🏴‍☠️</span></h1>
+      <p>Turn boring everyday English into salty pirate-speak. Friends become mateys, money becomes doubloons, and the bathroom becomes the head. Perfect for Talk Like A Pirate Day (Sept 19).</p>
+    </div>
+    <section class="panel">
+      <label for="in">Your text</label>
+      <textarea id="in" placeholder="Type a sentence…">Hello friend, are you going to the restaurant? I have no money for food.</textarea>
+      <div class="opt-row">
+        <label><input type="checkbox" id="optSprinkle" checked> Sprinkle "Arrr!" between sentences</label>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="goBtn">Translate, ye scallywag!</button>
+        <button id="copyBtn" class="secondary">Copy</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+      <label style="margin-top:12px">Pirate-speak</label>
+      <div class="tt-out" id="out"></div>
+      <div class="help"><strong>How it works:</strong> a curated dictionary of ~120 pirate substitutions runs over your text. Common pronouns (you → ye, my → me, your → yer), verbs (is → be, are → be), and nouns (friend → matey, money → doubloons, ship → vessel) are swapped while preserving capitalisation. Optional "Arrr!" interjections are sprinkled at sentence ends.</p>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">Why "talk like a pirate"?</h2>
+      <p>Most of what we picture as "pirate-speak" actually comes from one man — actor Robert Newton, who played Long John Silver in the 1950 Disney film <em>Treasure Island</em>. His exaggerated West Country accent (rolled R's, "arrr", "matey") became the template for every cartoon pirate since. Real 17th-century pirates would have sounded like… well, ordinary sailors of their region. But the cliché is fun, so we lean in.</p>
+    </section>
+
+    <section class="panel" id="faq">
+      <h2 style="margin:0 0 12px;font-size:20px">FAQ</h2>
+      <div class="faq-item"><h3>Will it translate any sentence?</h3><p>It swaps the words it knows and leaves the rest alone. Short, conversational sentences look the most pirate-y.</p></div>
+      <div class="faq-item"><h3>Can I turn off the "Arrr!"?</h3><p>Yes — uncheck the sprinkle option above.</p></div>
+      <div class="faq-item"><h3>Is the text uploaded anywhere?</h3><p>No. Translation is pure JavaScript in your browser.</p></div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">More fun translators</h2>
+      <div class="siblings">
+        <a href="/text-translators">All translators</a>
+        <a href="/yoda">Yoda</a><a href="/shakespeare">Shakespeare</a><a href="/old-english">Old English</a>
+        <a href="/medieval">Medieval</a><a href="/pig-latin">Pig Latin</a><a href="/runes">Runes</a>
+      </div>
+    </section>
+
+    <p style="text-align:center;font-size:13px;color:var(--muted);margin:24px 0 0">🔒 All text is processed locally in your browser.</p>
+  </main>
+  <script src="/tools/text-translators.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    function render(){ $('out').textContent = TT.toPirate($('in').value, { sprinkle: $('optSprinkle').checked }); }
+    $('goBtn').onclick = render;
+    $('copyBtn').onclick = e => TT.copy($('out').textContent, e.currentTarget);
+    $('clearBtn').onclick = ()=>{ $('in').value=''; $('out').textContent=''; };
+    $('in').addEventListener('input', render);
+    $('optSprinkle').addEventListener('change', render);
+    render();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

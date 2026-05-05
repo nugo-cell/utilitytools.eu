@@ -16,31 +16,27 @@
   <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
   <!-- SEO:END -->
   <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
-  <!-- SEO:END -->
-  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
-  <!-- SEO:END -->
-  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
-  <title>Pig Latin Translator — Free Online</title>
-  <meta name="description" content="Convert English to Pig Latin and back. Fun, fast, free, in-browser.">
-  <meta name="keywords" content="pig latin translator, english to pig latin, pig latin converter, pig latin online">
+  <title>Yoda-speak Translator — English to Yoda Online</title>
+  <meta name="description" content="Convert English to Yoda's famous Object–Subject–Verb word order. Free, in-browser, no signup.">
+  <meta name="keywords" content="yoda translator, yoda speak, english to yoda, yoda generator, star wars yoda translator">
   <meta name="robots" content="index,follow,max-image-preview:large">
-  <link rel="canonical" href="https://utilitytools.eu/pig-latin">
+  <link rel="canonical" href="https://utilitytools.eu/yoda">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="UtilityTools.eu">
-  <meta property="og:title" content="Pig Latin Translator — Free Online">
-  <meta property="og:description" content="Convert English to Pig Latin and back. Fun, fast, free, in-browser.">
-  <meta property="og:url" content="https://utilitytools.eu/pig-latin">
+  <meta property="og:title" content="Yoda-speak Translator — English to Yoda Online">
+  <meta property="og:description" content="Convert English to Yoda's famous Object–Subject–Verb word order. Free, in-browser, no signup.">
+  <meta property="og:url" content="https://utilitytools.eu/yoda">
   <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Pig Latin Translator — Free Online">
-  <meta name="twitter:description" content="Convert English to Pig Latin and back. Fun, fast, free, in-browser.">
+  <meta name="twitter:title" content="Yoda-speak Translator — English to Yoda Online">
+  <meta name="twitter:description" content="Convert English to Yoda's famous Object–Subject–Verb word order. Free, in-browser, no signup.">
   <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
   <script type="application/ld+json">{
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  "name": "English ⇄ Pig Latin Translator",
-  "description": "Convert English to Pig Latin and back. Fun, fast, free, in-browser.",
-  "url": "https://utilitytools.eu/pig-latin",
+  "name": "Yoda-speak Translator",
+  "description": "Convert English to Yoda's famous Object–Subject–Verb word order. Free, in-browser, no signup.",
+  "url": "https://utilitytools.eu/yoda",
   "applicationCategory": "UtilityApplication",
   "operatingSystem": "Any (Web)",
   "isAccessibleForFree": true,
@@ -61,10 +57,18 @@
   "mainEntity": [
     {
       "@type": "Question",
-      "name": "Punctuation preserved?",
+      "name": "Is it perfect Yoda grammar?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes."
+        "text": "No — a heuristic that swaps clauses around the first verb. Short sentences work best."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is anything sent to a server?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No, all conversion runs in your browser."
       }
     }
   ]
@@ -75,41 +79,40 @@
   <header class="topnav"><a href="/" class="brand">Utility<span>Tools</span></a><nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav></header>
   <main class="container">
     <div class="tool-header">
-      <h1>English to Pig Latin Translator</h1>
-      <p>Classic playground "secret language" — type any English sentence and get its Pig Latin equivalent. Capitalisation and punctuation are preserved automatically.</p>
+      <h1>Yoda-speak Translator</h1>
+      <p>Convert any English sentence into the famous Object–Subject–Verb word order of Master Yoda. "Powerful you have become." Type below — Jedi wisdom, you shall receive.</p>
     </div>
     <section class="panel">
       <label for="in">Your text</label>
-      <textarea id="in" placeholder="Type a sentence…">Hello, this is the secret language!</textarea>
+      <textarea id="in" placeholder="Type a sentence…">You will learn patience. The Force is strong with this one.</textarea>
       <div class="row" style="margin-top:8px">
-        <button id="goBtn">Convert</button>
+        <button id="goBtn">Translate</button>
         <button id="copyBtn" class="secondary">Copy</button>
         <button id="clearBtn" class="secondary">Clear</button>
       </div>
-      <label style="margin-top:12px">Pig Latin</label>
+      <label style="margin-top:12px">Yoda says</label>
       <div class="tt-out" id="out"></div>
-      <div class="help"><strong>Rules:</strong> Vowel-start word → add <code>way</code> at the end. Consonant-start word → move the leading consonant cluster to the end and add <code>ay</code>. Example: <code>hello → ellohay</code>, <code>egg → eggway</code>, <code>strong → ongstray</code>.</div>
+      <div class="help"><strong>How it works:</strong> we split each sentence on its first auxiliary or main verb (am, is, will, have, do, know, see…), then swap the two halves. "I am happy" becomes "Happy, I am." Sentences with no clear verb get a small Yoda flourish appended.</div>
     </section>
 
     <section class="panel">
-      <h2 style="margin:0 0 8px;font-size:18px">Why Pig Latin?</h2>
-      <p>Pig Latin is a language game played in English-speaking countries since at least the early 1900s. It's not actually Latin — the name was a joke about it sounding fancy and unintelligible. Children use it as a "secret code" between friends; adults occasionally use it for harmless code-words.</p>
+      <h2 style="margin:0 0 8px;font-size:18px">Why does Yoda talk like that?</h2>
+      <p>English is an SVO (Subject–Verb–Object) language — "I eat the apple". Yoda's signature speech pattern flips that to OSV — "The apple, I eat." OSV is rare but real: it appears in some natural languages (e.g. Xavante in Brazil) and gives every sentence a poetic, sage-like emphasis on the object. This translator approximates the effect with a tiny grammar heuristic — no AI, no server, just letter rearrangement in your browser.</p>
     </section>
 
     <section class="panel" id="faq">
       <h2 style="margin:0 0 12px;font-size:20px">FAQ</h2>
-      <div class="faq-item"><h3>What are the Pig Latin rules?</h3><p>Vowel-start = +way. Consonant-start = move the cluster, +ay. Example: <code>egg → eggway</code>, <code>strong → ongstray</code>.</p></div>
-      <div class="faq-item"><h3>Does it preserve capitalisation?</h3><p>Yes — initial-capital, ALL-CAPS, and trailing punctuation are all preserved.</p></div>
+      <div class="faq-item"><h3>Is it perfect Yoda grammar?</h3><p>No — real Yoda lines are written by humans for fun and rhythm. This is a quick approximation that catches most of the flavour. For best results, write short sentences with one clear verb each.</p></div>
+      <div class="faq-item"><h3>Does it preserve punctuation?</h3><p>Yes — sentence-ending periods, exclamation marks and question marks are kept and used to split the input.</p></div>
+      <div class="faq-item"><h3>Is anything sent to a server?</h3><p>No. All conversion happens in your browser.</p></div>
     </section>
 
     <section class="panel">
       <h2 style="margin:0 0 8px;font-size:18px">More fun translators</h2>
       <div class="siblings">
         <a href="/text-translators">All translators</a>
-        <a href="/runes">Runes</a><a href="/morse">Morse</a><a href="/binary">Binary</a>
-        <a href="/nato">NATO</a><a href="/braille">Braille</a><a href="/upside-down">Upside-down</a>
-        <a href="/medieval">Medieval</a><a href="/emoji-text">Emoji</a>
-        <a href="/hieroglyphics">Hieroglyphics</a><a href="/scroll">Scroll</a>
+        <a href="/pirate">Pirate</a><a href="/shakespeare">Shakespeare</a><a href="/old-english">Old English</a>
+        <a href="/runes">Runes</a><a href="/medieval">Medieval</a><a href="/pig-latin">Pig Latin</a>
       </div>
     </section>
 
@@ -118,7 +121,7 @@
   <script src="/tools/text-translators.js"></script>
   <script>
     const $ = id => document.getElementById(id);
-    function render(){ $('out').textContent = TT.toPigLatin($('in').value); }
+    function render(){ $('out').textContent = TT.toYoda($('in').value); }
     $('goBtn').onclick = render;
     $('copyBtn').onclick = e => TT.copy($('out').textContent, e.currentTarget);
     $('clearBtn').onclick = ()=>{ $('in').value=''; $('out').textContent=''; };

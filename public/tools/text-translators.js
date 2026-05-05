@@ -390,6 +390,245 @@
     }
   };
 
+  // ---------------- 12) YODA-SPEAK ----------------
+  // Yoda's grammar is famously OSV (Object–Subject–Verb) instead of English SVO.
+  // We can't do real parsing in 50 lines of JS, but a tiny heuristic produces
+  // very recognisable Yoda lines: split each sentence on its first "linker"
+  // word (an auxiliary or copula), then swap the two halves.
+  //   "I am happy."          -> "Happy, I am."
+  //   "You will learn this." -> "This, you will learn."
+  // For sentences without a linker we prepend a random Yoda flourish.
+  const YODA_LINKERS = [
+    'am','is','are','was','were','be','been','being',
+    'will','would','shall','should','can','could','may','might','must',
+    'have','has','had',
+    'do','does','did',
+    'need','want','wish','seek','feel','know','see','find','make','build','teach','learn','sense','train','believe','fear','hate','love'
+  ];
+  const YODA_FLOURISH = [
+    'Hmmm.', 'Yes.', 'Mmm.', 'Strong with the Force, this one is.',
+    'Patience you must have, my young padawan.', 'Do or do not. There is no try.',
+    'Much to learn, you still have.', 'Truly wonderful, the mind of a child is.'
+  ];
+  function yodaSentence(s, idx) {
+    // Strip and remember trailing punctuation
+    const m = s.match(/^(\s*)(.*?)([.!?…]*)(\s*)$/);
+    if (!m) return s;
+    const [, lead, body, end, trail] = m;
+    if (!body.trim()) return s;
+    const tokens = body.split(/(\s+)/); // keep whitespace
+    let linkerAt = -1;
+    for (let i = 0; i < tokens.length; i++) {
+      const w = tokens[i].toLowerCase().replace(/[^a-z']+/g, '');
+      if (!w) continue;
+      if (YODA_LINKERS.includes(w)) { linkerAt = i; break; }
+    }
+    let result;
+    if (linkerAt > 0) {
+      const left  = tokens.slice(0, linkerAt).join('').trim();          // subject
+      const verb  = tokens[linkerAt].trim();                             // linker
+      const right = tokens.slice(linkerAt + 1).join('').trim();          // rest
+      if (right) {
+        // "<right>, <left> <verb>"  — capitalise first letter of the new front
+        const front = right.charAt(0).toUpperCase() + right.slice(1);
+        const rest  = (left + ' ' + verb).toLowerCase();
+        result = front + ', ' + rest;
+      } else {
+        result = (left + ' ' + verb);
+      }
+    } else {
+      // No linker — append a Yoda flourish based on sentence index for stability.
+      const f = YODA_FLOURISH[idx % YODA_FLOURISH.length];
+      result = body.trim() + ', ' + f.toLowerCase().replace(/\.$/, '');
+    }
+    return lead + result + (end || '.') + trail;
+  }
+  TT.toYoda = function (text) {
+    if (!text) return '';
+    // Split on sentence boundaries while keeping the trailing punctuation/space.
+    const parts = text.split(/(?<=[.!?…])\s+/);
+    return parts.map((p, i) => yodaSentence(p, i)).join(' ');
+  };
+
+  // ---------------- 13) PIRATE-SPEAK ----------------
+  // Word-level substitution table. Order of replacements matters (longer phrases
+  // first) so we apply by length-descending and only on whole-word boundaries.
+  TT.PIRATE = {
+    'hello':'ahoy', 'hi':'ahoy', 'hey':'ahoy-hoy',
+    'goodbye':'fare thee well', 'bye':'fare thee well',
+    'friend':'matey', 'friends':'mateys', 'buddy':'matey', 'pal':'matey',
+    'sir':'cap’n', 'madam':'wench', "ma'am":'wench',
+    'man':'salty dog', 'men':'scallywags', 'guy':'scallywag', 'guys':'scallywags',
+    'woman':'lass', 'women':'lasses', 'girl':'lass', 'girls':'lasses', 'boy':'lad', 'boys':'lads',
+    'people':'crew', 'team':'crew', 'group':'crew', 'family':'crew',
+    'children':'wee ones', 'kid':'wee one', 'kids':'wee ones', 'child':'wee one',
+    'yes':'aye', 'no':'nay',
+    'my':'me', 'you':'ye', 'your':'yer', "you're":"ye be", "you are":"ye be",
+    'are':'be', 'is':'be', 'am':'be',
+    'the':"th'", 'this':'this ’ere', 'that':'that there',
+    'before':'afore', 'between':'betwixt',
+    'old':'olde', 'small':'wee', 'little':'wee', 'big':'mighty', 'large':'mighty',
+    'food':'grub', 'drink':'grog', 'beer':'grog', 'rum':'rum (the good stuff)',
+    'money':'doubloons', 'cash':'doubloons', 'gold':'gold doubloons',
+    'treasure':'booty', 'reward':'booty',
+    'work':'plunderin’', 'job':'plunderin’', 'fight':'brawl', 'battle':'sea battle',
+    'ship':'vessel', 'boat':'vessel', 'car':'wagon',
+    'house':'cabin', 'home':'cabin', 'room':'quarters', 'office':'quarters',
+    'bathroom':'head', 'toilet':'head',
+    'restaurant':'tavern', 'bar':'tavern', 'hotel':'inn', 'shop':'tradin’ post', 'store':'tradin’ post',
+    'song':'sea shanty', 'music':'shanties', 'flag':'colors',
+    'enemy':'scurvy dog', 'enemies':'scurvy dogs', 'idiot':'bilge rat', 'fool':'bilge rat',
+    'thief':'scallywag', 'liar':'scallywag', 'coward':'lily-livered swab',
+    'happy':'merry', 'angry':'in a fury', 'tired':'weary', 'crazy':'mad as a sea-witch',
+    'amazing':'glorious', 'awesome':'glorious', 'great':'grand', 'good':'fine',
+    'bad':'foul', 'terrible':'cursed', 'dead':'in Davy Jones’ locker',
+    'where':'whar', 'over':'o’er', 'ever':'e’er', 'never':'ne’er',
+    'going':'sailin’', 'go':'sail', 'come':'come aboard',
+    'death':'Davy Jones’ locker', 'ghost':'spectre',
+    'ocean':'briny deep', 'sea':'briny deep', 'water':'briny',
+    'dollar':'doubloon', 'dollars':'doubloons', 'euro':'doubloon', 'euros':'doubloons'
+  };
+  function pirateSwap(word, dict) {
+    const lower = word.toLowerCase();
+    const repl = dict[lower];
+    if (!repl) return null;
+    if (word === word.toUpperCase() && word.length > 1) return repl.toUpperCase();
+    if (word[0] === word[0].toUpperCase()) return repl.charAt(0).toUpperCase() + repl.slice(1);
+    return repl;
+  }
+  // "Arrr!" injections — sprinkled at sentence ends, deterministic per sentence index.
+  const PIRATE_GRUNTS = ['Arrr!', 'Yarrr!', 'Avast!', 'Shiver me timbers!', 'Yo ho ho!', 'Aye!'];
+  TT.toPirate = function (text, opts) {
+    opts = opts || {};
+    const sprinkle = opts.sprinkle !== false;
+    const dict = TT.PIRATE;
+    // Replace whole words first
+    let out = text.replace(/[A-Za-z']+/g, w => pirateSwap(w, dict) || w);
+    if (sprinkle) {
+      let i = 0;
+      out = out.replace(/([.!?])(\s|$)/g, (m, p, ws) => {
+        // Add a grunt to roughly every other sentence
+        if (i++ % 2 === 0) return p + ' ' + PIRATE_GRUNTS[(i - 1) % PIRATE_GRUNTS.length] + ws;
+        return m;
+      });
+    }
+    return out;
+  };
+
+  // ---------------- 14) SHAKESPEARE / EARLY MODERN ENGLISH ----------------
+  // Pronoun + verb-conjugation substitutions. The verb forms are conditional
+  // on subject ("thou hast" vs "I have") which is too complex for a regex,
+  // so we approximate: 2nd-person-singular verb forms after "thou".
+  TT.SHAKE_WORDS = {
+    'you':'thou', "you're":"thou art", 'you are':'thou art', "you've":"thou hast",
+    "you'll":"thou shalt", "you'd":"thou wouldst", 'your':'thy', 'yours':'thine',
+    'yourself':'thyself',
+    'are':'art', 'were':'wast',
+    'have':'hast', 'has':'hath',
+    'do':'dost', 'does':'doth', 'did':'didst',
+    'will':'shalt', 'would':'wouldst', 'should':'shouldst', 'could':'couldst', 'shall':'shalt', 'can':'canst', 'must':'must',
+    'know':'knowest', 'think':'thinkest', 'speak':'speakest', 'say':'sayest', 'go':'goest', 'come':'comest',
+    'see':'seest', 'love':'lovest', 'hate':'hatest', 'want':'wishest', 'need':'needest',
+    'hello':'hail', 'hi':'good morrow', 'hey':'hark', 'goodbye':'fare thee well', 'bye':'fare thee well',
+    'yes':'aye', 'no':'nay', 'maybe':'perchance', 'perhaps':'perchance', 'really':'verily', 'very':'most',
+    'before':'ere', 'often':'oft', 'always':'ever', 'never':'ne’er', 'over':'o’er', 'ever':'e’er',
+    'between':'betwixt', 'among':'amongst', 'while':'whilst', 'against':'’gainst',
+    'man':'gentleman', 'woman':'lady', 'guy':'fellow', 'guys':'fellows', 'people':'folk',
+    'friend':'good friend', 'friends':'good friends',
+    'sir':'good sir', 'lady':'fair lady',
+    'father':'sire', 'mother':'lady mother', 'son':'son of mine', 'daughter':'daughter of mine',
+    'death':'demise', 'die':'perish', 'dead':'lifeless', 'kill':'slay', 'killed':'slain',
+    'house':'manor', 'home':'manor', 'room':'chamber', 'bed':'bedchamber',
+    'happy':'merry', 'sad':'forlorn', 'angry':'wroth', 'tired':'weary', 'beautiful':'fair', 'pretty':'comely',
+    'amazing':'wondrous', 'awesome':'wondrous', 'great':'noble', 'good':'good', 'bad':'foul', 'terrible':'most foul',
+    'crazy':'mad', 'cool':'fine', 'awful':'most grievous',
+    'food':'victuals', 'drink':'sack', 'wine':'sack', 'beer':'ale',
+    'fight':'duel', 'battle':'fray', 'enemy':'foe', 'enemies':'foes',
+    'love':'love', 'kiss':'kiss', 'truly':'verily', 'sure':'certes', 'quickly':'apace',
+    'because':'for that', 'why':'wherefore', 'where':'whither', 'here':'hither', 'there':'thither',
+    'lol':'ha! a most jocund jest!'
+  };
+  function shakeSwap(word, dict) {
+    const lower = word.toLowerCase();
+    const repl = dict[lower];
+    if (!repl) return null;
+    if (word === word.toUpperCase() && word.length > 1) return repl.toUpperCase();
+    if (word[0] === word[0].toUpperCase()) return repl.charAt(0).toUpperCase() + repl.slice(1);
+    return repl;
+  }
+  TT.toShakespeare = function (text) {
+    if (!text) return '';
+    // Two-word phrases first (e.g. "you are" -> "thou art") so they don't get
+    // shadowed by single-word replacements.
+    let out = text.replace(/\b(you are|you're|you've|you'll|you'd)\b/gi, (m) => {
+      return shakeSwap(m, TT.SHAKE_WORDS) || m;
+    });
+    out = out.replace(/[A-Za-z']+/g, w => shakeSwap(w, TT.SHAKE_WORDS) || w);
+    return out;
+  };
+
+  // ---------------- 15) OLD ENGLISH (þ / ð / ƿ / æ) ----------------
+  // Re-orthographs modern English with the letters that fell out of use after
+  // the Norman Conquest. Not a real Old English translation — the words stay
+  // modern, only the spelling becomes archaic. Toggleable substitutions:
+  //   th  -> þ  (thorn, voiceless)   /  ð (eth, voiced) for common voiced cases
+  //   w   -> ƿ  (wynn)
+  //   ae  -> æ  (ash)
+  //   g   -> ȝ  (yogh) at start of words for fun
+  //   and -> ond
+  // "Voiced th" detection uses a small word list (the, this, that, then, there…)
+  const ETH_WORDS = new Set([
+    'the','this','that','these','those','they','them','their','there','then','than','though','thus','thee','thou','thy','thine','they’re','there’s','that’s','this’s','they’ve','they’ll','that’ll','there’ll'
+  ]);
+  TT.toOldEnglish = function (text, opts) {
+    opts = opts || {};
+    const useEth   = opts.useEth   !== false; // distinguish ð from þ
+    const useWynn  = opts.useWynn  !== false; // w -> ƿ
+    const useAsh   = opts.useAsh   !== false; // ae -> æ
+    const useYogh  = opts.useYogh  === true;  // g -> ȝ (off by default, harder to read)
+    const archaic  = opts.archaicAnd !== false; // and -> ond
+    if (!text) return '';
+    // Process word-by-word so we can pick þ vs ð based on the whole word.
+    return text.replace(/[A-Za-z'’]+/g, (word) => {
+      const lower = word.toLowerCase();
+      const isEthWord = useEth && ETH_WORDS.has(lower);
+      let out = '';
+      for (let i = 0; i < word.length; i++) {
+        const c = word[i], n = word[i + 1];
+        // "th" digraph
+        if ((c === 't' || c === 'T') && (n === 'h' || n === 'H')) {
+          const upper = (c === 'T');
+          out += isEthWord ? (upper ? 'Ð' : 'ð') : (upper ? 'Þ' : 'þ');
+          i++;
+          continue;
+        }
+        // "ae" -> æ
+        if (useAsh && (c === 'a' || c === 'A') && (n === 'e' || n === 'E')) {
+          out += (c === 'A') ? 'Æ' : 'æ';
+          i++;
+          continue;
+        }
+        // wynn
+        if (useWynn && (c === 'w' || c === 'W')) {
+          out += (c === 'W') ? 'Ƿ' : 'ƿ';
+          continue;
+        }
+        // yogh at start of word
+        if (useYogh && i === 0 && (c === 'g' || c === 'G')) {
+          out += (c === 'G') ? 'Ȝ' : 'ȝ';
+          continue;
+        }
+        out += c;
+      }
+      // Whole-word swaps
+      if (archaic) {
+        if (lower === 'and') out = (word === word.toUpperCase() ? 'OND' : (word[0] === word[0].toUpperCase() ? 'Ond' : 'ond'));
+        else if (lower === 'is') out = (word[0] === word[0].toUpperCase() ? 'Ys' : 'ys');
+      }
+      return out;
+    });
+  };
+
   // ---------------- Helpers used by every page ----------------
   TT.copy = function (text, btn) {
     if (!text) {

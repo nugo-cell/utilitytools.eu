@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tt-out{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px;min-height:64px;font-size:18px;line-height:1.7;white-space:pre-wrap;word-break:break-word;font-family:Georgia,serif}
+    .help{font-size:13px;color:var(--muted);margin-top:10px;padding:10px 12px;border-left:3px solid var(--accent);background:rgba(124,92,255,0.06);border-radius:0 6px 6px 0}
+    .siblings{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .siblings a{padding:6px 12px;border-radius:999px;background:var(--panel-2);border:1px solid var(--border);color:var(--muted);font-size:13px;text-decoration:none}
+    .siblings a:hover{color:var(--text);border-color:var(--accent)}
+    .faq-item{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
+    .faq-item h3{margin:0 0 6px;font-size:15px}.faq-item p{margin:0;color:var(--muted);font-size:14px}
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <!-- SEO:END -->
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>Shakespeare Translator — Modern to Early Modern English</title>
+  <meta name="description" content="Convert modern English into Shakespearean Early Modern English: thou, thee, hast, dost, wherefore. Free, in-browser.">
+  <meta name="keywords" content="shakespeare translator, english to shakespeare, early modern english, thou thee translator, shakespeare generator">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/shakespeare">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="Shakespeare Translator — Modern to Early Modern English">
+  <meta property="og:description" content="Convert modern English into Shakespearean Early Modern English: thou, thee, hast, dost, wherefore. Free, in-browser.">
+  <meta property="og:url" content="https://utilitytools.eu/shakespeare">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Shakespeare Translator — Modern to Early Modern English">
+  <meta name="twitter:description" content="Convert modern English into Shakespearean Early Modern English: thou, thee, hast, dost, wherefore. Free, in-browser.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Shakespeare Translator",
+  "description": "Convert modern English into Shakespearean Early Modern English: thou, thee, hast, dost, wherefore. Free, in-browser.",
+  "url": "https://utilitytools.eu/shakespeare",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "Any (Web)",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "UtilityTools.eu",
+    "url": "https://utilitytools.eu"
+  }
+}</script>
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is this real Elizabethan grammar?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "A stylised approximation. Real verb conjugation depends on the subject; this catches the famous swaps."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is the text uploaded?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No — translation runs locally in your browser."
+      }
+    }
+  ]
+}</script>
+  <!-- SEO:END -->
+</head>
+<body>
+  <header class="topnav"><a href="/" class="brand">Utility<span>Tools</span></a><nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav></header>
+  <main class="container">
+    <div class="tool-header">
+      <h1>Shakespeare Translator <span style="font-size:14px;font-weight:500;color:var(--muted)">— Early Modern English</span></h1>
+      <p>Convert modern English into the Early Modern English of Shakespeare's plays. <em>Thou</em> for <em>you</em>, <em>art</em> for <em>are</em>, <em>hath</em> for <em>has</em>, <em>wherefore</em> for <em>why</em>. Verily, a most wondrous diversion.</p>
+    </div>
+    <section class="panel">
+      <label for="in">Your text</label>
+      <textarea id="in" placeholder="Type a sentence…">You are my best friend. Why are you so angry? I love you very much.</textarea>
+      <div class="row" style="margin-top:8px">
+        <button id="goBtn">Translate</button>
+        <button id="copyBtn" class="secondary">Copy</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+      <label style="margin-top:12px">Shakespearean English</label>
+      <div class="tt-out" id="out"></div>
+      <div class="help"><strong>How it works:</strong> a 90-entry dictionary substitutes pronouns (you → thou, your → thy), 2nd-person verb conjugations (have → hast, do → dost, know → knowest), archaic adverbs (often → oft, before → ere) and some flavour vocabulary (death → demise, house → manor). Capitalisation is preserved.</div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">Thou vs. you — the lost pronoun</h2>
+      <p>Modern English uses one second-person pronoun: <em>you</em>. Early Modern English had two — <em>thou</em> for one person you knew well or were socially above, and <em>you</em> for groups or as a sign of respect (a bit like French <em>tu</em> vs <em>vous</em>). By 1700 this distinction had collapsed and <em>you</em> won. Quakers held onto <em>thou</em> for everyone as a sign of equality, which is why old Quaker speech sounds vaguely Shakespearean.</p>
+    </section>
+
+    <section class="panel" id="faq">
+      <h2 style="margin:0 0 12px;font-size:20px">FAQ</h2>
+      <div class="faq-item"><h3>Is this real Elizabethan English?</h3><p>It's a stylised approximation. Real period grammar requires conjugating verbs based on subject (thou hast, but I have), which a single regex can't do perfectly. The output is recognisably Shakespearean for fun and creative writing.</p></div>
+      <div class="faq-item"><h3>Why does some output look odd?</h3><p>If a sentence has no second-person pronouns or substitutable verbs, very little will change — feed it conversational sentences for the most theatrical effect.</p></div>
+      <div class="faq-item"><h3>Is the text uploaded?</h3><p>No. Everything is processed locally in your browser.</p></div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">More fun translators</h2>
+      <div class="siblings">
+        <a href="/text-translators">All translators</a>
+        <a href="/yoda">Yoda</a><a href="/pirate">Pirate</a><a href="/old-english">Old English</a>
+        <a href="/medieval">Medieval</a><a href="/runes">Runes</a><a href="/scroll">Scroll</a>
+      </div>
+    </section>
+
+    <p style="text-align:center;font-size:13px;color:var(--muted);margin:24px 0 0">🔒 All text is processed locally in your browser.</p>
+  </main>
+  <script src="/tools/text-translators.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    function render(){ $('out').textContent = TT.toShakespeare($('in').value); }
+    $('goBtn').onclick = render;
+    $('copyBtn').onclick = e => TT.copy($('out').textContent, e.currentTarget);
+    $('clearBtn').onclick = ()=>{ $('in').value=''; $('out').textContent=''; };
+    $('in').addEventListener('input', render);
+    render();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

@@ -163,6 +163,14 @@ const TOOLS = [
   { slug: 'emoji-text',       name: 'Emoji Text Generator',     file: 'tools/emoji-text.html',       icon: '🅴',  tags: ['text','fun','generator'],     desc: 'Letter emojis, keyword replacement and random emoji decoration.' },
   { slug: 'hieroglyphics',    name: 'Hieroglyphics Name',       file: 'tools/hieroglyphics.html',    icon: '𓂀',   tags: ['text','fun','generator'],     desc: 'Phonetic name to Egyptian hieroglyphs with cartouche PNG download.' },
   { slug: 'scroll',           name: 'Ancient Scroll Image',     file: 'tools/scroll.html',           icon: '📜',  tags: ['text','fun','generator'],     desc: 'Render any text on a parchment scroll image and download as PNG.' },
+  { slug: 'yoda',             name: 'Yoda-speak Translator',    file: 'tools/yoda.html',             icon: '🟢',  tags: ['text','fun','translator'],    desc: 'Convert English to Yoda\'s Object–Subject–Verb sentence order. "Powerful you have become."' },
+  { slug: 'pirate',           name: 'Pirate Translator',        file: 'tools/pirate.html',           icon: '🏴‍☠️',tags: ['text','fun','translator'],    desc: 'Turn boring English into salty pirate-speak. Friends become mateys, money becomes doubloons. Arrr!' },
+  { slug: 'shakespeare',      name: 'Shakespeare Translator',   file: 'tools/shakespeare.html',      icon: '🎭',  tags: ['text','fun','translator'],    desc: 'Convert modern English to Early Modern (Shakespeare) English — thou, thee, hast, dost, wherefore.' },
+  { slug: 'old-english',      name: 'Old English (þ ð ƿ æ)',    file: 'tools/old-english.html',      icon: 'Þ',   tags: ['text','fun','translator'],    desc: 'Re-spell modern English with thorn (þ), eth (ð), wynn (ƿ), ash (æ) and yogh (ȝ) — the lost letters.' },
+
+  // -------- PDF ↔ Images --------
+  { slug: 'pdf-to-images',    name: 'PDF to Images',            file: 'tools/pdf-to-images.html',    icon: '📄→🖼',tags: ['documents','image','converter'], desc: 'Extract every page of a PDF as PNG, JPG or WebP. Choose DPI, download single pages or all in a ZIP. Browser-only.' },
+  { slug: 'images-to-pdf',    name: 'Images to PDF',            file: 'tools/images-to-pdf.html',    icon: '🖼→📄',tags: ['documents','image','converter'], desc: 'Combine JPG, PNG and WebP images into one PDF. Drag to reorder, choose page size, orientation, fit and margin. Browser-only.' },
 
   // -------- Stand-alone fun + productivity tools --------
   { slug: 'certificate',      name: 'Certificate Generator',    file: 'tools/certificate.html',      icon: '🏆',  tags: ['fun','generator','design'],   desc: 'Make a fake certificate with 4 design templates. Download as PNG or print.' },
@@ -615,70 +623,53 @@ wss.on('connection', (ws, req) => {
     return;
   }
 
-  // First peer is the HOST (room creator). Second peer "knocks" and must be
-  // admitted by the host before any signaling is relayed. This stops random
-  // people who got the link from silently joining a call already in progress.
+  // First peer is the HOST (room creator) and is the WebRTC answerer.
+  // Second peer joins immediately as the initiator and sends the offer.
+  // (We removed the earlier "host must admit" handshake because the file-
+  // transfer tool never implemented it, leaving rooms stuck in the lobby.)
   const isHost = peers.size === 0;
   ws._isHost   = isHost;
-  ws._pending  = !isHost;
   peers.add(ws);
 
   if (isHost) {
-    // Host is not the WebRTC initiator — the joiner sends the offer
-    // after being admitted (so we know joiner's media is ready).
     try { ws.send(JSON.stringify({ type: 'init', initiator: false, host: true, peers: peers.size })); } catch(_) {}
   } else {
-    try { ws.send(JSON.stringify({ type: 'waiting' })); } catch(_) {}
+    try { ws.send(JSON.stringify({ type: 'init', initiator: true, host: false, peers: peers.size })); } catch(_) {}
+    // Notify the host so any "waiting for peer" UI can clear.
     for (const p of peers) {
       if (p !== ws && p.readyState === 1) {
-        try { p.send(JSON.stringify({ type: 'knock' })); } catch(_) {}
+        try { p.send(JSON.stringify({ type: 'peer-joined' })); } catch(_) {}
       }
     }
   }
 
   ws.on('message', data => {
     // Relay any signaling payload (SDP / ICE) to the OTHER peer only.
+    // The server cannot read media — payloads are opaque DTLS-protected blobs.
     const text = data.toString();
     if (text.length > 64 * 1024) return; // 64KB hard cap per message
 
-    // Inspect small messages for host control commands (admit / reject).
-    let parsed = null;
-    if (text.length < 2048) { try { parsed = JSON.parse(text); } catch(_) {} }
-
-    if (parsed && (parsed.type === 'admit' || parsed.type === 'reject')) {
-      if (!ws._isHost) return; // only host can admit/reject
-      for (const p of peers) {
-        if (p === ws || !p._pending) continue;
-        if (parsed.type === 'admit') {
-          p._pending = false;
-          // Joiner becomes the WebRTC initiator now that both are ready.
-          try { p.send(JSON.stringify({ type: 'init', initiator: true, host: false, peers: peers.size })); } catch(_) {}
-          try { ws.send(JSON.stringify({ type: 'peer-joined' })); } catch(_) {}
-        } else {
-          try { p.send(JSON.stringify({ type: 'rejected' })); } catch(_) {}
-          try { p.close(1000, 'rejected by host'); } catch(_) {}
-        }
-      }
-      return;
+    // Swallow legacy admit/reject control messages from older clients so we
+    // don't relay them as if they were signaling.
+    if (text.length < 2048) {
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed && (parsed.type === 'admit' || parsed.type === 'reject')) return;
+      } catch(_) {}
     }
 
-    // Never relay signaling from / to a peer that hasn't been admitted yet.
-    if (ws._pending) return;
     for (const p of peers) {
-      if (p !== ws && p.readyState === 1 && !p._pending) {
+      if (p !== ws && p.readyState === 1) {
         try { p.send(text); } catch(_) {}
       }
     }
   });
 
   ws.on('close', () => {
-    const wasPending = ws._pending;
     peers.delete(ws);
     for (const p of peers) {
       if (p.readyState !== 1) continue;
-      try {
-        p.send(JSON.stringify({ type: wasPending ? 'knock-cancelled' : 'peer-left' }));
-      } catch(_) {}
+      try { p.send(JSON.stringify({ type: 'peer-left' })); } catch(_) {}
     }
     if (peers.size === 0) rooms.delete(room);
   });

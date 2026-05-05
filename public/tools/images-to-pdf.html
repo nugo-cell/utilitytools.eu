@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#7c5cff">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .drop-zone{border:2px dashed var(--border-strong);border-radius:14px;padding:38px 18px;text-align:center;background:var(--panel);cursor:pointer;transition:.15s}
+    .drop-zone.over{border-color:var(--accent);background:var(--panel-2)}
+    .drop-zone input{display:none}
+    .drop-zone .big{font-size:16px;font-weight:600}
+    .drop-zone .sub{color:var(--muted);font-size:13px;margin-top:6px}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0;align-items:center}
+    .toolbar select,.toolbar input[type=number]{padding:6px 10px;background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:6px}
+    .imgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-top:14px}
+    .img-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px;cursor:grab}
+    .img-card.dragging{opacity:.4}
+    .img-card.dragover{border-color:var(--accent)}
+    .img-thumb{aspect-ratio:1;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+    .img-thumb img{max-width:100%;max-height:100%;display:block}
+    .img-thumb .num{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:2px 6px;border-radius:4px}
+    .img-card .name{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .img-card .actions{display:flex;gap:4px}
+    .img-card .actions button{flex:1;padding:4px 6px;font-size:11px}
+    .empty{color:var(--muted);font-size:14px;text-align:center;padding:20px}
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <!-- SEO:END -->
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>Images to PDF Converter — Combine JPG/PNG to PDF</title>
+  <meta name="description" content="Combine JPG, PNG and WebP images into one PDF. Drag to reorder, set page size, orientation, fit and margin. Free, in-browser.">
+  <meta name="keywords" content="images to pdf, jpg to pdf, png to pdf, combine images pdf, image pdf converter, photos to pdf">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/images-to-pdf">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="Images to PDF Converter — Combine JPG/PNG to PDF">
+  <meta property="og:description" content="Combine JPG, PNG and WebP images into one PDF. Drag to reorder, set page size, orientation, fit and margin. Free, in-browser.">
+  <meta property="og:url" content="https://utilitytools.eu/images-to-pdf">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Images to PDF Converter — Combine JPG/PNG to PDF">
+  <meta name="twitter:description" content="Combine JPG, PNG and WebP images into one PDF. Drag to reorder, set page size, orientation, fit and margin. Free, in-browser.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Images to PDF Converter",
+  "description": "Combine JPG, PNG and WebP images into one PDF. Drag to reorder, set page size, orientation, fit and margin. Free, in-browser.",
+  "url": "https://utilitytools.eu/images-to-pdf",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "Any (Web)",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "UtilityTools.eu",
+    "url": "https://utilitytools.eu"
+  }
+}</script>
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is anything uploaded?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No — the PDF is built locally with pdf-lib."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which formats are supported?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "JPG and PNG are embedded directly; other formats are auto-converted to JPG."
+      }
+    }
+  ]
+}</script>
+  <!-- SEO:END -->
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span><span class="tld">.eu</span></a>
+    <nav><a href="/" class="active">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Images to PDF <span style="font-size:14px;font-weight:500;color:var(--success)">🔒 100% in your browser</span></h1>
+      <p>Combine JPG, PNG and WebP images into one PDF. Drag to reorder, pick a page size and orientation, choose how each image fits — then download a single PDF. Files never leave your device.</p>
+    </div>
+
+    <div class="panel">
+      <label class="drop-zone" id="drop">
+        <input type="file" id="file" accept="image/*" multiple>
+        <div class="big">🖼️ Click to choose images (or drop them here)</div>
+        <div class="sub">Add as many as you like — drag the cards to change the order.</div>
+      </label>
+
+      <div class="toolbar">
+        <label>Page size
+          <select id="pageSize">
+            <option value="A4" selected>A4 (210×297mm)</option>
+            <option value="Letter">US Letter (8.5×11")</option>
+            <option value="Legal">US Legal (8.5×14")</option>
+            <option value="A3">A3</option>
+            <option value="A5">A5</option>
+            <option value="auto">Match each image (no resize)</option>
+          </select>
+        </label>
+        <label>Orientation
+          <select id="orient">
+            <option value="auto" selected>Auto</option>
+            <option value="portrait">Portrait</option>
+            <option value="landscape">Landscape</option>
+          </select>
+        </label>
+        <label>Fit
+          <select id="fit">
+            <option value="contain" selected>Fit (keep ratio, white margins)</option>
+            <option value="cover">Fill (crop to page)</option>
+            <option value="stretch">Stretch (distort to page)</option>
+          </select>
+        </label>
+        <label>Margin (mm)
+          <input type="number" id="margin" min="0" max="50" value="10" style="width:70px">
+        </label>
+        <button id="saveBtn" disabled>💾 Build PDF</button>
+        <button id="clear" class="secondary">Clear</button>
+        <span id="status" class="status"></span>
+      </div>
+
+      <div id="imgs" class="imgs"></div>
+      <div id="empty" class="empty">No images yet — pick some above to begin.</div>
+    </div>
+
+    <section class="panel" style="margin-top:24px">
+      <h2 style="margin:0 0 8px;font-size:18px">FAQ</h2>
+      <div style="color:var(--muted);font-size:14px;line-height:1.6">
+        <p><b>Is anything uploaded?</b> No. PDF assembly happens in your browser using <a href="https://github.com/Hopding/pdf-lib" target="_blank" rel="noopener">pdf-lib</a>.</p>
+        <p><b>Which image formats are supported?</b> JPG and PNG are embedded directly. Other formats (WebP, BMP, GIF) are auto-converted to JPG before embedding.</p>
+        <p><b>How do I change the order?</b> Drag any image card to a new position. The number badge updates instantly.</p>
+        <p><b>Can I include one image per page or multiple?</b> One image per page. To put several images on one page, combine them in our <a href="/img-annotate">image editor</a> first.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    const setStatus = (m, ok=true) => { $('status').textContent = m; $('status').className = 'status ' + (ok?'ok':'err'); };
+
+    // images = [{ id, name, type, dataUrl, blob, width, height }]
+    let images = [];
+    let nextId = 1;
+
+    const PAGE_SIZES_PT = {
+      A4:     [595.28, 841.89],
+      Letter: [612,    792   ],
+      Legal:  [612,    1008  ],
+      A3:     [841.89, 1190.55],
+      A5:     [419.53, 595.28]
+    };
+
+    async function readImageMeta(file) {
+      const dataUrl = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result); r.onerror = () => rej(r.error);
+        r.readAsDataURL(file);
+      });
+      const dims = await new Promise((res, rej) => {
+        const im = new Image();
+        im.onload = () => res({ w: im.naturalWidth, h: im.naturalHeight });
+        im.onerror = () => rej(new Error('Could not read image: ' + file.name));
+        im.src = dataUrl;
+      });
+      return { dataUrl, ...dims };
+    }
+
+    async function addFiles(fileList) {
+      for (const f of fileList) {
+        if (!/^image\//.test(f.type)) continue;
+        try {
+          const meta = await readImageMeta(f);
+          images.push({
+            id: nextId++, name: f.name, type: f.type,
+            dataUrl: meta.dataUrl, blob: f, width: meta.w, height: meta.h
+          });
+        } catch (e) {
+          setStatus('Skipped ' + f.name + ': ' + e.message, false);
+        }
+      }
+      render();
+    }
+
+    function render() {
+      $('empty').style.display = images.length ? 'none' : '';
+      $('saveBtn').disabled = images.length === 0;
+      $('imgs').innerHTML = images.map((im, i) => `
+        <div class="img-card" draggable="true" data-id="${im.id}">
+          <div class="img-thumb"><img src="${im.dataUrl}" alt=""><div class="num">${i+1}</div></div>
+          <div class="name" title="${esc(im.name)}">${esc(im.name)}</div>
+          <div class="actions">
+            <button data-act="up"   data-id="${im.id}" title="Move earlier">←</button>
+            <button data-act="down" data-id="${im.id}" title="Move later">→</button>
+            <button data-act="del"  data-id="${im.id}" title="Remove">✕</button>
+          </div>
+        </div>`).join('');
+    }
+
+    function esc(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    $('imgs').addEventListener('click', e => {
+      const btn = e.target.closest('button[data-act]'); if (!btn) return;
+      const id = +btn.dataset.id;
+      const i = images.findIndex(x => x.id === id);
+      if (i < 0) return;
+      if (btn.dataset.act === 'up'   && i > 0) [images[i-1], images[i]] = [images[i], images[i-1]];
+      if (btn.dataset.act === 'down' && i < images.length-1) [images[i+1], images[i]] = [images[i], images[i+1]];
+      if (btn.dataset.act === 'del') images.splice(i, 1);
+      render();
+    });
+
+    // Drag-and-drop reorder
+    let dragId = null;
+    $('imgs').addEventListener('dragstart', e => {
+      const card = e.target.closest('.img-card'); if (!card) return;
+      dragId = +card.dataset.id; card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    $('imgs').addEventListener('dragend', () => {
+      document.querySelectorAll('.img-card').forEach(c => c.classList.remove('dragging','dragover'));
+    });
+    $('imgs').addEventListener('dragover', e => {
+      e.preventDefault();
+      const card = e.target.closest('.img-card');
+      document.querySelectorAll('.img-card').forEach(c => c.classList.remove('dragover'));
+      if (card) card.classList.add('dragover');
+    });
+    $('imgs').addEventListener('drop', e => {
+      e.preventDefault();
+      const card = e.target.closest('.img-card'); if (!card || dragId == null) return;
+      const fromIdx = images.findIndex(x => x.id === dragId);
+      let toIdx = images.findIndex(x => x.id === +card.dataset.id);
+      if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) { dragId = null; return; }
+      const r = card.getBoundingClientRect();
+      if ((e.clientX - r.left) > r.width/2) toIdx += 1;
+      const [moved] = images.splice(fromIdx, 1);
+      const insertAt = toIdx > fromIdx ? toIdx - 1 : toIdx;
+      images.splice(Math.max(0, Math.min(images.length, insertAt)), 0, moved);
+      dragId = null;
+      render();
+    });
+
+    // File picker
+    $('file').addEventListener('change', e => addFiles(e.target.files));
+    $('drop').addEventListener('dragover', e => { e.preventDefault(); $('drop').classList.add('over'); });
+    $('drop').addEventListener('dragleave', () => $('drop').classList.remove('over'));
+    $('drop').addEventListener('drop', e => {
+      e.preventDefault(); $('drop').classList.remove('over');
+      addFiles(e.dataTransfer.files);
+    });
+
+    $('clear').onclick = () => { images = []; render(); setStatus(''); };
+
+    // Convert any non-JPG/PNG image to JPG via canvas (pdf-lib only embeds JPG/PNG)
+    async function ensureJpgOrPng(im) {
+      if (im.type === 'image/jpeg' || im.type === 'image/png') {
+        const buf = await im.blob.arrayBuffer();
+        return { bytes: new Uint8Array(buf), kind: im.type === 'image/png' ? 'png' : 'jpg' };
+      }
+      // Re-encode as JPG
+      const canvas = document.createElement('canvas');
+      canvas.width = im.width; canvas.height = im.height;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const tmp = new Image();
+      await new Promise((res, rej) => { tmp.onload = res; tmp.onerror = rej; tmp.src = im.dataUrl; });
+      ctx.drawImage(tmp, 0, 0);
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
+      const buf = await blob.arrayBuffer();
+      return { bytes: new Uint8Array(buf), kind: 'jpg' };
+    }
+
+    function pageDims(img) {
+      const sel = $('pageSize').value;
+      const orient = $('orient').value;
+      if (sel === 'auto') {
+        // 1 px = 0.75 pt at 96 DPI; pdf-lib uses points
+        return [img.width * 0.75, img.height * 0.75];
+      }
+      let [w, h] = PAGE_SIZES_PT[sel] || PAGE_SIZES_PT.A4;
+      let landscape;
+      if (orient === 'landscape') landscape = true;
+      else if (orient === 'portrait') landscape = false;
+      else landscape = img.width > img.height;
+      if (landscape && w < h) [w, h] = [h, w];
+      if (!landscape && w > h) [w, h] = [h, w];
+      return [w, h];
+    }
+
+    function placement(img, pageW, pageH, marginPt, fit) {
+      const cw = pageW - marginPt * 2, ch = pageH - marginPt * 2;
+      if (fit === 'stretch') {
+        return { x: marginPt, y: marginPt, w: cw, h: ch };
+      }
+      const ar = img.width / img.height;
+      const cr = cw / ch;
+      let w, h;
+      if (fit === 'cover') {
+        if (ar > cr) { h = ch; w = h * ar; } else { w = cw; h = w / ar; }
+      } else { // contain
+        if (ar > cr) { w = cw; h = w / ar; } else { h = ch; w = h * ar; }
+      }
+      return { x: marginPt + (cw - w) / 2, y: marginPt + (ch - h) / 2, w, h };
+    }
+
+    $('saveBtn').onclick = async () => {
+      if (!images.length) return;
+      $('saveBtn').disabled = true;
+      setStatus('Building PDF…');
+      try {
+        const pdf = await PDFLib.PDFDocument.create();
+        const marginMm = parseFloat($('margin').value) || 0;
+        const marginPt = (marginMm / 25.4) * 72;
+        const fit = $('fit').value;
+        for (let i = 0; i < images.length; i++) {
+          const im = images[i];
+          setStatus(`Embedding image ${i+1} / ${images.length}…`);
+          const { bytes, kind } = await ensureJpgOrPng(im);
+          const embedded = kind === 'png' ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes);
+          const [pw, ph] = pageDims(im);
+          const page = pdf.addPage([pw, ph]);
+          const p = placement(im, pw, ph, marginPt, fit);
+          page.drawImage(embedded, { x: p.x, y: p.y, width: p.w, height: p.h });
+        }
+        const out = await pdf.save();
+        const blob = new Blob([out], { type: 'application/pdf' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = (images.length === 1 ? images[0].name.replace(/\.[^.]+$/, '') : 'images') + '.pdf';
+        a.click();
+        URL.revokeObjectURL(a.href);
+        setStatus(`Saved ✓ — ${images.length} page${images.length>1?'s':''}, ${(blob.size/1024/1024).toFixed(2)} MB.`);
+      } catch (e) {
+        setStatus('Failed: ' + (e.message || e), false);
+      } finally {
+        $('saveBtn').disabled = images.length === 0;
+      }
+    };
+
+    render();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

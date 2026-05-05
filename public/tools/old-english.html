@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tt-out{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px;min-height:64px;font-size:20px;line-height:1.7;white-space:pre-wrap;word-break:break-word;font-family:Georgia,"IM Fell English",serif}
+    .help{font-size:13px;color:var(--muted);margin-top:10px;padding:10px 12px;border-left:3px solid var(--accent);background:rgba(124,92,255,0.06);border-radius:0 6px 6px 0}
+    .siblings{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .siblings a{padding:6px 12px;border-radius:999px;background:var(--panel-2);border:1px solid var(--border);color:var(--muted);font-size:13px;text-decoration:none}
+    .siblings a:hover{color:var(--text);border-color:var(--accent)}
+    .faq-item{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
+    .faq-item h3{margin:0 0 6px;font-size:15px}.faq-item p{margin:0;color:var(--muted);font-size:14px}
+    .opt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px 16px;margin-top:10px;font-size:14px;color:var(--muted)}
+    .opt-grid label{display:flex;gap:6px;align-items:center;cursor:pointer}
+    .letter-table{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:10px}
+    .letter-table div{background:var(--panel-2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px}
+    .letter-table b{font-size:18px;color:var(--accent);font-family:Georgia,serif;margin-right:6px}
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <!-- SEO:END -->
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>Old English Letters Converter — þ, ð, ƿ, æ, ȝ</title>
+  <meta name="description" content="Re-spell modern English with thorn (þ), eth (ð), wynn (ƿ), ash (æ) and yogh (ȝ). Free, in-browser.">
+  <meta name="keywords" content="old english converter, thorn letter, eth letter, wynn letter, ash letter, old english font generator, anglo saxon text">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/old-english">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="Old English Letters Converter — þ, ð, ƿ, æ, ȝ">
+  <meta property="og:description" content="Re-spell modern English with thorn (þ), eth (ð), wynn (ƿ), ash (æ) and yogh (ȝ). Free, in-browser.">
+  <meta property="og:url" content="https://utilitytools.eu/old-english">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Old English Letters Converter — þ, ð, ƿ, æ, ȝ">
+  <meta name="twitter:description" content="Re-spell modern English with thorn (þ), eth (ð), wynn (ƿ), ash (æ) and yogh (ȝ). Free, in-browser.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Old English Letters Converter",
+  "description": "Re-spell modern English with thorn (þ), eth (ð), wynn (ƿ), ash (æ) and yogh (ȝ). Free, in-browser.",
+  "url": "https://utilitytools.eu/old-english",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "Any (Web)",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "UtilityTools.eu",
+    "url": "https://utilitytools.eu"
+  }
+}</script>
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is this real Old English?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No — modern English re-spelled with the lost letters. Great for tattoos, logos and fantasy text."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Why are characters showing as boxes?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Your device is missing a font with extended Latin support — try Times, Georgia or another system serif."
+      }
+    }
+  ]
+}</script>
+  <!-- SEO:END -->
+</head>
+<body>
+  <header class="topnav"><a href="/" class="brand">Utility<span>Tools</span></a><nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav></header>
+  <main class="container">
+    <div class="tool-header">
+      <h1>Old English Letters Converter <span style="font-size:14px;font-weight:500;color:var(--muted)">— þ ð ƿ æ</span></h1>
+      <p>Re-spell modern English using the letters that fell out of use after the Norman Conquest: <b>thorn (þ)</b>, <b>eth (ð)</b>, <b>wynn (ƿ)</b>, <b>ash (æ)</b> and the optional <b>yogh (ȝ)</b>. The words stay modern — only the spelling becomes wonderfully archaic.</p>
+    </div>
+    <section class="panel">
+      <label for="in">Your text</label>
+      <textarea id="in" placeholder="Type a sentence…">The water in this well is cold and clear, and we shall drink it together.</textarea>
+      <div class="opt-grid">
+        <label><input type="checkbox" id="optEth"  checked> Use <b>ð</b> for voiced "th" (the, this, that…)</label>
+        <label><input type="checkbox" id="optWynn" checked> Use <b>ƿ</b> for "w"</label>
+        <label><input type="checkbox" id="optAsh"  checked> Use <b>æ</b> for "ae"</label>
+        <label><input type="checkbox" id="optYogh"> Use <b>ȝ</b> for word-initial "g"</label>
+        <label><input type="checkbox" id="optAnd" checked> "and" → "ond"</label>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="goBtn">Convert</button>
+        <button id="copyBtn" class="secondary">Copy</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+      <label style="margin-top:12px">Old-style spelling</label>
+      <div class="tt-out" id="out"></div>
+      <div class="help"><strong>How it works:</strong> a small word list distinguishes voiced "th" (þe → ðe) from voiceless (þink → þink). All other substitutions happen letter-by-letter while preserving capitalisation. Toggle each rule above to taste.</div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">The lost letters of English</h2>
+      <div class="letter-table">
+        <div><b>Þ þ</b>thorn — voiceless "th" as in <i>think</i></div>
+        <div><b>Ð ð</b>eth — voiced "th" as in <i>this</i></div>
+        <div><b>Ƿ ƿ</b>wynn — the original "w" letter</div>
+        <div><b>Æ æ</b>ash — vowel of <i>cat</i> in OE</div>
+        <div><b>Ȝ ȝ</b>yogh — sounds like "y", "g" or "ch"</div>
+        <div><b>ond</b>old spelling of "and"</div>
+      </div>
+      <p style="margin-top:14px">After 1066 the Normans imported French scribes who didn't know these letters, so over a few centuries <i>þ</i> became <i>th</i>, <i>ƿ</i> became <i>uu</i> → <i>w</i>, and <i>æ</i> turned into <i>a</i> or <i>e</i>. The very last printer's <i>þ</i> survives today disguised as the "Y" in shop signs like <b>"Ye Olde Pub"</b> — that "Y" is actually a thorn that early printing presses didn't have a key for.</p>
+    </section>
+
+    <section class="panel" id="faq">
+      <h2 style="margin:0 0 12px;font-size:20px">FAQ</h2>
+      <div class="faq-item"><h3>Is this real Old English?</h3><p>No. Real Old English (Beowulf-era) had completely different vocabulary and grammar — "Hwæt! Wē Gārdena…" Here we just take modern English and apply the old letter shapes for atmosphere. Great for tattoos, logos and fantasy writing.</p></div>
+      <div class="faq-item"><h3>Why are the letters showing as boxes?</h3><p>Your device's font is missing those Unicode code points. Try a system font like Times New Roman, Georgia, or any font with extended Latin support.</p></div>
+      <div class="faq-item"><h3>Where can I use the result?</h3><p>Anywhere that accepts Unicode text — Twitter, Instagram bios, Discord, Word documents, tattoo mockups, fantasy game names.</p></div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px;font-size:18px">More fun translators</h2>
+      <div class="siblings">
+        <a href="/text-translators">All translators</a>
+        <a href="/yoda">Yoda</a><a href="/pirate">Pirate</a><a href="/shakespeare">Shakespeare</a>
+        <a href="/runes">Runes</a><a href="/medieval">Medieval</a><a href="/scroll">Scroll</a>
+      </div>
+    </section>
+
+    <p style="text-align:center;font-size:13px;color:var(--muted);margin:24px 0 0">🔒 All text is processed locally in your browser.</p>
+  </main>
+  <script src="/tools/text-translators.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    function opts(){ return {
+      useEth:  $('optEth').checked,
+      useWynn: $('optWynn').checked,
+      useAsh:  $('optAsh').checked,
+      useYogh: $('optYogh').checked,
+      archaicAnd: $('optAnd').checked
+    }; }
+    function render(){ $('out').textContent = TT.toOldEnglish($('in').value, opts()); }
+    $('goBtn').onclick = render;
+    $('copyBtn').onclick = e => TT.copy($('out').textContent, e.currentTarget);
+    $('clearBtn').onclick = ()=>{ $('in').value=''; $('out').textContent=''; };
+    $('in').addEventListener('input', render);
+    document.querySelectorAll('.opt-grid input').forEach(el => el.addEventListener('change', render));
+    render();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+
