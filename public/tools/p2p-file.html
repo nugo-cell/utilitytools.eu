@@ -59,6 +59,17 @@
     }
     .pf-toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
     .pf-room{font-family:var(--mono);color:var(--accent);font-weight:700}
+    .pf-qr-wrap{
+      display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:14px;
+      background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:14px;
+    }
+    .pf-qr-box{
+      background:#fff;padding:10px;border-radius:8px;line-height:0;flex-shrink:0;
+    }
+    .pf-qr-box img,.pf-qr-box canvas{display:block;width:160px;height:160px}
+    .pf-qr-text{font-size:13px;color:var(--muted);flex:1;min-width:200px;line-height:1.5}
+    .pf-qr-text b{color:var(--text)}
+    .pf-qr-wrap.hidden{display:none}
   </style>
   <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
   <!-- SEO:END -->
@@ -123,6 +134,7 @@
   ]
 }</script>
   <!-- SEO:END -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
   <header class="topnav">
@@ -157,6 +169,13 @@
       <div class="pf-share">
         <input id="shareLink" type="text" readonly aria-label="Room share link">
         <button id="copyLink" type="button">Copy link</button>
+      </div>
+      <div class="pf-qr-wrap" id="qrWrap">
+        <div class="pf-qr-box" id="qrBox" title="Scan with your phone to join this room"></div>
+        <div class="pf-qr-text">
+          <b>📱 Scan to join from your phone</b><br>
+          Point your phone's camera at this QR code to open the room directly — no typing the link. The QR will hide automatically once the other device is connected.
+        </div>
       </div>
       <p class="pf-status" id="status"></p>
 
@@ -286,8 +305,24 @@
       roomLabel.textContent = id;
       shareLink.value = location.origin + '/p2p-file#' + id;
       lobby.hidden = true; transferPanel.hidden = false;
+      renderQr(shareLink.value);
       setStatus('Connecting to room…', 'live');
       connectSignaling(id);
+    }
+
+    let qrInstance = null;
+    function renderQr(text) {
+      const box = $('qrBox');
+      if (!box || typeof QRCode === 'undefined') return;
+      box.innerHTML = '';
+      try {
+        qrInstance = new QRCode(box, {
+          text, width: 160, height: 160,
+          colorDark: '#000000', colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+        $('qrWrap').classList.remove('hidden');
+      } catch(e) { console.warn('QR render failed', e); }
     }
 
     function connectSignaling(id) {
@@ -374,6 +409,7 @@
       dc.onopen = () => {
         setStatus('🟢 Encrypted P2P channel open — drop files to send.', 'ok');
         drop.classList.add('ready');
+        const qw = $('qrWrap'); if (qw) qw.classList.add('hidden');
       };
       dc.onclose = () => setStatus('Channel closed.', 'err');
       dc.onmessage = onChannelMessage;
