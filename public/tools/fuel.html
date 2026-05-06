@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .fuel-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; }
+    .seg { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+    .seg button { padding:6px 12px; font-size:13px; background:var(--panel-2); border:0; color:var(--text); border-radius:0; }
+    .seg button.on { background: var(--grad); color:#fff; }
+    .breakdown { font-family: var(--mono); font-size:13px; color:var(--muted); white-space:pre-wrap; line-height:1.6; }
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <!-- SEO:END -->
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>Fuel Cost &amp; Trip Calculator — Free Online</title>
+  <meta name="description" content="Estimate the fuel cost of any trip from distance, vehicle consumption and price per litre or gallon. Supports L/100 km, MPG (UK &amp; US), km/L, return trips and per-passenger split.">
+  <meta name="keywords" content="fuel calculator, trip cost calculator, fuel cost estimator, l/100km calculator, mpg calculator, road trip cost, gas cost calculator">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/fuel">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="Fuel Cost &amp; Trip Calculator — Free Online">
+  <meta property="og:description" content="Estimate the fuel cost of any trip from distance, vehicle consumption and price per litre or gallon. Supports L/100 km, MPG (UK &amp; US), km/L, return trips and per-passenger split.">
+  <meta property="og:url" content="https://utilitytools.eu/fuel">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Fuel Cost &amp; Trip Calculator — Free Online">
+  <meta name="twitter:description" content="Estimate the fuel cost of any trip from distance, vehicle consumption and price per litre or gallon. Supports L/100 km, MPG (UK &amp; US), km/L, return trips and per-passenger split.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Fuel Cost & Trip Calculator",
+  "description": "Estimate the fuel cost of any trip from distance, vehicle consumption and price per litre or gallon. Supports L/100 km, MPG (UK & US), km/L, return trips and per-passenger split.",
+  "url": "https://utilitytools.eu/fuel",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "Any (Web)",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "UtilityTools.eu",
+    "url": "https://utilitytools.eu"
+  }
+}</script>
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Which units are supported?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Distance in km or miles; consumption in L/100 km, km/L, MPG (UK) or MPG (US); volume in litres or gallons."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I include a return trip?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — tick the \"Return trip\" box and the calculator doubles the distance."
+      }
+    }
+  ]
+}</script>
+  <!-- SEO:END -->
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container container-narrow">
+    <div class="tool-header">
+      <h1>Fuel Cost &amp; Trip Calculator</h1>
+      <p>Distance × consumption × price. Supports metric &amp; imperial units, return trips and splitting between passengers.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="gap:18px;flex-wrap:wrap;margin-bottom:12px">
+        <div>
+          <label style="display:block;font-size:12px;color:var(--muted)">Distance unit</label>
+          <div class="seg" id="distUnit">
+            <button data-v="km"  class="on">km</button>
+            <button data-v="mi">miles</button>
+          </div>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;color:var(--muted)">Consumption unit</label>
+          <div class="seg" id="consUnit">
+            <button data-v="lp100"  class="on">L/100 km</button>
+            <button data-v="kmpl">km/L</button>
+            <button data-v="mpguk">MPG (UK)</button>
+            <button data-v="mpgus">MPG (US)</button>
+          </div>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;color:var(--muted)">Volume unit</label>
+          <div class="seg" id="volUnit">
+            <button data-v="L"   class="on">litre</button>
+            <button data-v="gal_uk">gallon (UK)</button>
+            <button data-v="gal_us">gallon (US)</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="fuel-grid">
+        <div>
+          <label for="distance">Distance (<span id="distLbl">km</span>)</label>
+          <input id="distance" type="number" min="0" step="0.1" value="500">
+        </div>
+        <div>
+          <label for="cons">Consumption (<span id="consLbl">L/100 km</span>)</label>
+          <input id="cons" type="number" min="0" step="0.1" value="6.5">
+        </div>
+        <div>
+          <label for="price">Price per <span id="volLbl">litre</span></label>
+          <input id="price" type="number" min="0" step="0.001" value="1.65">
+        </div>
+        <div>
+          <label for="currency">Currency</label>
+          <select id="currency">
+            <option>€</option><option>$</option><option>£</option><option>kr</option><option>zł</option><option>Kč</option><option>Ft</option><option>лв</option><option>лей</option><option>₪</option><option>₹</option><option>¥</option>
+          </select>
+        </div>
+        <div>
+          <label for="people">Passengers (split)</label>
+          <input id="people" type="number" min="1" step="1" value="1">
+        </div>
+        <div style="display:flex;align-items:center;gap:14px">
+          <label class="checkbox" style="margin-top:22px"><input type="checkbox" id="roundtrip"> Return trip</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="stat-grid">
+        <div class="stat"><div class="value" id="fuelUsed">0</div><div class="label">Fuel used</div></div>
+        <div class="stat"><div class="value" id="totalCost">€0.00</div><div class="label">Total cost</div></div>
+        <div class="stat"><div class="value" id="costPerKm">€0.00</div><div class="label">Cost per <span id="perLbl">km</span></div></div>
+        <div class="stat"><div class="value" id="costPerPerson">€0.00</div><div class="label">Per passenger</div></div>
+      </div>
+      <p class="breakdown" id="breakdown" style="margin-top:14px"></p>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const seg = (root, init, onChange) => {
+      let cur = init;
+      root.addEventListener('click', e => {
+        const b = e.target.closest('button[data-v]'); if (!b) return;
+        cur = b.dataset.v;
+        root.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+        onChange(cur); calc();
+      });
+      return () => cur;
+    };
+
+    const getDist = seg($('distUnit'), 'km', v => $('distLbl').textContent = v === 'km' ? 'km' : 'miles');
+    const getCons = seg($('consUnit'), 'lp100', v => {
+      $('consLbl').textContent = v === 'lp100' ? 'L/100 km' : v === 'kmpl' ? 'km/L' : v === 'mpguk' ? 'MPG (UK)' : 'MPG (US)';
+    });
+    const getVol  = seg($('volUnit'), 'L', v => $('volLbl').textContent = v === 'L' ? 'litre' : v === 'gal_uk' ? 'gallon (UK)' : 'gallon (US)');
+
+    // Conversions to a normalised "litres per km"
+    function consumptionToLPerKm(value, unit){
+      const v = Math.max(0, parseFloat(value) || 0);
+      if (!v) return 0;
+      switch (unit) {
+        case 'lp100': return v / 100;                       // L per km
+        case 'kmpl':  return 1 / v;                         // L per km
+        case 'mpguk': return 4.54609 / (v * 1.609344);      // miles/UK gal -> L/km
+        case 'mpgus': return 3.785411784 / (v * 1.609344);  // miles/US gal -> L/km
+      }
+      return 0;
+    }
+    const KM_PER_MI = 1.609344;
+    const L_PER_GAL_UK = 4.54609;
+    const L_PER_GAL_US = 3.785411784;
+
+    function calc(){
+      const cur = $('currency').value;
+      const distUnit = getDist(), consUnit = getCons(), volUnit = getVol();
+
+      const distInput = Math.max(0, parseFloat($('distance').value) || 0);
+      const distKm = distUnit === 'mi' ? distInput * KM_PER_MI : distInput;
+      const oneWayKm = distKm;
+      const totalKm = oneWayKm * ($('roundtrip').checked ? 2 : 1);
+
+      const lPerKm = consumptionToLPerKm($('cons').value, consUnit);
+      const litres = lPerKm * totalKm;
+
+      // Convert price (per chosen volume unit) to price per litre
+      const priceIn = Math.max(0, parseFloat($('price').value) || 0);
+      const pricePerL = volUnit === 'L' ? priceIn
+                      : volUnit === 'gal_uk' ? priceIn / L_PER_GAL_UK
+                      : priceIn / L_PER_GAL_US;
+
+      const totalCost = litres * pricePerL;
+
+      const people = Math.max(1, parseInt($('people').value) || 1);
+      const fmt = n => cur + n.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+
+      // Display fuel in the chosen volume unit
+      let fuelDisplay, fuelUnitLbl;
+      if (volUnit === 'L')      { fuelDisplay = litres;             fuelUnitLbl = 'L'; }
+      else if (volUnit === 'gal_uk') { fuelDisplay = litres / L_PER_GAL_UK; fuelUnitLbl = 'gal (UK)'; }
+      else                      { fuelDisplay = litres / L_PER_GAL_US;     fuelUnitLbl = 'gal (US)'; }
+
+      // Cost per chosen distance unit
+      const costPerDist = totalKm > 0 ? totalCost / (distUnit === 'mi' ? totalKm / KM_PER_MI : totalKm) : 0;
+
+      $('fuelUsed').textContent     = fuelDisplay.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' ' + fuelUnitLbl;
+      $('totalCost').textContent    = fmt(totalCost);
+      $('costPerKm').textContent    = fmt(costPerDist);
+      $('perLbl').textContent       = distUnit;
+      $('costPerPerson').textContent= fmt(totalCost / people);
+
+      $('breakdown').textContent =
+        `Distance: ${distInput} ${distUnit}${$('roundtrip').checked ? ' × 2 (return)' : ''} = ${totalKm.toFixed(2)} km total\n` +
+        `Consumption: ${$('cons').value} ${$('consLbl').textContent}  →  ${(lPerKm * 100).toFixed(2)} L per 100 km\n` +
+        `Fuel used: ${fuelDisplay.toFixed(3)} ${fuelUnitLbl}  (${litres.toFixed(3)} L)\n` +
+        `Price: ${cur}${priceIn.toFixed(3)} per ${$('volLbl').textContent}  →  ${cur}${pricePerL.toFixed(3)} / L\n` +
+        `Total: ${fmt(totalCost)}` + (people > 1 ? `  ·  Split ${people} ways: ${fmt(totalCost/people)} each` : '');
+    }
+
+    ['distance','cons','price','currency','people','roundtrip'].forEach(id => $(id).addEventListener('input', calc));
+    calc();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .inv-layout { display:grid; grid-template-columns: 380px 1fr; gap:20px; }
+    @media (max-width: 980px) { .inv-layout { grid-template-columns: 1fr; } }
+    .inv-form .field-group { margin-bottom: 14px; }
+    .inv-form label { display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+    .inv-form input, .inv-form textarea, .inv-form select { width:100%; }
+    .inv-form .two { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+
+    /* Items editor */
+    .items-table { width:100%; border-collapse: collapse; font-size:13px; }
+    .items-table th { font-size:11px; color:var(--muted); text-align:left; padding:4px 6px; font-weight:600; }
+    .items-table td { padding:3px; vertical-align: top; }
+    .items-table input { padding:6px 8px; font-size:13px; }
+    .items-table td.num input { text-align:right; font-family: var(--mono); }
+    .items-table td.act { width:36px; text-align:center; }
+    .items-table .del-row { background:transparent; border:0; color:var(--danger); font-size:18px; cursor:pointer; padding:4px; }
+
+    /* Invoice paper preview */
+    .inv-paper {
+      background:#fff; color:#111; padding:48px 56px; border-radius:8px;
+      box-shadow: 0 2px 14px rgba(0,0,0,0.18);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size:13px; line-height:1.55; min-height: 1000px;
+    }
+    .inv-paper h1 { color:#111; margin:0; font-size:34px; letter-spacing:1px; }
+    .inv-paper .muted { color:#666; font-size:12px; }
+    .inv-paper .head { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; margin-bottom:28px; }
+    .inv-paper .head .right { text-align:right; }
+    .inv-paper .logo { max-width:140px; max-height:80px; object-fit:contain; margin-bottom:8px; }
+    .inv-paper .parties { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:28px; }
+    .inv-paper .parties h4 { margin:0 0 4px; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#888; }
+    .inv-paper .parties .who { white-space: pre-wrap; color:#222; }
+    .inv-paper table.lines { width:100%; border-collapse:collapse; margin-bottom:18px; }
+    .inv-paper table.lines th { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#fff; background: var(--inv-accent, #2d7df0); padding:9px 10px; text-align:left; }
+    .inv-paper table.lines th.num { text-align:right; }
+    .inv-paper table.lines td { padding:10px; border-bottom:1px solid #eee; vertical-align:top; }
+    .inv-paper table.lines td.num { text-align:right; font-variant-numeric: tabular-nums; }
+    .inv-paper .totals { width:280px; margin-left:auto; }
+    .inv-paper .totals .row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee; font-variant-numeric: tabular-nums; }
+    .inv-paper .totals .row.grand { border-bottom:none; border-top:2px solid #111; margin-top:6px; padding-top:10px; font-size:16px; font-weight:700; }
+    .inv-paper .notes { margin-top:30px; color:#444; font-size:12px; white-space: pre-wrap; }
+    .inv-paper .footer-pay { margin-top:24px; padding-top:14px; border-top:1px dashed #ccc; color:#444; font-size:12px; white-space: pre-wrap; }
+
+    @media print {
+      body * { visibility: hidden !important; }
+      #invPreview, #invPreview * { visibility: visible !important; }
+      #invPreview { position: absolute; inset: 0; box-shadow:none !important; }
+      .inv-paper { box-shadow:none !important; padding: 24px !important; }
+      @page { size: A4; margin: 12mm; }
+    }
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <!-- SEO:END -->
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>Free Invoice Generator — Print to PDF, No Signup</title>
+  <meta name="description" content="Create a clean professional invoice in seconds. Add your logo, line items, tax, discount, payment terms — then print to PDF or save as JSON. Browser-only, free, no signup.">
+  <meta name="keywords" content="invoice generator, free invoice maker, invoice template, online invoice, invoice pdf, freelancer invoice, vat invoice generator">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/invoice">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="Free Invoice Generator — Print to PDF, No Signup">
+  <meta property="og:description" content="Create a clean professional invoice in seconds. Add your logo, line items, tax, discount, payment terms — then print to PDF or save as JSON. Browser-only, free, no signup.">
+  <meta property="og:url" content="https://utilitytools.eu/invoice">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Free Invoice Generator — Print to PDF, No Signup">
+  <meta name="twitter:description" content="Create a clean professional invoice in seconds. Add your logo, line items, tax, discount, payment terms — then print to PDF or save as JSON. Browser-only, free, no signup.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Invoice Generator",
+  "description": "Create a clean professional invoice in seconds. Add your logo, line items, tax, discount, payment terms — then print to PDF or save as JSON. Browser-only, free, no signup.",
+  "url": "https://utilitytools.eu/invoice",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "Any (Web)",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "UtilityTools.eu",
+    "url": "https://utilitytools.eu"
+  }
+}</script>
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is my invoice data uploaded?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No — everything stays in your browser. The PDF is created by your browser print dialog."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I save and reuse an invoice?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — click \"Save as JSON\" to download the data, then \"Load JSON\" later to restore it. The latest invoice is also auto-saved in your browser."
+      }
+    }
+  ]
+}</script>
+  <!-- SEO:END -->
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>Invoice Generator</h1>
+      <p>Fill in once, print to PDF or save as JSON for next time. Everything runs in your browser — your data is never uploaded.</p>
+    </div>
+
+    <div class="row" style="margin-bottom:14px; flex-wrap:wrap; gap:8px">
+      <button id="printBtn">🖨 Print / Save as PDF</button>
+      <button id="saveJsonBtn" class="secondary">⬇ Save as JSON</button>
+      <label class="secondary" style="cursor:pointer; padding:9px 16px; border:1px solid var(--border); border-radius:8px;">
+        ⬆ Load JSON <input id="loadJson" type="file" accept="application/json" hidden>
+      </label>
+      <button id="resetBtn" class="secondary">🗑 Reset</button>
+      <span style="flex:1"></span>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)">
+        Accent
+        <input type="color" id="accent" value="#2d7df0" style="width:36px;height:30px;padding:0;border:1px solid var(--border);border-radius:6px;background:transparent">
+      </label>
+    </div>
+
+    <div class="inv-layout">
+      <!-- ========== Form ========== -->
+      <div class="panel inv-form">
+        <div class="field-group">
+          <label>Logo (optional)</label>
+          <input type="file" id="logoFile" accept="image/*">
+          <button type="button" class="secondary small" id="logoClear" style="margin-top:6px">Remove logo</button>
+        </div>
+
+        <div class="field-group two">
+          <div><label>Invoice #</label><input id="invNumber" value="INV-0001"></div>
+          <div><label>Currency</label>
+            <select id="curSel">
+              <option value="€" selected>€ EUR</option>
+              <option value="$">$ USD</option>
+              <option value="£">£ GBP</option>
+              <option value="CHF ">CHF</option>
+              <option value="kr ">kr (SEK/NOK/DKK)</option>
+              <option value="zł ">zł PLN</option>
+              <option value="Kč ">Kč CZK</option>
+              <option value="Ft ">Ft HUF</option>
+              <option value="лв ">лв BGN</option>
+              <option value="lei ">lei RON</option>
+              <option value="₪">₪ ILS</option>
+              <option value="₹">₹ INR</option>
+              <option value="¥">¥ JPY/CNY</option>
+              <option value="A$">A$ AUD</option>
+              <option value="C$">C$ CAD</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-group two">
+          <div><label>Issue date</label><input id="issueDate" type="date"></div>
+          <div><label>Due date</label><input id="dueDate" type="date"></div>
+        </div>
+
+        <div class="field-group">
+          <label>From (your business)</label>
+          <textarea id="fromAddr" rows="4" placeholder="Your Company Ltd&#10;Street 12&#10;1000 Brussels, Belgium&#10;VAT: BE0123456789"></textarea>
+        </div>
+
+        <div class="field-group">
+          <label>Bill to (client)</label>
+          <textarea id="toAddr" rows="4" placeholder="Client Name&#10;Address line 1&#10;Postal code, Country&#10;Email"></textarea>
+        </div>
+
+        <div class="field-group">
+          <label>Line items</label>
+          <table class="items-table" id="itemsTable">
+            <thead><tr>
+              <th style="width:55%">Description</th>
+              <th style="width:15%">Qty</th>
+              <th style="width:25%">Unit price</th>
+              <th></th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+          <button type="button" class="secondary small" id="addRow" style="margin-top:6px">+ Add row</button>
+        </div>
+
+        <div class="field-group two">
+          <div><label>Tax / VAT (%)</label><input id="taxPct" type="number" min="0" step="0.01" value="0"></div>
+          <div><label>Discount (%)</label><input id="discPct" type="number" min="0" step="0.01" value="0"></div>
+        </div>
+
+        <div class="field-group">
+          <label>Payment details / IBAN</label>
+          <textarea id="payInfo" rows="3" placeholder="Bank: …&#10;IBAN: BE00 0000 0000 0000&#10;BIC: …"></textarea>
+        </div>
+
+        <div class="field-group">
+          <label>Notes / payment terms</label>
+          <textarea id="notes" rows="3" placeholder="Thank you for your business. Payment due within 30 days."></textarea>
+        </div>
+      </div>
+
+      <!-- ========== Live preview ========== -->
+      <div id="invPreview">
+        <div class="inv-paper" id="paper">
+          <div class="head">
+            <div>
+              <img id="logoImg" class="logo" style="display:none" alt="">
+              <div class="who" id="pFrom" style="white-space:pre-wrap"></div>
+            </div>
+            <div class="right">
+              <h1>INVOICE</h1>
+              <div class="muted" id="pNumber"></div>
+              <div class="muted" id="pDates" style="margin-top:6px"></div>
+            </div>
+          </div>
+
+          <div class="parties">
+            <div>
+              <h4>Bill to</h4>
+              <div class="who" id="pTo"></div>
+            </div>
+            <div>
+              <h4>Total due</h4>
+              <div style="font-size:24px;font-weight:700" id="pGrandTop"></div>
+              <div class="muted" id="pDueLine"></div>
+            </div>
+          </div>
+
+          <table class="lines" id="pLines">
+            <thead><tr>
+              <th>Description</th>
+              <th class="num" style="width:80px">Qty</th>
+              <th class="num" style="width:120px">Unit price</th>
+              <th class="num" style="width:120px">Amount</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+
+          <div class="totals">
+            <div class="row"><span>Subtotal</span><span id="pSub"></span></div>
+            <div class="row" id="pDiscRow" style="display:none"><span>Discount</span><span id="pDisc"></span></div>
+            <div class="row" id="pTaxRow" style="display:none"><span id="pTaxLbl">Tax</span><span id="pTax"></span></div>
+            <div class="row grand"><span>Total</span><span id="pGrand"></span></div>
+          </div>
+
+          <div class="footer-pay" id="pPay" style="display:none"></div>
+          <div class="notes" id="pNotes" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const STORAGE_KEY = 'utilitytools.invoice';
+
+    let logoDataUrl = '';
+
+    // ---- defaults
+    function todayISO(d=new Date()){ return d.toISOString().slice(0,10); }
+    const defaultState = () => ({
+      invNumber: 'INV-' + new Date().getFullYear() + '-001',
+      cur: '€',
+      accent: '#2d7df0',
+      issueDate: todayISO(),
+      dueDate: todayISO(new Date(Date.now() + 30*86400e3)),
+      from: '',
+      to: '',
+      taxPct: 0, discPct: 0,
+      payInfo: '', notes: 'Thank you for your business.',
+      items: [
+        { desc: 'Service / product description', qty: 1, price: 0 }
+      ]
+    });
+
+    // ---- items table
+    function rowHTML(it, i){
+      return `<tr data-i="${i}">
+        <td><input class="it-desc" type="text" value="${escAttr(it.desc||'')}" placeholder="Description"></td>
+        <td class="num"><input class="it-qty" type="number" min="0" step="any" value="${it.qty ?? 1}"></td>
+        <td class="num"><input class="it-price" type="number" min="0" step="0.01" value="${it.price ?? 0}"></td>
+        <td class="act"><button type="button" class="del-row" title="Remove row">×</button></td>
+      </tr>`;
+    }
+    function escAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+    function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function readItems(){
+      return [...$('itemsTable').querySelectorAll('tbody tr')].map(tr => ({
+        desc:  tr.querySelector('.it-desc').value,
+        qty:   parseFloat(tr.querySelector('.it-qty').value)   || 0,
+        price: parseFloat(tr.querySelector('.it-price').value) || 0
+      }));
+    }
+    function writeItems(items){
+      $('itemsTable').querySelector('tbody').innerHTML = items.map((it,i) => rowHTML(it,i)).join('');
+    }
+    $('addRow').onclick = () => {
+      const tbody = $('itemsTable').querySelector('tbody');
+      tbody.insertAdjacentHTML('beforeend', rowHTML({desc:'',qty:1,price:0}, tbody.children.length));
+      render();
+    };
+    $('itemsTable').addEventListener('click', e => {
+      const b = e.target.closest('.del-row'); if (!b) return;
+      b.closest('tr').remove();
+      render();
+    });
+    $('itemsTable').addEventListener('input', render);
+
+    // ---- logo
+    $('logoFile').onchange = e => {
+      const f = e.target.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => { logoDataUrl = r.result; render(); save(); };
+      r.readAsDataURL(f);
+    };
+    $('logoClear').onclick = () => { logoDataUrl = ''; $('logoFile').value=''; render(); save(); };
+
+    // ---- form bindings
+    const FIELDS = ['invNumber','curSel','issueDate','dueDate','fromAddr','toAddr','taxPct','discPct','payInfo','notes','accent'];
+    FIELDS.forEach(id => $(id).addEventListener('input', () => { render(); save(); }));
+
+    // ---- render preview
+    function fmtMoney(n, cur){
+      const v = (Math.round(n * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return cur + v;
+    }
+    function render(){
+      const cur = $('curSel').value;
+      const accent = $('accent').value;
+      $('paper').style.setProperty('--inv-accent', accent);
+
+      // logo
+      const img = $('logoImg');
+      if (logoDataUrl) { img.src = logoDataUrl; img.style.display='block'; } else { img.style.display='none'; }
+
+      $('pFrom').textContent = $('fromAddr').value || 'Your business name\nAddress\nVAT / Tax ID';
+      $('pTo').textContent   = $('toAddr').value   || 'Client name\nAddress';
+      $('pNumber').textContent = '#' + ($('invNumber').value || '');
+      const issue = $('issueDate').value, due = $('dueDate').value;
+      $('pDates').innerHTML = (issue ? 'Issued: <strong>' + issue + '</strong>' : '') +
+                              (due ? '<br>Due: <strong>' + due + '</strong>' : '');
+      $('pDueLine').textContent = due ? 'Due ' + due : '';
+
+      const items = readItems();
+      const sub = items.reduce((a,b) => a + b.qty * b.price, 0);
+      const discPct = parseFloat($('discPct').value) || 0;
+      const taxPct  = parseFloat($('taxPct').value)  || 0;
+      const discAmt = sub * discPct / 100;
+      const afterDisc = sub - discAmt;
+      const taxAmt = afterDisc * taxPct / 100;
+      const total = afterDisc + taxAmt;
+
+      const tbody = $('pLines').querySelector('tbody');
+      tbody.innerHTML = items.map(it => `<tr>
+        <td>${escHtml(it.desc || '—')}</td>
+        <td class="num">${(+it.qty).toLocaleString(undefined,{maximumFractionDigits:3})}</td>
+        <td class="num">${fmtMoney(it.price, cur)}</td>
+        <td class="num">${fmtMoney(it.qty * it.price, cur)}</td>
+      </tr>`).join('') || `<tr><td colspan="4" style="color:#999;text-align:center;padding:24px">No items yet — add a row.</td></tr>`;
+
+      $('pSub').textContent = fmtMoney(sub, cur);
+      if (discPct > 0) { $('pDiscRow').style.display='flex'; $('pDisc').textContent = '−' + fmtMoney(discAmt, cur); }
+      else $('pDiscRow').style.display='none';
+      if (taxPct > 0)  { $('pTaxRow').style.display='flex'; $('pTaxLbl').textContent = 'Tax (' + taxPct + '%)'; $('pTax').textContent = fmtMoney(taxAmt, cur); }
+      else $('pTaxRow').style.display='none';
+      $('pGrand').textContent    = fmtMoney(total, cur);
+      $('pGrandTop').textContent = fmtMoney(total, cur);
+
+      const pay = $('payInfo').value, notes = $('notes').value;
+      if (pay)   { $('pPay').style.display='block';   $('pPay').textContent   = pay; }   else $('pPay').style.display='none';
+      if (notes) { $('pNotes').style.display='block'; $('pNotes').textContent = notes; } else $('pNotes').style.display='none';
+    }
+
+    // ---- persistence
+    function save(){
+      const s = {
+        invNumber: $('invNumber').value, cur: $('curSel').value, accent: $('accent').value,
+        issueDate: $('issueDate').value, dueDate: $('dueDate').value,
+        from: $('fromAddr').value, to: $('toAddr').value,
+        taxPct: $('taxPct').value, discPct: $('discPct').value,
+        payInfo: $('payInfo').value, notes: $('notes').value,
+        items: readItems(), logo: logoDataUrl
+      };
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch(_) {}
+    }
+    function load(){
+      let s;
+      try { s = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch(_) {}
+      apply(s || defaultState());
+    }
+    function apply(s){
+      $('invNumber').value = s.invNumber || '';
+      if (s.cur) $('curSel').value = s.cur;
+      $('accent').value = s.accent || '#2d7df0';
+      $('issueDate').value = s.issueDate || todayISO();
+      $('dueDate').value   = s.dueDate   || '';
+      $('fromAddr').value  = s.from || '';
+      $('toAddr').value    = s.to   || '';
+      $('taxPct').value    = s.taxPct ?? 0;
+      $('discPct').value   = s.discPct ?? 0;
+      $('payInfo').value   = s.payInfo || '';
+      $('notes').value     = s.notes   || '';
+      logoDataUrl = s.logo || '';
+      writeItems(Array.isArray(s.items) && s.items.length ? s.items : [{desc:'', qty:1, price:0}]);
+      render();
+    }
+
+    // ---- buttons
+    $('printBtn').onclick = () => window.print();
+    $('saveJsonBtn').onclick = () => {
+      const data = {
+        invNumber: $('invNumber').value, cur: $('curSel').value, accent: $('accent').value,
+        issueDate: $('issueDate').value, dueDate: $('dueDate').value,
+        from: $('fromAddr').value, to: $('toAddr').value,
+        taxPct: $('taxPct').value, discPct: $('discPct').value,
+        payInfo: $('payInfo').value, notes: $('notes').value,
+        items: readItems(), logo: logoDataUrl
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const u = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = u; a.download = (data.invNumber || 'invoice') + '.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(u), 1000);
+    };
+    $('loadJson').onchange = e => {
+      const f = e.target.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => {
+        try { apply(JSON.parse(r.result)); save(); }
+        catch(err) { alert('Invalid JSON: ' + err.message); }
+      };
+      r.readAsText(f);
+      e.target.value = '';
+    };
+    $('resetBtn').onclick = () => {
+      if (!confirm('Discard the current invoice and start over?')) return;
+      try { localStorage.removeItem(STORAGE_KEY); } catch(_) {}
+      apply(defaultState());
+    };
+
+    load();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

@@ -777,6 +777,39 @@ const SEO = {
       ['Is anything uploaded?', 'No — the PDF is built locally with pdf-lib.'],
       ['Which formats are supported?', 'JPG and PNG are embedded directly; other formats are auto-converted to JPG.']
     ]
+  },
+  currency: {
+    file: 'tools/currency.html',
+    title: 'Currency Converter with Historical Chart — Free Online',
+    desc:  'Convert between 30+ world currencies with live ECB rates and a 1M / 6M / 1Y / 5Y historical chart. Works offline with a built-in rates table. Free, in-browser.',
+    kw:    'currency converter, exchange rate, fx converter, eur usd, gbp eur, historical exchange rate chart, ecb rates, free currency tool',
+    name:  'Currency Converter',
+    faq: [
+      ['Where do live rates come from?', 'European Central Bank (via the free frankfurter.app API). If the API is unreachable, an offline rates snapshot is used.'],
+      ['Is my data sent anywhere?', 'Only the from/to currency codes and date range are sent to the rates API. No personal information is shared.']
+    ]
+  },
+  fuel: {
+    file: 'tools/fuel.html',
+    title: 'Fuel Cost & Trip Calculator — Free Online',
+    desc:  'Estimate the fuel cost of any trip from distance, vehicle consumption and price per litre or gallon. Supports L/100 km, MPG (UK & US), km/L, return trips and per-passenger split.',
+    kw:    'fuel calculator, trip cost calculator, fuel cost estimator, l/100km calculator, mpg calculator, road trip cost, gas cost calculator',
+    name:  'Fuel Cost & Trip Calculator',
+    faq: [
+      ['Which units are supported?', 'Distance in km or miles; consumption in L/100 km, km/L, MPG (UK) or MPG (US); volume in litres or gallons.'],
+      ['Can I include a return trip?', 'Yes — tick the "Return trip" box and the calculator doubles the distance.']
+    ]
+  },
+  invoice: {
+    file: 'tools/invoice.html',
+    title: 'Free Invoice Generator — Print to PDF, No Signup',
+    desc:  'Create a clean professional invoice in seconds. Add your logo, line items, tax, discount, payment terms — then print to PDF or save as JSON. Browser-only, free, no signup.',
+    kw:    'invoice generator, free invoice maker, invoice template, online invoice, invoice pdf, freelancer invoice, vat invoice generator',
+    name:  'Invoice Generator',
+    faq: [
+      ['Is my invoice data uploaded?', 'No — everything stays in your browser. The PDF is created by your browser print dialog.'],
+      ['Can I save and reuse an invoice?', 'Yes — click "Save as JSON" to download the data, then "Load JSON" later to restore it. The latest invoice is also auto-saved in your browser.']
+    ]
   }
 };
 
