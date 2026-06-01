@@ -6,7 +6,7 @@ const path = require('path');
 const http = require('http');
 const fs = require('fs');
 const { WebSocketServer } = require('ws');
-const { TOOL_GUIDES } = require('./tool-guides');
+const { TOOL_GUIDES, createDefaultToolGuide } = require('./tool-guides');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -218,7 +218,8 @@ function renderHomeToolCards() {
 }
 
 function renderGuide(slug) {
-  const guide = TOOL_GUIDES[slug];
+  const tool = TOOL_BY_SLUG.get(slug);
+  const guide = TOOL_GUIDES[slug] || (tool ? createDefaultToolGuide(tool, TOOLS) : null);
   if (!guide) return '';
   const related = (guide.related || []).map(s => TOOL_BY_SLUG.get(s)).filter(Boolean).slice(0, 6);
   return `
@@ -228,6 +229,8 @@ function renderGuide(slug) {
 
       <h2>When to use it</h2>
       <ul>${(guide.useCases || []).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+
+      ${guide.funFact ? `<h2>What makes it useful or fun</h2>\n      <p>${escapeHtml(guide.funFact)}</p>` : ''}
 
       <h2>How to use it</h2>
       <ol>${(guide.steps || []).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ol>

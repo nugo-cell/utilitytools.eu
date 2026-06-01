@@ -91,7 +91,7 @@
       + '<div class="ut-consent-card">'
       +   '<div class="ut-consent-emoji" aria-hidden="true">👨‍👧‍👦</div>'
       +   '<h2 id="utConsentTitle">Hey — quick word before you go</h2>'
-      +   '<p>UtilityTools.eu is built by an independent EU developer so you can use <strong>100+ free, privacy-friendly tools</strong> with no signup and no analytics tracking.</p>'
+      +   '<p>UtilityTools.eu is built by an independent EU developer so you can use <strong>97 free, privacy-friendly tools</strong> with no signup and no analytics tracking.</p>'
       +   '<p>To keep the site online I run a single, polite ad provider: <strong>Google AdSense</strong>. That\'s the only way I get paid for this. Could you let me show you those ads while you use the site? It really helps. ❤️</p>'
       +   '<ul class="ut-consent-points">'
       +     '<li>✅ Browser-first tools, with network-based exceptions explained on the relevant pages.</li>'

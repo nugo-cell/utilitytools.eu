@@ -818,5 +818,92 @@ const TOOL_GUIDES = {
   }
 };
 
-module.exports = { TOOL_GUIDES };
+function pickProfile(tool) {
+  const tags = new Set(tool.tags || []);
+  if (tags.has('developer')) return { audience: 'developers and technical users', work: 'debugging, testing, documentation or small automation tasks', funny: 'The satisfying part is that a tiny focused page can replace opening a heavy IDE, spreadsheet or account-based service just to do one small job.' };
+  if (tags.has('image')) return { audience: 'designers, makers, students and anyone preparing visual files', work: 'editing, converting, preparing or checking local media files', funny: 'The nice little surprise is seeing a browser do work that used to require a desktop graphics app, without uploading the file first.' };
+  if (tags.has('documents')) return { audience: 'freelancers, office users, students and households', work: 'preparing, reviewing, printing or sharing documents', funny: 'The practical magic is turning a boring document task into a few clicks instead of a long trip through menus.' };
+  if (tags.has('money')) return { audience: 'households, freelancers and small teams', work: 'quick estimates, planning and printable money-related calculations', funny: 'The useful thing is how quickly small numbers become clear once they are laid out in one simple place.' };
+  if (tags.has('kids')) return { audience: 'children, parents and teachers', work: 'practice, classroom activities, homework support or printable exercises', funny: 'The fun part is that learning feels less like a worksheet when the page gives instant feedback or a playful result.' };
+  if (tags.has('fun')) return { audience: 'writers, families, teachers and curious users', work: 'playful text, creative prompts, classroom warmups or quick experiments', funny: 'The funny part is the harmless surprise: the same ordinary input can become something silly, strange or unexpectedly shareable.' };
+  if (tags.has('time')) return { audience: 'students, remote teams, developers and planners', work: 'dates, time zones, scheduling and time-based debugging', funny: 'The useful twist is that time looks simple until daylight saving, time zones or Unix timestamps get involved.' };
+  if (tags.has('security') || tags.has('privacy')) return { audience: 'privacy-conscious users, developers and small teams', work: 'checking, protecting or sharing data more carefully', funny: 'The satisfying part is doing a sensitive task locally instead of handing it to a random upload form.' };
+  return { audience: 'people who need a quick focused browser utility', work: 'everyday browser tasks without installing software or creating an account', funny: 'The best part is how boring it is: the page does one job, quickly, and then gets out of your way.' };
+}
+
+function exampleFor(tool) {
+  const name = tool.name;
+  const tags = new Set(tool.tags || []);
+  if (tags.has('converter')) return { input: 'A small sample file, value or text in the source format.', output: 'The same content converted into the selected target format.', note: `Use ${name} for quick format changes, then verify the result in the app or system where you plan to use it.` };
+  if (tags.has('generator')) return { input: 'Your selected options, text, size or style settings.', output: `A generated ${name.toLowerCase()} result ready to copy, download or print.`, note: 'Generate again whenever you want a different result or need another variation.' };
+  if (tags.has('calculator') || tags.has('money') || tags.has('health') || tags.has('math')) return { input: 'A realistic set of numbers from your situation.', output: 'Calculated totals, estimates or comparison values shown immediately in the page.', note: 'Treat calculator output as a practical estimate and double-check important decisions.' };
+  if (tags.has('text') || tags.has('writing')) return { input: 'A short paragraph, title, code snippet or copied text.', output: `A cleaned, transformed or analysed text result from ${name}.`, note: 'Try a small sample first so you understand exactly how the transformation behaves.' };
+  if (tags.has('image') || tags.has('video')) return { input: 'A local media file selected from your device.', output: 'A preview or downloadable processed file created by the browser.', note: 'Keep the original file until you have checked the downloaded result.' };
+  return { input: 'A small realistic example using the controls on the page.', output: `A ${name} result that you can copy, save, download or use as a reference.`, note: 'For important work, test the output in the destination app before relying on it.' };
+}
+
+function privacyFor(tool) {
+  if (tool.slug === 'ftp-explorer') return 'FTP Explorer needs server-side help because browsers cannot connect directly to FTP/FTPS servers. Credentials are sent over HTTPS to UtilityTools.eu only to perform the requested FTP operation for that session; they are not stored.';
+  if (tool.slug === 'ip-lookup') return 'IP lookup needs a network request to retrieve public IP and location data. The lookup result depends on external IP data providers and should be treated as approximate.';
+  if (tool.slug === 'currency') return 'Currency conversion may request public exchange-rate data, but your selected amount and page interaction are not stored in a UtilityTools.eu account or database.';
+  if (['p2p-call', 'p2p-voice', 'p2p-file', 'temp-chat'].includes(tool.slug)) return 'This communication tool uses the server only for small connection/signaling messages. The actual media, files or chat data are designed to flow browser-to-browser where supported by WebRTC.';
+  return `The ${tool.name} tool is designed to run in your browser. Your input is processed locally by the page unless the interface explicitly says that a network request is needed for that specific feature.`;
+}
+
+function limitationsFor(tool) {
+  const tags = new Set(tool.tags || []);
+  const items = [
+    'Browser performance, memory and file-size limits depend on your device and browser.',
+    'Always review generated or transformed output before using it in production, legal, financial, medical or security-sensitive work.'
+  ];
+  if (tags.has('fun')) items.push('Playful and decorative outputs are for entertainment, teaching or drafting; they should not be treated as official translations or documents.');
+  if (tags.has('health')) items.push('Health-related calculators provide general estimates only and are not medical advice.');
+  if (tags.has('money')) items.push('Money-related results are estimates and do not replace accounting, tax, banking or professional financial advice.');
+  if (tags.has('security')) items.push('Security tools help with everyday checks, but high-risk or regulated workflows may require audited specialist software.');
+  if (tags.has('image') || tags.has('video')) items.push('Media exports can vary between browsers because codec and canvas support are not identical everywhere.');
+  if (tags.has('developer')) items.push('Different programming languages and platforms can interpret formats, encodings or regular rules differently, so test in your target environment.');
+  return items;
+}
+
+function createDefaultToolGuide(tool, allTools) {
+  const profile = pickProfile(tool);
+  const example = exampleFor(tool);
+  const related = (allTools || [])
+    .filter(other => other.slug !== tool.slug && other.tags && tool.tags && other.tags.some(tag => tool.tags.includes(tag)))
+    .slice(0, 6)
+    .map(other => other.slug);
+  return {
+    title: `${tool.name} guide`,
+    intro: [
+      `${tool.name} is a focused UtilityTools.eu page for ${profile.audience}. ${tool.desc}`,
+      `Use it when you want to handle ${profile.work} without opening a larger app, creating an account or sending more data than the task requires.`
+    ],
+    useCases: [
+      `Quickly complete a ${tool.name.toLowerCase()} task from any modern browser.`,
+      'Check a small example before committing the result to a project, document or message.',
+      'Prepare content for copying, printing, downloading or sharing with someone else.',
+      'Keep a lightweight privacy-first alternative available for everyday work.'
+    ],
+    funFact: profile.funny,
+    steps: [
+      'Open the tool and read the short description at the top of the page.',
+      'Paste text, choose a local file, or enter the values requested by the controls.',
+      'Adjust any options such as format, size, quality, length, units or mode.',
+      'Review the preview, output, status message or calculated result.',
+      'Copy, download, print or clear the result when you are finished.'
+    ],
+    example,
+    privacy: privacyFor(tool),
+    limitations: limitationsFor(tool),
+    faq: [
+      [`What is ${tool.name} for?`, `${tool.name} is for ${tool.desc.charAt(0).toLowerCase() + tool.desc.slice(1)}`],
+      ['When should I use it?', `Use it when you need ${profile.work} and want a quick page that stays focused on that one task.`],
+      ['What is the funny or interesting thing about it?', profile.funny],
+      ['Is it private?', privacyFor(tool)]
+    ],
+    related
+  };
+}
+
+module.exports = { TOOL_GUIDES, createDefaultToolGuide };
 
