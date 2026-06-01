@@ -36,6 +36,7 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy application source
 COPY package*.json ./
 COPY server.js ./
+COPY tool-guides.js ./
 COPY public ./public
 
 # Drop root for safety (the `node` user ships with the official image)
