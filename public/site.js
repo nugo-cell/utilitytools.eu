@@ -2,7 +2,7 @@
 //   1. Theme (light/dark) + early-init.
 //   2. Favicon, manifest, og:image (so we don't have to repeat in every HTML).
 //   3. AdSense loader via /consent.js (Google Auto Ads handles placement itself).
-//   4. The footer (with EU friends links + a "Consent settings" link).
+  //   4. The footer (with the related EU project + a "Consent settings" link).
 //   5. A JSON-LD <SoftwareApplication> block per tool page (SEO).
 //   6. A "Related tools" block at the bottom of each tool page.
 //   7. Recently-used tracking (per slug, in localStorage).
@@ -150,7 +150,7 @@
   }
   function renderRelatedTools(tools, current) {
     if (!current || !Array.isArray(tools)) return;
-    if (document.querySelector('.related-tools')) return;
+    if (document.querySelector('.related-tools') || document.querySelector('.tool-guide')) return;
     var related = tools
       .filter(function (x) {
         if (x.slug === current.slug) return false;
@@ -212,7 +212,7 @@
     <div class="footer-inner">
       <div>
         <h4>UtilityTools.eu</h4>
-        <p>A free European alternative for everyday online utilities. Zero tracking, zero accounts, zero data uploads — every tool runs locally in your browser.</p>
+        <p>A free European alternative for everyday online utilities. No analytics tracking, no accounts, and browser-first tools with clear privacy notes.</p>
       </div>
       <div>
         <h4>Tools</h4>
@@ -229,11 +229,8 @@
         <a href="/contact">Contact</a>
       </div>
       <div class="partners-col">
-        <h4>Friends from the EU 🇪🇺</h4>
+        <h4>Related EU project</h4>
         <a href="https://secureeu.eu" rel="noopener" target="_blank" title="Secure file transfer — European alternative to WeTransfer">SecureEU.eu — EU file transfer</a>
-        <a href="https://davaleba.com" rel="noopener" target="_blank" title="Davaleba — order management for restaurants">Davaleba.com — order management</a>
-        <a href="https://assignme.io" rel="noopener" target="_blank" title="AssignMe — task & order assignment app">AssignMe.io — task assignment</a>
-        <a href="https://ordreportalen.dk" rel="noopener" target="_blank" title="Ordreportalen — Danish order portal">Ordreportalen.dk — order portal (DK)</a>
       </div>
       <div>
         <h4>Legal</h4>
@@ -245,7 +242,7 @@
     </div>
     <div class="footer-bottom">
       <span>&copy; ${new Date().getFullYear()} UtilityTools.eu &middot; Made in the EU 🇪🇺</span>
-      <span>Hosted on DigitalOcean · Frankfurt 🇩🇪 · No database · No tracking · Ads by Google AdSense</span>
+      <span>Hosted on DigitalOcean · Frankfurt 🇩🇪 · No user database · No analytics tracking · Ads by Google AdSense</span>
     </div>`;
   document.body.appendChild(footer);
 

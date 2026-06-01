@@ -520,6 +520,69 @@ button.small { padding: 6px 10px; font-size: 13px; }
 .status.ok { color: var(--success); }
 .status.err { color: var(--danger); }
 
+/* Long-form tool guides rendered below the interactive controls */
+.tool-guide {
+  margin: 34px 0 8px;
+  padding: 26px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+}
+.tool-guide h2 {
+  margin: 28px 0 10px;
+  font-size: 20px;
+}
+.tool-guide h2:first-child { margin-top: 0; }
+.tool-guide h3 {
+  margin: 18px 0 6px;
+  font-size: 15px;
+}
+.tool-guide p,
+.tool-guide li {
+  color: var(--muted);
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+.tool-guide ul,
+.tool-guide ol {
+  padding-left: 22px;
+  margin: 8px 0 18px;
+}
+.tool-guide-example {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+.tool-guide-example h3 { margin-top: 0; }
+.tool-guide-example pre {
+  margin: 8px 0 14px;
+  padding: 12px;
+  overflow: auto;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+.tool-guide-related.related-tools {
+  margin-top: 30px;
+  padding-top: 22px;
+}
+.tool-guide-related.related-tools h2 {
+  margin: 0 0 14px;
+  font-size: 18px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+}
+@media (max-width: 640px) {
+  .tool-guide { padding: 20px; }
+}
+
 .split {
   display: grid;
   grid-template-columns: 1fr 1fr;

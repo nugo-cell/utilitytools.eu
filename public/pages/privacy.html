@@ -6,7 +6,7 @@
   <title>Privacy Policy — UtilityTools.eu</title>
   <meta name="description" content="Privacy policy for UtilityTools.eu. Tools run in your browser. We use Google AdSense for advertising — full disclosure inside.">
   <meta name="robots" content="index,follow">
-  <link rel="canonical" href="/privacy">
+  <link rel="canonical" href="https://utilitytools.eu/privacy">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -23,11 +23,11 @@
   <main class="container-narrow">
     <article class="prose">
       <h1>Privacy Policy</h1>
-      <p class="meta">Last updated: <span id="today"></span></p>
+      <p class="meta">Last updated: 2026-06-01</p>
 
       <h2>The short version</h2>
       <ul>
-        <li>The tools themselves run <strong>entirely in your browser</strong>. Nothing you type, paste, encrypt or generate is uploaded to us.</li>
+        <li>The tools are <strong>browser-first</strong>. Most tools process your input entirely in your browser; tools that need network access, such as IP lookup, currency rates, P2P signaling or FTP Explorer, are described on their own pages.</li>
         <li>We do <strong>not</strong> use our own analytics, our own tracking pixels, or build user profiles. There is <strong>no database</strong> on our server.</li>
         <li>The site is hosted on <strong>DigitalOcean</strong> in <strong>Frankfurt, Germany 🇩🇪</strong> — inside the EU.</li>
         <li>We <strong>do</strong> show ads served by <strong>Google AdSense</strong> to keep the site free. Google may use cookies to do this — details below. AdSense is the <em>only</em> third-party script we run.</li>
@@ -35,13 +35,14 @@
       </ul>
 
       <h2>Who we are</h2>
-      <p>UtilityTools.eu is built and operated by a single independent EU developer — a hardworking dude — in his spare time. You can reach the operator at <a href="mailto:contact@benandliva.com">contact@benandliva.com</a>.</p>
+      <p>UtilityTools.eu is built and maintained by <strong>BENANDLIVA / Nugzar Guliashvili</strong>, based in Denmark in the European Union. You can reach the operator at <a href="mailto:contact@benandliva.com">contact@benandliva.com</a>.</p>
 
       <h2>What data the tools collect</h2>
-      <p>None. Every utility on this site — JSON formatter, password generator, file encryption, CV maker, image tools, PDF editor, and the rest — is implemented in client-side JavaScript and the Web Crypto / Canvas / File APIs. The data you put into a tool stays on your device. We have no server endpoint that receives your inputs.</p>
+      <p>Most utilities on this site — including the JSON formatter, password generator, file encryption, CV maker, image tools and PDF tools — are implemented in client-side JavaScript and browser APIs such as Web Crypto, Canvas and File APIs. For those tools, the data you put into the tool stays on your device.</p>
+      <p>A small number of tools need network access to provide their function. Examples include public exchange-rate lookups for the currency converter, IP lookup requests, WebRTC signaling for P2P tools, and FTP Explorer requests where credentials must be sent to the UtilityTools.eu server to connect to the FTP/FTPS host you specify. These exceptions are limited to the tool you choose to use and are described in the tool interface or page text.</p>
 
       <h2>Hosting & server access logs</h2>
-      <p>The site is hosted on <strong>DigitalOcean</strong> in their <strong>Frankfurt (FRA1)</strong> data center, inside the European Union. There is <strong>no database</strong>, no analytics backend, and no third-party server-side service involved — the server's only job is to ship static HTML, CSS and JavaScript files over HTTPS.</p>
+      <p>The site is hosted on <strong>DigitalOcean</strong> in their <strong>Frankfurt (FRA1)</strong> data center, inside the European Union. There is <strong>no user account database</strong> and no analytics backend. The server mainly ships static HTML, CSS and JavaScript files over HTTPS, plus a few documented API endpoints required by specific network tools.</p>
       <p>Like every web server, our hosting provider may temporarily record standard access logs (IP address, timestamp, requested URL, browser user-agent) for the sole purpose of security and availability. These logs are not linked to any account, are not shared, and are rotated on a short schedule. We do not use them for analytics or profiling.</p>
 
       <h2>Third-party scripts on this site</h2>
@@ -91,7 +92,6 @@
     </article>
   </main>
 
-  <script>document.getElementById('today').textContent = new Date().toISOString().slice(0,10);</script>
   <script src="/site.js"></script>
 </body>
 </html>

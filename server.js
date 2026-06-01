@@ -4,7 +4,9 @@ const express = require('express');
 const helmet = require('helmet');
 const path = require('path');
 const http = require('http');
+const fs = require('fs');
 const { WebSocketServer } = require('ws');
+const { TOOL_GUIDES } = require('./tool-guides');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -185,6 +187,125 @@ const TOOLS = [
 
 const ALL_TAGS = [...new Set(TOOLS.flatMap(t => t.tags))].sort();
 
+// Temporarily keep decorative / low-practical-value pages out of the indexed set
+// during the AdSense content review. They remain reachable from direct links.
+const NOINDEX_TOOL_SLUGS = new Set([
+  'scramble', 'mathtable', 'mathquiz', 'spelling', 'storyidea', 'memory',
+  'text-translators', 'runes', 'pig-latin', 'upside-down', 'medieval',
+  'emoji-text', 'hieroglyphics', 'scroll', 'yoda', 'pirate', 'shakespeare',
+  'old-english', 'certificate', 'img-meme', 'persona', 'braille', 'nato'
+]);
+
+const TOOL_BY_SLUG = new Map(TOOLS.map(t => [t.slug, t]));
+
+function escapeHtml(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+
+function renderHomeToolCards() {
+  return TOOLS.map(t => `
+        <div class="card-wrap">
+          <a class="card" href="/${escapeHtml(t.slug)}" aria-label="${escapeHtml(t.name)}">
+            <div class="icon">${escapeHtml(t.icon)}</div>
+            <h3>${escapeHtml(t.name)}</h3>
+            <p>${escapeHtml(t.desc)}</p>
+            <div class="card-tags">${t.tags.map(tag => `<span>${escapeHtml(tag)}</span>`).join('')}</div>
+          </a>
+          <button class="fav-btn" data-slug="${escapeHtml(t.slug)}" title="Add to favorites" aria-label="Toggle favorite">☆</button>
+        </div>`).join('');
+}
+
+function renderGuide(slug) {
+  const guide = TOOL_GUIDES[slug];
+  if (!guide) return '';
+  const related = (guide.related || []).map(s => TOOL_BY_SLUG.get(s)).filter(Boolean).slice(0, 6);
+  return `
+    <section class="tool-guide" aria-labelledby="${escapeHtml(slug)}-guide-heading">
+      <h2 id="${escapeHtml(slug)}-guide-heading">${escapeHtml(guide.title || 'How to use this tool')}</h2>
+      ${(guide.intro || []).map(p => `<p>${escapeHtml(p)}</p>`).join('\n      ')}
+
+      <h2>When to use it</h2>
+      <ul>${(guide.useCases || []).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+
+      <h2>How to use it</h2>
+      <ol>${(guide.steps || []).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ol>
+
+      <h2>Example</h2>
+      <div class="tool-guide-example">
+        <h3>Input</h3>
+        <pre>${escapeHtml(guide.example && guide.example.input)}</pre>
+        <h3>Output</h3>
+        <pre>${escapeHtml(guide.example && guide.example.output)}</pre>
+        ${guide.example && guide.example.note ? `<p>${escapeHtml(guide.example.note)}</p>` : ''}
+      </div>
+
+      <h2>Privacy</h2>
+      <p>${escapeHtml(guide.privacy)}</p>
+
+      <h2>Limitations and accuracy notes</h2>
+      <ul>${(guide.limitations || []).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+
+      <h2>FAQ</h2>
+      <div class="tool-guide-faq">
+        ${(guide.faq || []).map(([q, a]) => `<h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p>`).join('\n        ')}
+      </div>
+      ${related.length ? `
+      <section class="tool-guide-related related-tools" aria-label="Related tools">
+        <h2>Related tools</h2>
+        <div class="related-grid">
+          ${related.map(r => `<a href="/${escapeHtml(r.slug)}"><strong>${escapeHtml(r.name)}</strong><span>${escapeHtml(r.desc)}</span></a>`).join('\n          ')}
+        </div>
+      </section>` : ''}
+    </section>
+`;
+}
+
+function applyRobots(html, slug) {
+  if (!NOINDEX_TOOL_SLUGS.has(slug)) return html;
+  const robots = '<meta name="robots" content="noindex,follow">';
+  if (/<meta\s+name=["']robots["'][^>]*>/i.test(html)) {
+    return html.replace(/<meta\s+name=["']robots["'][^>]*>/i, robots);
+  }
+  return html.replace('</head>', `  ${robots}\n</head>`);
+}
+
+function injectGuide(html, slug) {
+  if (html.includes('class="tool-guide"')) return html;
+  const guide = renderGuide(slug);
+  if (!guide) return html;
+  const marker = '  <script src="/site.js"></script>';
+  const idx = html.lastIndexOf(marker);
+  if (idx !== -1) return html.slice(0, idx) + guide + html.slice(idx);
+  return html.replace('</body>', `${guide}\n</body>`);
+}
+
+function renderToolPage(tool) {
+  const filePath = path.join(__dirname, 'public', tool.file);
+  let html = fs.readFileSync(filePath, 'utf8');
+  html = injectGuide(html, tool.slug);
+  html = applyRobots(html, tool.slug);
+  return html;
+}
+
+app.get('/', (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'index.html');
+  let html = fs.readFileSync(filePath, 'utf8');
+  html = html.replace(
+    '<div class="grid" id="toolGrid" aria-live="polite"></div>',
+    `<div class="grid" id="toolGrid" aria-live="polite">${renderHomeToolCards()}\n      </div>`
+  );
+  res.type('html').send(html);
+});
+
+app.get('/tools/:file', (req, res, next) => {
+  if (!/\.html$/i.test(req.params.file || '')) return next();
+  const tool = TOOLS.find(t => t.file === 'tools/' + req.params.file);
+  if (!tool) return next();
+  res.type('html').send(renderToolPage(tool));
+});
+
 app.use(express.static(path.join(__dirname, 'public'), {
   // 1 day for HTML, 7 days for static assets. Production browsers will revalidate.
   setHeaders: function (res, filePath) {
@@ -197,7 +318,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 for (const t of TOOLS) {
-  app.get('/' + t.slug, (req, res) => res.sendFile(path.join(__dirname, 'public', t.file)));
+  app.get('/' + t.slug, (req, res) => res.type('html').send(renderToolPage(t)));
 }
 
 const pages = {
@@ -586,7 +707,7 @@ app.get('/sitemap.xml', (req, res) => {
     '/blog/markdown-cheat-sheet',
     '/blog/pomodoro-for-students',
     '/blog/ats-friendly-cv-2026',
-    ...TOOLS.map(t => '/' + t.slug)
+    ...TOOLS.filter(t => !NOINDEX_TOOL_SLUGS.has(t.slug)).map(t => '/' + t.slug)
   ];
   const now = new Date().toISOString().slice(0, 10);
   const body =
