@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>List of MIME Types — Complete Reference | UtilityTools.eu</title>
+  <meta name="description" content="Complete, searchable list of MIME types (media types) with file extensions. Find MIME types for any file extension or search by category. Free online reference.">
+  <meta name="keywords" content="mime types list, mime type reference, file extension mime type, media types list, content-type reference, mime type lookup">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/mime-types">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="List of MIME Types — Complete Searchable Reference">
+  <meta property="og:description" content="Searchable list of MIME types with file extensions. Find any content-type instantly. Free.">
+  <meta property="og:url" content="https://utilitytools.eu/mime-types">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MIME Types List — Free Online Reference">
+  <meta name="twitter:description" content="Complete, searchable MIME types reference. Free.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>List of MIME Types</h1>
+      <p>Searchable reference of MIME types (media types) and their file extensions. Used in HTTP Content-Type headers.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:16px;gap:8px;flex-wrap:wrap;align-items:center">
+        <input id="search" type="text" placeholder="Search MIME type or extension (e.g. json, image/png, pdf)…" style="flex:1;min-width:200px;padding:10px 14px;border-radius:8px;border:1px solid var(--border,#ccc)">
+        <select id="filterCat" style="padding:10px 14px;border-radius:8px;border:1px solid var(--border,#ccc)">
+          <option value="">All categories</option>
+          <option value="application">application/</option>
+          <option value="audio">audio/</option>
+          <option value="font">font/</option>
+          <option value="image">image/</option>
+          <option value="text">text/</option>
+          <option value="video">video/</option>
+          <option value="multipart">multipart/</option>
+        </select>
+        <span id="count" style="font-size:0.85rem;color:#888"></span>
+      </div>
+      <div id="tableWrap" style="overflow-x:auto"></div>
+    </div>
+  </div>
+
+  <style>
+    .mime-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+    .mime-table th { background:#f0f4ff; padding:10px 14px; text-align:left; font-weight:600; position:sticky;top:0;z-index:1; border-bottom:2px solid var(--border,#e2e8f0); }
+    .mime-table td { padding:8px 14px; border-bottom:1px solid var(--border,#f0f2f5); vertical-align:middle; }
+    .mime-table tr:hover td { background:#f7f9fc; }
+    .mime-table .ext { font-family:monospace; color:#4f8ef7; }
+    .mime-table .mime { font-family:monospace; }
+    .mime-table .cat { display:inline-block; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:600; background:#e8f4f8; color:#2c7a9e; }
+    .hl { background:#ffd54f; border-radius:2px; }
+  </style>
+
+  <script>
+    const MIME_DATA = [
+      // Text
+      ['.css','text/css','text'],
+      ['.csv','text/csv','text'],
+      ['.html, .htm','text/html','text'],
+      ['.ics','text/calendar','text'],
+      ['.js','text/javascript','text'],
+      ['.mjs','text/javascript','text'],
+      ['.txt','text/plain','text'],
+      ['.xml','text/xml','text'],
+      ['.md','text/markdown','text'],
+      ['.yaml, .yml','text/yaml','text'],
+      // Application
+      ['.bin','application/octet-stream','application'],
+      ['.bz','application/x-bzip','application'],
+      ['.bz2','application/x-bzip2','application'],
+      ['.doc','application/msword','application'],
+      ['.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application'],
+      ['.epub','application/epub+zip','application'],
+      ['.gz','application/gzip','application'],
+      ['.jar','application/java-archive','application'],
+      ['.json','application/json','application'],
+      ['.jsonld','application/ld+json','application'],
+      ['.mpkg','application/vnd.apple.installer+xml','application'],
+      ['.odp','application/vnd.oasis.opendocument.presentation','application'],
+      ['.ods','application/vnd.oasis.opendocument.spreadsheet','application'],
+      ['.odt','application/vnd.oasis.opendocument.text','application'],
+      ['.ogx','application/ogg','application'],
+      ['.pdf','application/pdf','application'],
+      ['.php','application/x-httpd-php','application'],
+      ['.ppt','application/vnd.ms-powerpoint','application'],
+      ['.pptx','application/vnd.openxmlformats-officedocument.presentationml.presentation','application'],
+      ['.rar','application/vnd.rar','application'],
+      ['.rtf','application/rtf','application'],
+      ['.sh','application/x-sh','application'],
+      ['.swf','application/x-shockwave-flash','application'],
+      ['.tar','application/x-tar','application'],
+      ['.ts','video/mp2t','video'],
+      ['.vsd','application/vnd.visio','application'],
+      ['.wasm','application/wasm','application'],
+      ['.xhtml','application/xhtml+xml','application'],
+      ['.xls','application/vnd.ms-excel','application'],
+      ['.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application'],
+      ['.xml','application/xml','application'],
+      ['.xul','application/vnd.mozilla.xul+xml','application'],
+      ['.zip','application/zip','application'],
+      ['.7z','application/x-7z-compressed','application'],
+      // Image
+      ['.apng','image/apng','image'],
+      ['.avif','image/avif','image'],
+      ['.bmp','image/bmp','image'],
+      ['.gif','image/gif','image'],
+      ['.ico','image/x-icon','image'],
+      ['.jpeg, .jpg','image/jpeg','image'],
+      ['.png','image/png','image'],
+      ['.svg','image/svg+xml','image'],
+      ['.tif, .tiff','image/tiff','image'],
+      ['.webp','image/webp','image'],
+      // Audio
+      ['.aac','audio/aac','audio'],
+      ['.flac','audio/flac','audio'],
+      ['.mid, .midi','audio/midi, audio/x-midi','audio'],
+      ['.mp3','audio/mpeg','audio'],
+      ['.oga','audio/ogg','audio'],
+      ['.opus','audio/opus','audio'],
+      ['.wav','audio/wav','audio'],
+      ['.weba','audio/webm','audio'],
+      // Video
+      ['.avi','video/x-msvideo','video'],
+      ['.mp4','video/mp4','video'],
+      ['.mpeg','video/mpeg','video'],
+      ['.ogv','video/ogg','video'],
+      ['.webm','video/webm','video'],
+      ['.3gp','video/3gpp','video'],
+      ['.3g2','video/3gpp2','video'],
+      // Font
+      ['.otf','font/otf','font'],
+      ['.ttf','font/ttf','font'],
+      ['.woff','font/woff','font'],
+      ['.woff2','font/woff2','font'],
+      // Multipart
+      ['(form data)','multipart/form-data','multipart'],
+      ['(byte range)','multipart/byteranges','multipart'],
+    ];
+
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function renderTable(data, query) {
+      const hl = (s) => {
+        if (!query) return escHtml(s);
+        const re = new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi');
+        return escHtml(s).replace(re, '<mark class="hl">$1</mark>');
+      };
+      if (data.length === 0) return '<p style="color:#888;padding:16px">No MIME types match your search.</p>';
+      return `<table class="mime-table">
+        <thead><tr><th>Extension(s)</th><th>MIME Type</th><th>Category</th></tr></thead>
+        <tbody>${data.map(([ext, mime, cat]) =>
+          `<tr><td class="ext">${hl(ext)}</td><td class="mime">${hl(mime)}</td><td><span class="cat">${cat}</span></td></tr>`
+        ).join('')}</tbody>
+      </table>`;
+    }
+
+    function filter() {
+      const q   = document.getElementById('search').value.toLowerCase().trim();
+      const cat = document.getElementById('filterCat').value;
+      const filtered = MIME_DATA.filter(([ext, mime, c]) => {
+        const matchCat = !cat || c === cat;
+        const matchQ   = !q || ext.toLowerCase().includes(q) || mime.toLowerCase().includes(q) || c.includes(q);
+        return matchCat && matchQ;
+      });
+      document.getElementById('tableWrap').innerHTML = renderTable(filtered, q);
+      document.getElementById('count').textContent = `${filtered.length} of ${MIME_DATA.length} types`;
+    }
+
+    document.getElementById('search').addEventListener('input', filter);
+    document.getElementById('filterCat').addEventListener('change', filter);
+    filter();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

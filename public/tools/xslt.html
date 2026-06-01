@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>XSLT Transformer — Transform XML with XSL Stylesheets Online | UtilityTools.eu</title>
+  <meta name="description" content="Apply XSLT stylesheets to transform XML documents in your browser. Supports XSLT 1.0 via the native browser XSLTProcessor. Free, no upload.">
+  <meta name="keywords" content="xslt transformer, xsl transform online, xslt 1.0, xml transformation, xslt tester, apply xsl to xml">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/xslt">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="XSLT Transformer — Transform XML Online">
+  <meta property="og:description" content="Apply XSLT stylesheets to XML documents in your browser. XSLT 1.0, free, no upload.">
+  <meta property="og:url" content="https://utilitytools.eu/xslt">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="XSLT Transformer — Free Online Tool">
+  <meta name="twitter:description" content="Apply XSLT stylesheets to XML documents online. Free.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>XSLT Transformer</h1>
+      <p>Apply an XSL stylesheet to transform any XML document. Runs via the browser's native XSLT 1.0 engine — no upload needed.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px;gap:8px;flex-wrap:wrap">
+        <button id="transformBtn">Transform ▶</button>
+        <button id="copyBtn" class="secondary">Copy output</button>
+        <button id="downloadBtn" class="secondary">Download</button>
+        <button id="clearBtn" class="secondary" style="margin-left:auto">Clear</button>
+      </div>
+
+      <div class="split">
+        <div>
+          <label for="xmlInput">XML Input</label>
+          <textarea id="xmlInput" style="font-family:monospace;font-size:0.8rem;min-height:180px" placeholder="Paste your XML here…">&lt;?xml version="1.0"?&gt;
+&lt;catalog&gt;
+  &lt;book id="bk101"&gt;
+    &lt;author&gt;Gambardella, Matthew&lt;/author&gt;
+    &lt;title&gt;XML Developer's Guide&lt;/title&gt;
+    &lt;genre&gt;Computer&lt;/genre&gt;
+    &lt;price&gt;44.95&lt;/price&gt;
+  &lt;/book&gt;
+  &lt;book id="bk102"&gt;
+    &lt;author&gt;Ralls, Kim&lt;/author&gt;
+    &lt;title&gt;Midnight Rain&lt;/title&gt;
+    &lt;genre&gt;Fantasy&lt;/genre&gt;
+    &lt;price&gt;5.95&lt;/price&gt;
+  &lt;/book&gt;
+&lt;/catalog&gt;</textarea>
+        </div>
+        <div>
+          <label for="xslInput">XSL Stylesheet</label>
+          <textarea id="xslInput" style="font-family:monospace;font-size:0.8rem;min-height:180px" placeholder="Paste your XSLT here…">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"&gt;
+  &lt;xsl:output method="html" indent="yes"/&gt;
+  &lt;xsl:template match="/"&gt;
+    &lt;html&gt;&lt;body&gt;
+      &lt;h2&gt;Book Catalog&lt;/h2&gt;
+      &lt;table border="1"&gt;
+        &lt;tr&gt;&lt;th&gt;ID&lt;/th&gt;&lt;th&gt;Title&lt;/th&gt;&lt;th&gt;Author&lt;/th&gt;&lt;th&gt;Price&lt;/th&gt;&lt;/tr&gt;
+        &lt;xsl:for-each select="catalog/book"&gt;
+          &lt;tr&gt;
+            &lt;td&gt;&lt;xsl:value-of select="@id"/&gt;&lt;/td&gt;
+            &lt;td&gt;&lt;xsl:value-of select="title"/&gt;&lt;/td&gt;
+            &lt;td&gt;&lt;xsl:value-of select="author"/&gt;&lt;/td&gt;
+            &lt;td&gt;&lt;xsl:value-of select="price"/&gt;&lt;/td&gt;
+          &lt;/tr&gt;
+        &lt;/xsl:for-each&gt;
+      &lt;/table&gt;
+    &lt;/body&gt;&lt;/html&gt;
+  &lt;/xsl:template&gt;
+&lt;/xsl:stylesheet&gt;</textarea>
+        </div>
+      </div>
+
+      <div id="status" class="status" style="margin-top:8px"></div>
+
+      <div style="margin-top:12px">
+        <label>Output</label>
+        <div class="row" style="margin-bottom:4px;gap:8px">
+          <label class="checkbox"><input type="radio" name="outMode" value="source" checked> Source</label>
+          <label class="checkbox"><input type="radio" name="outMode" value="preview"> Preview (rendered HTML)</label>
+        </div>
+        <textarea id="outputSource" readonly style="font-family:monospace;font-size:0.8rem;min-height:160px;display:block" placeholder="Transformed output will appear here…"></textarea>
+        <div id="outputPreview" style="display:none;border:1px solid var(--border,#e2e8f0);border-radius:8px;padding:14px;min-height:100px;background:#fff"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const xmlInput = document.getElementById('xmlInput');
+    const xslInput = document.getElementById('xslInput');
+    const status   = document.getElementById('status');
+    const outputSource  = document.getElementById('outputSource');
+    const outputPreview = document.getElementById('outputPreview');
+
+    function setStatus(msg, ok) {
+      status.textContent = msg;
+      status.className = 'status ' + (ok ? 'ok' : 'err');
+    }
+
+    function parseXML(str) {
+      const p = new DOMParser();
+      const d = p.parseFromString(str, 'application/xml');
+      const err = d.querySelector('parsererror');
+      if (err) throw new Error(err.textContent.split('\n')[0].trim());
+      return d;
+    }
+
+    let lastOutput = '';
+
+    document.getElementById('transformBtn').onclick = () => {
+      const xmlStr = xmlInput.value.trim();
+      const xslStr = xslInput.value.trim();
+      outputSource.value = '';
+      outputPreview.innerHTML = '';
+      if (!xmlStr) { setStatus('Paste XML input first', false); return; }
+      if (!xslStr) { setStatus('Paste an XSL stylesheet', false); return; }
+
+      let xmlDoc, xslDoc;
+      try { xmlDoc = parseXML(xmlStr); } catch (e) { setStatus('XML parse error: ' + e.message, false); return; }
+      try { xslDoc = parseXML(xslStr); } catch (e) { setStatus('XSL parse error: ' + e.message, false); return; }
+
+      try {
+        const proc = new XSLTProcessor();
+        proc.importStylesheet(xslDoc);
+        const result = proc.transformToDocument(xmlDoc);
+        const ser = new XMLSerializer();
+        lastOutput = ser.serializeToString(result);
+        outputSource.value = lastOutput;
+        updatePreview();
+        setStatus('Transformed ✓', true);
+      } catch (e) { setStatus('Transform error: ' + e.message, false); }
+    };
+
+    function updatePreview() {
+      const mode = document.querySelector('input[name="outMode"]:checked').value;
+      outputSource.style.display  = mode === 'source'  ? 'block' : 'none';
+      outputPreview.style.display = mode === 'preview' ? 'block' : 'none';
+      if (mode === 'preview') outputPreview.innerHTML = lastOutput;
+    }
+
+    document.querySelectorAll('input[name="outMode"]').forEach(r => r.addEventListener('change', updatePreview));
+
+    document.getElementById('copyBtn').onclick = async () => {
+      if (!lastOutput) { setStatus('Nothing to copy', false); return; }
+      try { await navigator.clipboard.writeText(lastOutput); setStatus('Copied ✓', true); }
+      catch { setStatus('Copy failed', false); }
+    };
+
+    document.getElementById('downloadBtn').onclick = () => {
+      if (!lastOutput) { setStatus('Nothing to download', false); return; }
+      const blob = new Blob([lastOutput], { type: 'application/xml' });
+      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'output.xml' });
+      a.click(); URL.revokeObjectURL(a.href);
+    };
+
+    document.getElementById('clearBtn').onclick = () => {
+      xmlInput.value = ''; xslInput.value = ''; outputSource.value = ''; outputPreview.innerHTML = ''; lastOutput = ''; setStatus('', true);
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

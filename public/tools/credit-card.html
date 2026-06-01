@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>Credit Card Number Generator — Valid Luhn Numbers | UtilityTools.eu</title>
+  <meta name="description" content="Generate valid credit card numbers for testing using the Luhn algorithm. Supports Visa, Mastercard, Amex, Discover and more. For testing only — these are not real cards.">
+  <meta name="keywords" content="credit card number generator, luhn algorithm, test credit card numbers, fake credit card generator, visa mastercard test numbers">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/credit-card">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="Credit Card Number Generator — Valid Luhn Test Numbers">
+  <meta property="og:description" content="Generate Luhn-valid test credit card numbers for Visa, Mastercard, Amex and more. For developer testing only.">
+  <meta property="og:url" content="https://utilitytools.eu/credit-card">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Credit Card Number Generator — Test Numbers">
+  <meta name="twitter:description" content="Generate Luhn-valid test credit card numbers. For developer testing only.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>Credit Card Number Generator</h1>
+      <p>Generate Luhn-algorithm-valid card numbers for developer testing. <strong>These are not real card numbers</strong> — they pass format checks only.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:10px;align-items:center">
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem">
+          Card type:
+          <select id="cardType" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border,#ccc)">
+            <option value="visa">Visa (16 digits)</option>
+            <option value="visa13">Visa (13 digits)</option>
+            <option value="mc">Mastercard</option>
+            <option value="amex">American Express (15 digits)</option>
+            <option value="discover">Discover</option>
+            <option value="dinersclubintl">Diners Club International</option>
+            <option value="jcb">JCB</option>
+            <option value="maestro">Maestro</option>
+          </select>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem">
+          Count:
+          <select id="count" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border,#ccc)">
+            <option value="1">1</option>
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="25">25</option>
+          </select>
+        </label>
+        <button id="generateBtn">Generate ▶</button>
+        <button id="copyBtn" class="secondary" style="margin-left:auto">Copy all</button>
+      </div>
+
+      <div id="results" style="margin-top:4px"></div>
+      <div id="status" class="status"></div>
+
+      <hr style="margin:20px 0;border:none;border-top:1px solid var(--border,#eee)">
+      <h3 style="margin-bottom:8px;font-size:1rem">Luhn Validator</h3>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <input id="luhnInput" type="text" placeholder="Enter a card number to validate…" style="flex:1;min-width:200px;padding:8px 12px;border-radius:8px;border:1px solid var(--border,#ccc);font-family:monospace">
+        <button id="validateBtn">Validate</button>
+      </div>
+      <div id="luhnStatus" class="status" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <style>
+    .cc-list { display:flex; flex-direction:column; gap:6px; }
+    .cc-item { background:#f7f9fc; border-radius:8px; padding:10px 16px; font-family:monospace; font-size:0.95rem; display:flex; justify-content:space-between; align-items:center; border:1px solid var(--border,#e8edf3); }
+    .cc-item button { font-size:0.75rem; padding:3px 10px; }
+    .cc-type { font-size:0.75rem; color:#888; margin-left:10px; }
+  </style>
+
+  <script>
+    const CARD_TYPES = {
+      visa:            { name:'Visa',                   prefixes:['4'],                              lengths:[16] },
+      visa13:          { name:'Visa (13)',               prefixes:['4'],                              lengths:[13] },
+      mc:              { name:'Mastercard',              prefixes:['51','52','53','54','55'],          lengths:[16] },
+      amex:            { name:'American Express',        prefixes:['34','37'],                        lengths:[15] },
+      discover:        { name:'Discover',                prefixes:['6011','65'],                      lengths:[16] },
+      dinersclubintl:  { name:'Diners Club Intl',        prefixes:['300','301','302','303','304','305','36','38'], lengths:[14] },
+      jcb:             { name:'JCB',                     prefixes:['3528','3529','353','354','355','356','357','358'], lengths:[16] },
+      maestro:         { name:'Maestro',                 prefixes:['6304','6759','6761','6763'],      lengths:[16,18,19] }
+    };
+
+    function luhnCheck(num) {
+      const digits = String(num).replace(/\D/g,'').split('').map(Number);
+      let sum = 0;
+      let alt = false;
+      for (let i = digits.length - 1; i >= 0; i--) {
+        let d = digits[i];
+        if (alt) { d *= 2; if (d > 9) d -= 9; }
+        sum += d;
+        alt = !alt;
+      }
+      return sum % 10 === 0;
+    }
+
+    function generateCard(type) {
+      const cfg = CARD_TYPES[type];
+      const prefix = cfg.prefixes[Math.floor(Math.random() * cfg.prefixes.length)];
+      const length = cfg.lengths[Math.floor(Math.random() * cfg.lengths.length)];
+      let num = prefix;
+      while (num.length < length - 1) num += Math.floor(Math.random() * 10);
+      // Calculate check digit
+      const partial = num.split('').map(Number);
+      let sum = 0, alt = true;
+      for (let i = partial.length - 1; i >= 0; i--) {
+        let d = partial[i];
+        if (alt) { d *= 2; if (d > 9) d -= 9; }
+        sum += d;
+        alt = !alt;
+      }
+      const check = (10 - (sum % 10)) % 10;
+      return num + check;
+    }
+
+    function formatCard(num, type) {
+      if (type === 'amex') return num.slice(0,4) + ' ' + num.slice(4,10) + ' ' + num.slice(10);
+      if (type === 'dinersclubintl') return num.slice(0,4) + ' ' + num.slice(4,10) + ' ' + num.slice(10);
+      return num.match(/.{1,4}/g).join(' ');
+    }
+
+    const results = document.getElementById('results');
+    const status  = document.getElementById('status');
+
+    let generated = [];
+
+    document.getElementById('generateBtn').onclick = () => {
+      const type  = document.getElementById('cardType').value;
+      const count = parseInt(document.getElementById('count').value);
+      generated = [];
+      for (let i = 0; i < count; i++) generated.push(generateCard(type));
+      const cfg = CARD_TYPES[type];
+      results.innerHTML = '<div class="cc-list">' + generated.map(n =>
+        `<div class="cc-item"><span>${formatCard(n, type)}</span><span><span class="cc-type">${cfg.name}</span><button onclick="navigator.clipboard.writeText('${n}')">Copy</button></span></div>`
+      ).join('') + '</div>';
+      status.textContent = `Generated ${count} ${cfg.name} number(s) ✓`;
+      status.className = 'status ok';
+    };
+
+    document.getElementById('copyBtn').onclick = async () => {
+      if (!generated.length) { status.textContent = 'Generate first'; status.className='status err'; return; }
+      try { await navigator.clipboard.writeText(generated.join('\n')); status.textContent='Copied ✓'; status.className='status ok'; }
+      catch { status.textContent='Copy failed'; status.className='status err'; }
+    };
+
+    document.getElementById('validateBtn').onclick = () => {
+      const val = document.getElementById('luhnInput').value.replace(/\s/g,'');
+      const el  = document.getElementById('luhnStatus');
+      if (!val) { el.textContent='Enter a number'; el.className='status err'; return; }
+      if (!/^\d+$/.test(val)) { el.textContent='Digits only'; el.className='status err'; return; }
+      const valid = luhnCheck(val);
+      el.textContent = valid ? `✅ Valid Luhn checksum (${val.length} digits)` : `❌ Invalid Luhn checksum`;
+      el.className = 'status ' + (valid ? 'ok' : 'err');
+    };
+
+    // Default generate on load
+    document.getElementById('generateBtn').click();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

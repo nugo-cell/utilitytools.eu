@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>Cron Expression Generator &amp; Tester — Quartz &amp; Unix | UtilityTools.eu</title>
+  <meta name="description" content="Build, test and explain cron expressions for Unix and Quartz schedulers. Visualise next run times, validate syntax, and get human-readable descriptions. Free, browser-only.">
+  <meta name="keywords" content="cron expression generator, quartz cron, cron tester, cron builder, cron syntax, unix cron, cron schedule">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/cron">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="Cron Expression Generator — Quartz &amp; Unix">
+  <meta property="og:description" content="Build and explain cron expressions for Unix and Quartz. See next run times. Free, browser-only.">
+  <meta property="og:url" content="https://utilitytools.eu/cron">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Cron Expression Generator — Free Online Tool">
+  <meta name="twitter:description" content="Build, test and explain cron expressions for Unix and Quartz schedulers. Free.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>Cron Expression Generator</h1>
+      <p>Build, test and understand cron schedules. Supports Unix (5-field) and Quartz (6–7-field) formats.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:8px;gap:8px;flex-wrap:wrap;align-items:center">
+        <label style="font-size:0.9rem">Mode:</label>
+        <label class="checkbox"><input type="radio" name="mode" id="modeUnix" value="unix" checked> Unix (5 fields)</label>
+        <label class="checkbox"><input type="radio" name="mode" id="modeQuartz" value="quartz"> Quartz (6 fields: seconds included)</label>
+      </div>
+
+      <div class="row" style="gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px" id="fieldRow">
+        <div id="secField" style="display:none;flex:1;min-width:80px">
+          <label for="fsec" style="font-size:0.8rem;color:#666">Seconds</label>
+          <input id="fsec" type="text" value="0" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,#ccc);font-family:monospace;box-sizing:border-box">
+        </div>
+        <div style="flex:1;min-width:80px">
+          <label for="fmin" style="font-size:0.8rem;color:#666">Minutes</label>
+          <input id="fmin" type="text" value="*" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,#ccc);font-family:monospace;box-sizing:border-box">
+        </div>
+        <div style="flex:1;min-width:80px">
+          <label for="fhour" style="font-size:0.8rem;color:#666">Hours</label>
+          <input id="fhour" type="text" value="*" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,#ccc);font-family:monospace;box-sizing:border-box">
+        </div>
+        <div style="flex:1;min-width:80px">
+          <label for="fdom" style="font-size:0.8rem;color:#666">Day of Month</label>
+          <input id="fdom" type="text" value="*" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,#ccc);font-family:monospace;box-sizing:border-box">
+        </div>
+        <div style="flex:1;min-width:80px">
+          <label for="fmon" style="font-size:0.8rem;color:#666">Month</label>
+          <input id="fmon" type="text" value="*" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,#ccc);font-family:monospace;box-sizing:border-box">
+        </div>
+        <div style="flex:1;min-width:80px">
+          <label for="fdow" style="font-size:0.8rem;color:#666">Day of Week</label>
+          <input id="fdow" type="text" value="*" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,#ccc);font-family:monospace;box-sizing:border-box">
+        </div>
+        <div id="yearField" style="display:none;flex:1;min-width:80px">
+          <label for="fyear" style="font-size:0.8rem;color:#666">Year (opt.)</label>
+          <input id="fyear" type="text" value="*" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,#ccc);font-family:monospace;box-sizing:border-box">
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px">
+        <strong style="font-size:0.85rem">Quick presets:</strong>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+          <button class="preset secondary" data-expr="* * * * *" data-mode="unix">Every minute</button>
+          <button class="preset secondary" data-expr="0 * * * *" data-mode="unix">Every hour</button>
+          <button class="preset secondary" data-expr="0 0 * * *" data-mode="unix">Daily midnight</button>
+          <button class="preset secondary" data-expr="0 9 * * 1-5" data-mode="unix">Weekdays 9am</button>
+          <button class="preset secondary" data-expr="0 0 1 * *" data-mode="unix">1st of month</button>
+          <button class="preset secondary" data-expr="0 0 * * 0" data-mode="unix">Every Sunday</button>
+          <button class="preset secondary" data-expr="0/5 * * * * ?" data-mode="quartz">Every 5 seconds (Quartz)</button>
+          <button class="preset secondary" data-expr="0 0 12 * * ?" data-mode="quartz">Daily noon (Quartz)</button>
+        </div>
+      </div>
+
+      <div class="row" style="gap:8px;margin-bottom:8px">
+        <button id="parseBtn">Parse &amp; Explain ▶</button>
+        <button id="copyBtn" class="secondary">Copy expression</button>
+      </div>
+
+      <div id="exprDisplay" style="font-family:monospace;font-size:1.1rem;background:#f0f4ff;border-radius:8px;padding:12px 16px;margin-bottom:12px;color:#2d3a8c;font-weight:600;letter-spacing:0.08em"></div>
+      <div id="status" class="status"></div>
+      <div id="description" style="margin-top:10px"></div>
+      <div id="nextRuns" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <style>
+    .next-run { background:#f7f9fc; border-radius:6px; padding:7px 12px; margin-bottom:4px; font-size:0.85rem; font-family:monospace; }
+    .cron-desc { background:#eef2ff; border-radius:8px; padding:12px 16px; font-size:0.9rem; margin-bottom:8px; }
+    .field-ref { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:6px; margin-top:10px; }
+    .field-ref-item { background:#f7f9fc; border-radius:6px; padding:8px 10px; font-size:0.8rem; }
+    .field-ref-item strong { display:block; margin-bottom:2px; }
+  </style>
+
+  <script>
+    const MONTHS = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
+    const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+    function getMode() {
+      return document.querySelector('input[name="mode"]:checked').value;
+    }
+
+    function getExpr() {
+      const mode = getMode();
+      const fields = [
+        document.getElementById('fmin').value,
+        document.getElementById('fhour').value,
+        document.getElementById('fdom').value,
+        document.getElementById('fmon').value,
+        document.getElementById('fdow').value
+      ];
+      if (mode === 'quartz') {
+        const sec  = document.getElementById('fsec').value || '0';
+        const year = document.getElementById('fyear').value;
+        return year && year !== '*' ? `${sec} ${fields.join(' ')} ${year}` : `${sec} ${fields.join(' ')}`;
+      }
+      return fields.join(' ');
+    }
+
+    function updateDisplay() {
+      document.getElementById('exprDisplay').textContent = getExpr();
+    }
+
+    document.querySelectorAll('#fieldRow input').forEach(el => el.addEventListener('input', updateDisplay));
+
+    document.querySelectorAll('input[name="mode"]').forEach(el => el.addEventListener('change', () => {
+      const isQuartz = getMode() === 'quartz';
+      document.getElementById('secField').style.display  = isQuartz ? '' : 'none';
+      document.getElementById('yearField').style.display = isQuartz ? '' : 'none';
+      updateDisplay();
+    }));
+
+    document.querySelectorAll('.preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const expr = btn.dataset.expr;
+        const mode = btn.dataset.mode;
+        // Switch mode
+        document.getElementById(mode === 'quartz' ? 'modeQuartz' : 'modeUnix').checked = true;
+        document.getElementById('secField').style.display  = mode === 'quartz' ? '' : 'none';
+        document.getElementById('yearField').style.display = mode === 'quartz' ? '' : 'none';
+        const parts = expr.split(' ');
+        if (mode === 'quartz') {
+          document.getElementById('fsec').value  = parts[0] || '0';
+          document.getElementById('fmin').value  = parts[1] || '*';
+          document.getElementById('fhour').value = parts[2] || '*';
+          document.getElementById('fdom').value  = parts[3] || '*';
+          document.getElementById('fmon').value  = parts[4] || '*';
+          document.getElementById('fdow').value  = parts[5] || '*';
+        } else {
+          document.getElementById('fmin').value  = parts[0] || '*';
+          document.getElementById('fhour').value = parts[1] || '*';
+          document.getElementById('fdom').value  = parts[2] || '*';
+          document.getElementById('fmon').value  = parts[3] || '*';
+          document.getElementById('fdow').value  = parts[4] || '*';
+        }
+        updateDisplay();
+        document.getElementById('parseBtn').click();
+      });
+    });
+
+    function describeField(val, unit, min, max, names) {
+      if (val === '*' || val === '?') return `every ${unit}`;
+      if (/^\d+$/.test(val)) return `at ${unit} ${names ? names[parseInt(val)] || val : val}`;
+      if (/^(\d+)-(\d+)$/.test(val)) {
+        const [,a,b] = val.match(/^(\d+)-(\d+)$/);
+        return `from ${unit} ${names?.[a]||a} to ${names?.[b]||b}`;
+      }
+      if (/^\*\/(\d+)$/.test(val)) return `every ${val.slice(2)} ${unit}s`;
+      if (/^(\d+)\/(\d+)$/.test(val)) {
+        const [,a,b] = val.match(/^(\d+)\/(\d+)$/);
+        return `every ${b} ${unit}s starting at ${unit} ${a}`;
+      }
+      const parts = val.split(',');
+      if (parts.length > 1) return `at ${unit}s ${parts.map(p => names?.[parseInt(p)]||p).join(', ')}`;
+      return val;
+    }
+
+    function describeExpr(expr, mode) {
+      const parts = expr.trim().split(/\s+/);
+      let min, hour, dom, mon, dow;
+      if (mode === 'quartz') {
+        [, min, hour, dom, mon, dow] = parts;
+      } else {
+        [min, hour, dom, mon, dow] = parts;
+      }
+      const parts2 = [
+        describeField(min,  'minute', 0, 59),
+        describeField(hour, 'hour',   0, 23),
+        dom !== '*' && dom !== '?' ? describeField(dom, 'day', 1, 31) : null,
+        mon !== '*' ? describeField(mon, 'month', 1, 12, MONTHS) : null,
+        dow !== '*' && dow !== '?' ? describeField(dow, 'weekday', 0, 6, DAYS) : null
+      ].filter(Boolean);
+      return 'Runs ' + parts2.join(', ') + '.';
+    }
+
+    function getNextRuns(expr, mode, count) {
+      // Simple approximation: compute next N occurrences from now
+      const parts = expr.trim().split(/\s+/);
+      let sec = 0, min, hour, dom, mon, dow;
+      if (mode === 'quartz') {
+        [sec, min, hour, dom, mon, dow] = parts;
+        sec = parseInt(sec) || 0;
+      } else {
+        [min, hour, dom, mon, dow] = parts;
+      }
+
+      // Only handle simple cases
+      if (!/^[\d*\/,\-?]+$/.test([min,hour,dom,mon,dow].join(''))) return [];
+      const now = new Date();
+      const results = [];
+      const d = new Date(now);
+      d.setSeconds(sec || 0, 0);
+      d.setMinutes(d.getMinutes() + 1); // start from next minute
+
+      for (let attempts = 0; attempts < 100000 && results.length < count; attempts++) {
+        d.setMinutes(d.getMinutes() + 1);
+        if (!matchField(min,  d.getMinutes(), 0, 59)) continue;
+        if (!matchField(hour, d.getHours(),   0, 23)) continue;
+        if (!matchField(dom,  d.getDate(),    1, 31)) continue;
+        if (!matchField(mon,  d.getMonth()+1, 1, 12)) continue;
+        if (!matchField(dow,  d.getDay(),     0, 6)) continue;
+        results.push(new Date(d));
+      }
+      return results;
+    }
+
+    function matchField(expr, val, min, max) {
+      if (!expr || expr === '*' || expr === '?') return true;
+      for (const part of expr.split(',')) {
+        if (/^\d+$/.test(part) && parseInt(part) === val) return true;
+        if (/^(\d+)-(\d+)$/.test(part)) {
+          const [,a,b] = part.match(/^(\d+)-(\d+)$/);
+          if (val >= parseInt(a) && val <= parseInt(b)) return true;
+        }
+        if (/^\*\/(\d+)$/.test(part)) {
+          const step = parseInt(part.slice(2));
+          if ((val - min) % step === 0) return true;
+        }
+        if (/^(\d+)\/(\d+)$/.test(part)) {
+          const [,a,b] = part.match(/^(\d+)\/(\d+)$/);
+          if (val >= parseInt(a) && (val - parseInt(a)) % parseInt(b) === 0) return true;
+        }
+      }
+      return false;
+    }
+
+    document.getElementById('parseBtn').onclick = () => {
+      const expr = getExpr();
+      const mode = getMode();
+      const parts = expr.trim().split(/\s+/);
+      const expected = mode === 'quartz' ? [6, 7] : [5];
+      if (!expected.includes(parts.length)) {
+        document.getElementById('status').textContent = `Expected ${expected.join(' or ')} fields, got ${parts.length}`;
+        document.getElementById('status').className = 'status err';
+        return;
+      }
+      document.getElementById('status').textContent = 'Valid expression ✓';
+      document.getElementById('status').className = 'status ok';
+
+      const desc = describeExpr(expr, mode);
+      document.getElementById('description').innerHTML = `<div class="cron-desc"><strong>Description:</strong> ${escHtml(desc)}</div>`;
+
+      const runs = getNextRuns(expr, mode, 8);
+      if (runs.length) {
+        document.getElementById('nextRuns').innerHTML =
+          '<strong style="font-size:0.9rem">Next 8 run times:</strong><br>' +
+          runs.map(d => `<div class="next-run">${d.toLocaleString()}</div>`).join('');
+      } else {
+        document.getElementById('nextRuns').innerHTML = '<p style="color:#888;font-size:0.85rem">Could not calculate next runs for complex expressions.</p>';
+      }
+    };
+
+    document.getElementById('copyBtn').onclick = async () => {
+      try { await navigator.clipboard.writeText(getExpr()); document.getElementById('status').textContent='Copied ✓'; document.getElementById('status').className='status ok'; }
+      catch { document.getElementById('status').textContent='Copy failed'; document.getElementById('status').className='status err'; }
+    };
+
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    updateDisplay();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

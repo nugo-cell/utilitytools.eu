@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>HMAC Generator — HMAC-SHA256, HMAC-SHA512 Online | UtilityTools.eu</title>
+  <meta name="description" content="Generate HMAC signatures using SHA-1, SHA-256, SHA-384 or SHA-512. Enter your message and secret key. Runs entirely in your browser via Web Crypto API. Free, no upload.">
+  <meta name="keywords" content="hmac generator, hmac sha256, hmac sha512, hmac online, message authentication code, hmac calculator">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/hmac">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="HMAC Generator — HMAC-SHA256 &amp; SHA-512 Online">
+  <meta property="og:description" content="Generate HMAC-SHA256/SHA-512 message authentication codes online. Free, browser-only via Web Crypto API.">
+  <meta property="og:url" content="https://utilitytools.eu/hmac">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="HMAC Generator — Free Online Tool">
+  <meta name="twitter:description" content="Generate HMAC signatures using SHA-256, SHA-512 and more. Free, browser-only.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>HMAC Generator</h1>
+      <p>Compute HMAC (Hash-based Message Authentication Code) using SHA-1, SHA-256, SHA-384, or SHA-512. All processing happens in your browser.</p>
+    </div>
+
+    <div class="panel">
+      <label for="message">Message</label>
+      <textarea id="message" placeholder="Enter the message to sign…" style="font-family:monospace;font-size:0.85rem;min-height:80px;margin-bottom:12px"></textarea>
+
+      <label for="secretKey">Secret Key</label>
+      <div class="row" style="gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+        <input id="secretKey" type="text" placeholder="Enter your secret key…" style="flex:1;min-width:160px;padding:8px 12px;border-radius:8px;border:1px solid var(--border,#ccc);font-family:monospace">
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem">
+          Key encoding:
+          <select id="keyEncoding" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border,#ccc)">
+            <option value="utf8">UTF-8 text</option>
+            <option value="hex">Hex string</option>
+            <option value="base64">Base64</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="row" style="margin-bottom:16px;gap:8px;flex-wrap:wrap;align-items:center">
+        <button id="computeBtn">Compute HMAC ▶</button>
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem">
+          Output:
+          <select id="outputFmt" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border,#ccc)">
+            <option value="hex" selected>Hex</option>
+            <option value="base64">Base64</option>
+          </select>
+        </label>
+        <button id="clearBtn" class="secondary" style="margin-left:auto">Clear</button>
+      </div>
+
+      <div id="status" class="status"></div>
+
+      <div style="margin-top:16px">
+        <div class="stat" style="text-align:left;margin-bottom:10px">
+          <div class="label">HMAC-SHA-1</div>
+          <div class="mono hmac-out" id="hmac1" style="word-break:break-all;margin-top:4px;cursor:pointer" title="Click to copy">—</div>
+        </div>
+        <div class="stat" style="text-align:left;margin-bottom:10px">
+          <div class="label">HMAC-SHA-256</div>
+          <div class="mono hmac-out" id="hmac256" style="word-break:break-all;margin-top:4px;cursor:pointer" title="Click to copy">—</div>
+        </div>
+        <div class="stat" style="text-align:left;margin-bottom:10px">
+          <div class="label">HMAC-SHA-384</div>
+          <div class="mono hmac-out" id="hmac384" style="word-break:break-all;margin-top:4px;cursor:pointer" title="Click to copy">—</div>
+        </div>
+        <div class="stat" style="text-align:left">
+          <div class="label">HMAC-SHA-512</div>
+          <div class="mono hmac-out" id="hmac512" style="word-break:break-all;margin-top:4px;cursor:pointer" title="Click to copy">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const messageEl = document.getElementById('message');
+    const secretEl  = document.getElementById('secretKey');
+    const status    = document.getElementById('status');
+
+    function setStatus(msg, ok) { status.textContent = msg; status.className = 'status ' + (ok ? 'ok' : 'err'); }
+
+    function hexToBytes(hex) {
+      hex = hex.replace(/\s/g,'');
+      if (hex.length % 2 !== 0) throw new Error('Hex string must have even length');
+      const bytes = new Uint8Array(hex.length / 2);
+      for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.substr(i*2, 2), 16);
+      return bytes;
+    }
+
+    function b64ToBytes(b64) {
+      const bin = atob(b64);
+      return new Uint8Array([...bin].map(c => c.charCodeAt(0)));
+    }
+
+    function toHex(buf) {
+      return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+
+    function toB64(buf) {
+      return btoa(String.fromCharCode(...new Uint8Array(buf)));
+    }
+
+    async function computeHMAC(algo, keyBytes, msgBytes) {
+      const key = await crypto.subtle.importKey('raw', keyBytes, { name:'HMAC', hash: algo }, false, ['sign']);
+      const sig  = await crypto.subtle.sign('HMAC', key, msgBytes);
+      const fmt  = document.getElementById('outputFmt').value;
+      return fmt === 'base64' ? toB64(sig) : toHex(sig);
+    }
+
+    document.getElementById('computeBtn').onclick = async () => {
+      const msg    = messageEl.value;
+      const secret = secretEl.value;
+      const enc    = document.getElementById('keyEncoding').value;
+      if (!msg)    { setStatus('Enter a message', false); return; }
+      if (!secret) { setStatus('Enter a secret key', false); return; }
+
+      let keyBytes;
+      try {
+        if (enc === 'hex') keyBytes = hexToBytes(secret);
+        else if (enc === 'base64') keyBytes = b64ToBytes(secret);
+        else keyBytes = new TextEncoder().encode(secret);
+      } catch (e) { setStatus('Key error: ' + e.message, false); return; }
+
+      const msgBytes = new TextEncoder().encode(msg);
+      ['hmac1','hmac256','hmac384','hmac512'].forEach(id => document.getElementById(id).textContent = '…');
+      try {
+        const [h1, h256, h384, h512] = await Promise.all([
+          computeHMAC('SHA-1',   keyBytes, msgBytes),
+          computeHMAC('SHA-256', keyBytes, msgBytes),
+          computeHMAC('SHA-384', keyBytes, msgBytes),
+          computeHMAC('SHA-512', keyBytes, msgBytes)
+        ]);
+        document.getElementById('hmac1').textContent   = h1;
+        document.getElementById('hmac256').textContent = h256;
+        document.getElementById('hmac384').textContent = h384;
+        document.getElementById('hmac512').textContent = h512;
+        setStatus('Computed ✓', true);
+      } catch (e) { setStatus('Error: ' + e.message, false); }
+    };
+
+    document.querySelectorAll('.hmac-out').forEach(el => {
+      el.addEventListener('click', async () => {
+        if (el.textContent === '—' || el.textContent === '…') return;
+        try { await navigator.clipboard.writeText(el.textContent); setStatus('Copied ✓', true); }
+        catch { setStatus('Copy failed', false); }
+      });
+    });
+
+    document.getElementById('clearBtn').onclick = () => {
+      messageEl.value = ''; secretEl.value = '';
+      ['hmac1','hmac256','hmac384','hmac512'].forEach(id => document.getElementById(id).textContent = '—');
+      setStatus('', true);
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

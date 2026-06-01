@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>XML to JSON &amp; JSON to XML Converter — Free Online | UtilityTools.eu</title>
+  <meta name="description" content="Convert XML to JSON or JSON to XML instantly in your browser. Supports attributes, nested elements and arrays. Free, no upload, privacy-first.">
+  <meta name="keywords" content="xml to json, json to xml, xml json converter, convert xml to json online, xml json transform">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/xml-json">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="XML to JSON &amp; JSON to XML Converter">
+  <meta property="og:description" content="Convert between XML and JSON in your browser. Free, no upload.">
+  <meta property="og:url" content="https://utilitytools.eu/xml-json">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="XML ↔ JSON Converter — Free Online Tool">
+  <meta name="twitter:description" content="Convert XML to JSON or JSON to XML online. Free, browser-only.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>XML ↔ JSON Converter</h1>
+      <p>Convert XML documents to JSON or JSON objects to XML. Runs entirely in your browser — no upload.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px;gap:8px;flex-wrap:wrap">
+        <button id="xmlToJsonBtn">XML → JSON ▶</button>
+        <button id="jsonToXmlBtn" class="secondary">JSON → XML ▶</button>
+        <button id="copyBtn" class="secondary" style="margin-left:auto">Copy output</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+
+      <div class="split">
+        <div>
+          <label for="input">Input</label>
+          <textarea id="input" style="font-family:monospace;font-size:0.8rem;min-height:200px" placeholder="Paste XML or JSON here…"></textarea>
+        </div>
+        <div>
+          <label for="output">Output</label>
+          <textarea id="output" readonly style="font-family:monospace;font-size:0.8rem;min-height:200px" placeholder="Output will appear here…"></textarea>
+        </div>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <script>
+    const input  = document.getElementById('input');
+    const output = document.getElementById('output');
+    const status = document.getElementById('status');
+
+    function setStatus(msg, ok) { status.textContent = msg; status.className = 'status ' + (ok ? 'ok' : 'err'); }
+
+    // ---- XML → JSON ----
+    function xmlNodeToObj(node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const t = node.textContent.trim();
+        return t || undefined;
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) return undefined;
+
+      const obj = {};
+
+      // Attributes
+      for (const attr of node.attributes) {
+        obj['@' + attr.name] = attr.value;
+      }
+
+      // Children
+      const children = [...node.childNodes].filter(n => n.nodeType === Node.ELEMENT_NODE || (n.nodeType === Node.TEXT_NODE && n.textContent.trim()));
+      if (children.length === 0) {
+        const text = node.textContent.trim();
+        if (Object.keys(obj).length === 0) return text === '' ? null : text;
+        if (text) obj['#text'] = text;
+        return obj;
+      }
+
+      for (const child of children) {
+        if (child.nodeType === Node.TEXT_NODE) {
+          obj['#text'] = child.textContent.trim();
+          continue;
+        }
+        const childObj = xmlNodeToObj(child);
+        const key = child.nodeName;
+        if (key in obj) {
+          if (!Array.isArray(obj[key])) obj[key] = [obj[key]];
+          obj[key].push(childObj);
+        } else {
+          obj[key] = childObj;
+        }
+      }
+
+      return Object.keys(obj).length === 0 ? null : obj;
+    }
+
+    function xmlToJson(xmlStr) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xmlStr, 'application/xml');
+      const err = doc.querySelector('parsererror');
+      if (err) throw new Error(err.textContent.split('\n')[0].trim());
+      const root = doc.documentElement;
+      return JSON.stringify({ [root.nodeName]: xmlNodeToObj(root) }, null, 2);
+    }
+
+    // ---- JSON → XML ----
+    function objToXmlNodes(key, val, indent) {
+      const pad = '  '.repeat(indent);
+      if (val === null || val === undefined) return `${pad}<${key}/>`;
+      if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
+        return `${pad}<${key}>${escXml(String(val))}</${key}>`;
+      }
+      if (Array.isArray(val)) {
+        return val.map(item => objToXmlNodes(key, item, indent)).join('\n');
+      }
+      // Object
+      const attrs = Object.entries(val).filter(([k]) => k.startsWith('@')).map(([k,v]) => ` ${k.slice(1)}="${escXml(String(v))}"`).join('');
+      const textContent = val['#text'] ? escXml(String(val['#text'])) : null;
+      const children = Object.entries(val).filter(([k]) => !k.startsWith('@') && k !== '#text');
+      if (children.length === 0 && textContent) return `${pad}<${key}${attrs}>${textContent}</${key}>`;
+      if (children.length === 0 && !textContent) return `${pad}<${key}${attrs}/>`;
+      const inner = children.map(([k,v]) => objToXmlNodes(k, v, indent + 1)).join('\n');
+      return `${pad}<${key}${attrs}>\n${inner}${textContent ? '\n' + pad + '  ' + textContent : ''}\n${pad}</${key}>`;
+    }
+
+    function escXml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    function jsonToXml(jsonStr) {
+      const obj = JSON.parse(jsonStr);
+      const keys = Object.keys(obj);
+      if (keys.length === 1) {
+        return `<?xml version="1.0" encoding="UTF-8"?>\n` + objToXmlNodes(keys[0], obj[keys[0]], 0);
+      }
+      const inner = keys.map(k => objToXmlNodes(k, obj[k], 1)).join('\n');
+      return `<?xml version="1.0" encoding="UTF-8"?>\n<root>\n${inner}\n</root>`;
+    }
+
+    document.getElementById('xmlToJsonBtn').onclick = () => {
+      const raw = input.value.trim();
+      if (!raw) { setStatus('Paste XML first', false); return; }
+      try { output.value = xmlToJson(raw); setStatus('Converted to JSON ✓', true); }
+      catch (e) { setStatus('Error: ' + e.message, false); }
+    };
+
+    document.getElementById('jsonToXmlBtn').onclick = () => {
+      const raw = input.value.trim();
+      if (!raw) { setStatus('Paste JSON first', false); return; }
+      try { output.value = jsonToXml(raw); setStatus('Converted to XML ✓', true); }
+      catch (e) { setStatus('Error: ' + e.message, false); }
+    };
+
+    document.getElementById('copyBtn').onclick = async () => {
+      if (!output.value) { setStatus('Nothing to copy', false); return; }
+      try { await navigator.clipboard.writeText(output.value); setStatus('Copied ✓', true); }
+      catch { setStatus('Copy failed', false); }
+    };
+
+    document.getElementById('clearBtn').onclick = () => {
+      input.value = ''; output.value = ''; setStatus('', true);
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>URL Parser &amp; Query String Splitter — Free Online | UtilityTools.eu</title>
+  <meta name="description" content="Parse any URL into its components: protocol, host, path, port, query parameters, fragment. Split and edit query strings. Free, browser-only.">
+  <meta name="keywords" content="url parser, query string splitter, url components, parse url online, url decoder, query parameter editor, url analyzer">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/url-parser">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="URL Parser &amp; Query String Splitter">
+  <meta property="og:description" content="Parse any URL into its components and split query strings. Free, browser-only.">
+  <meta property="og:url" content="https://utilitytools.eu/url-parser">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="URL Parser — Free Online Tool">
+  <meta name="twitter:description" content="Parse URLs and split query strings. Free, browser-only.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>URL Parser &amp; Query String Splitter</h1>
+      <p>Break any URL into its components — protocol, host, path, port, query parameters, and fragment.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px;gap:8px;flex-wrap:wrap">
+        <input id="urlInput" type="text" placeholder="https://example.com:8080/api/v1/users?page=2&limit=10&sort=name#results" style="flex:1;padding:10px 14px;border-radius:8px;border:1px solid var(--border,#ccc);font-family:monospace;font-size:0.9rem">
+        <button id="parseBtn">Parse ▶</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+      <div id="status" class="status"></div>
+      <div id="results" style="margin-top:16px"></div>
+    </div>
+  </div>
+
+  <style>
+    .url-section { margin-bottom:20px; }
+    .url-section h3 { font-size:0.9rem; font-weight:700; color:#444; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.05em; }
+    .url-field { display:flex; align-items:center; gap:10px; background:#f7f9fc; border-radius:8px; padding:8px 14px; margin-bottom:6px; border:1px solid var(--border,#e8edf3); }
+    .url-field .url-key { font-size:0.78rem; font-weight:600; color:#888; min-width:90px; }
+    .url-field .url-val { font-family:monospace; font-size:0.88rem; color:#2d3a8c; word-break:break-all; flex:1; }
+    .url-field .copy-btn { font-size:0.73rem; padding:2px 8px; flex-shrink:0; }
+    .param-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+    .param-table th { background:#f0f4ff; padding:8px 12px; text-align:left; font-weight:600; border-bottom:2px solid var(--border,#e2e8f0); }
+    .param-table td { padding:7px 12px; border-bottom:1px solid var(--border,#f0f2f5); vertical-align:middle; font-family:monospace; }
+    .param-table tr:hover td { background:#f7f9fc; }
+    .rebuild-btn { margin-top:12px; }
+  </style>
+
+  <script>
+    const urlInput = document.getElementById('urlInput');
+    const status   = document.getElementById('status');
+    const results  = document.getElementById('results');
+
+    function setStatus(msg, ok) { status.textContent = msg; status.className = 'status ' + (ok ? 'ok' : 'err'); }
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    async function copyText(text) {
+      try { await navigator.clipboard.writeText(text); setStatus('Copied ✓', true); }
+      catch { setStatus('Copy failed', false); }
+    }
+
+    function parseURL() {
+      const raw = urlInput.value.trim();
+      if (!raw) { setStatus('Enter a URL', false); return; }
+
+      let url;
+      try {
+        url = new URL(raw);
+      } catch {
+        // Try with https:// prefix
+        try { url = new URL('https://' + raw); }
+        catch (e) { setStatus('Invalid URL: ' + e.message, false); return; }
+      }
+
+      const params = [...url.searchParams.entries()];
+      const components = [
+        ['Protocol', url.protocol],
+        ['Host', url.host],
+        ['Hostname', url.hostname],
+        ['Port', url.port || '(default)'],
+        ['Origin', url.origin],
+        ['Pathname', url.pathname],
+        ['Search', url.search || '(none)'],
+        ['Hash / Fragment', url.hash || '(none)'],
+        ['Full URL', url.href],
+      ];
+
+      let html = '<div class="url-section"><h3>URL Components</h3>';
+      for (const [key, val] of components) {
+        html += `<div class="url-field">
+          <span class="url-key">${key}</span>
+          <span class="url-val">${escHtml(val)}</span>
+          <button class="copy-btn secondary" onclick="copyText(${JSON.stringify(val)})">Copy</button>
+        </div>`;
+      }
+      html += '</div>';
+
+      if (params.length > 0) {
+        html += `<div class="url-section"><h3>Query Parameters (${params.length})</h3>
+          <table class="param-table">
+            <thead><tr><th>#</th><th>Parameter</th><th>Value (encoded)</th><th>Value (decoded)</th></tr></thead>
+            <tbody>${params.map(([k,v], i) =>
+              `<tr>
+                <td style="color:#888;font-size:0.78rem">${i+1}</td>
+                <td>${escHtml(k)}</td>
+                <td>${escHtml(encodeURIComponent(v))}</td>
+                <td>${escHtml(v)}<button class="copy-btn secondary" style="margin-left:8px" onclick="copyText(${JSON.stringify(v)})">Copy</button></td>
+              </tr>`
+            ).join('')}</tbody>
+          </table>
+          <button class="rebuild-btn secondary" onclick="copyText(${JSON.stringify(url.search.slice(1))})">Copy query string</button>
+          <button class="rebuild-btn secondary" onclick="copyText(${JSON.stringify(url.href)})">Copy full URL</button>
+        </div>`;
+      } else {
+        html += '<div class="url-section"><h3>Query Parameters</h3><p style="color:#888;font-size:0.88rem">No query parameters found.</p></div>';
+      }
+
+      results.innerHTML = html;
+      setStatus('Parsed ✓', true);
+    }
+
+    document.getElementById('parseBtn').onclick = parseURL;
+    urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') parseURL(); });
+    document.getElementById('clearBtn').onclick = () => { urlInput.value = ''; results.innerHTML = ''; setStatus('', true); };
+
+    // Auto-parse if there's sample data
+    if (urlInput.value) parseURL();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

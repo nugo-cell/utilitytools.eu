@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>HTML Entities Reference — Searchable List | UtilityTools.eu</title>
+  <meta name="description" content="Complete searchable reference of HTML entities and character codes. Find entities by name, number, or character. Includes symbols, arrows, math, Greek letters and more.">
+  <meta name="keywords" content="html entities, html special characters, html entity reference, html character codes, html symbols, html entity list">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/html-entities">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="HTML Entities Reference — Complete Searchable List">
+  <meta property="og:description" content="Searchable HTML entities reference with names, numbers, and characters. Free.">
+  <meta property="og:url" content="https://utilitytools.eu/html-entities">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="HTML Entities Reference — Free Online Tool">
+  <meta name="twitter:description" content="Searchable HTML entities reference. Free.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>HTML Entities Reference</h1>
+      <p>Complete, searchable reference of HTML entities. Click any entity to copy it to your clipboard.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:16px;gap:8px;flex-wrap:wrap;align-items:center">
+        <input id="search" type="text" placeholder="Search by name, number, or character (e.g. amp, ©, 169)…" style="flex:1;min-width:200px;padding:10px 14px;border-radius:8px;border:1px solid var(--border,#ccc)">
+        <select id="filterCat" style="padding:10px 14px;border-radius:8px;border:1px solid var(--border,#ccc)">
+          <option value="">All categories</option>
+          <option value="basic">Basic</option>
+          <option value="symbols">Symbols</option>
+          <option value="math">Math</option>
+          <option value="arrows">Arrows</option>
+          <option value="greek">Greek</option>
+          <option value="currency">Currency</option>
+          <option value="punct">Punctuation</option>
+          <option value="fractions">Fractions</option>
+        </select>
+        <span id="count" style="font-size:0.85rem;color:#888"></span>
+      </div>
+      <div id="status" class="status" style="margin-bottom:8px"></div>
+      <div id="grid"></div>
+    </div>
+  </div>
+
+  <style>
+    .entity-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px; }
+    .entity-card { background:#f7f9fc; border:1px solid var(--border,#e2e8f0); border-radius:8px; padding:10px 12px; cursor:pointer; transition:all 0.15s; text-align:center; }
+    .entity-card:hover { background:#eef2ff; border-color:#b0c4f0; }
+    .entity-char { font-size:1.8rem; line-height:1.2; margin-bottom:4px; }
+    .entity-name { font-family:monospace; font-size:0.78rem; color:#4f8ef7; }
+    .entity-num  { font-size:0.73rem; color:#888; margin-top:2px; }
+    .hl { background:#ffd54f; border-radius:2px; }
+  </style>
+
+  <script>
+    const ENTITIES = [
+      // Basic
+      ['&amp;','&#38;','&','basic','Ampersand'],
+      ['&lt;','&#60;','<','basic','Less-than sign'],
+      ['&gt;','&#62;','>','basic','Greater-than sign'],
+      ['&quot;','&#34;','"','basic','Quotation mark'],
+      ['&apos;','&#39;',"'",'basic','Apostrophe'],
+      ['&nbsp;','&#160;',' ','basic','Non-breaking space'],
+      ['&copy;','&#169;','©','symbols','Copyright'],
+      ['&reg;','&#174;','®','symbols','Registered trademark'],
+      ['&trade;','&#8482;','™','symbols','Trade mark'],
+      ['&deg;','&#176;','°','symbols','Degree sign'],
+      ['&hellip;','&#8230;','…','punct','Horizontal ellipsis'],
+      ['&mdash;','&#8212;','—','punct','Em dash'],
+      ['&ndash;','&#8211;','–','punct','En dash'],
+      ['&laquo;','&#171;','«','punct','Left-pointing double angle quotation mark'],
+      ['&raquo;','&#187;','»','punct','Right-pointing double angle quotation mark'],
+      ['&lsquo;','&#8216;','\u2018','punct','Left single quotation mark'],
+      ['&rsquo;','&#8217;','\u2019','punct','Right single quotation mark'],
+      ['&ldquo;','&#8220;','\u201C','punct','Left double quotation mark'],
+      ['&rdquo;','&#8221;','\u201D','punct','Right double quotation mark'],
+      // Currency
+      ['&euro;','&#8364;','€','currency','Euro sign'],
+      ['&pound;','&#163;','£','currency','Pound sign'],
+      ['&yen;','&#165;','¥','currency','Yen sign'],
+      ['&cent;','&#162;','¢','currency','Cent sign'],
+      ['&curren;','&#164;','¤','currency','Currency sign'],
+      ['&#8377;','&#8377;','₹','currency','Indian Rupee sign'],
+      ['&#8372;','&#8372;','₴','currency','Hryvnia sign'],
+      // Math
+      ['&plusmn;','&#177;','±','math','Plus-minus sign'],
+      ['&times;','&#215;','×','math','Multiplication sign'],
+      ['&divide;','&#247;','÷','math','Division sign'],
+      ['&frac14;','&#188;','¼','fractions','Vulgar fraction one quarter'],
+      ['&frac12;','&#189;','½','fractions','Vulgar fraction one half'],
+      ['&frac34;','&#190;','¾','fractions','Vulgar fraction three quarters'],
+      ['&sup1;','&#185;','¹','math','Superscript one'],
+      ['&sup2;','&#178;','²','math','Superscript two'],
+      ['&sup3;','&#179;','³','math','Superscript three'],
+      ['&infin;','&#8734;','∞','math','Infinity'],
+      ['&sum;','&#8721;','∑','math','N-ary summation'],
+      ['&prod;','&#8719;','∏','math','N-ary product'],
+      ['&radic;','&#8730;','√','math','Square root'],
+      ['&ne;','&#8800;','≠','math','Not equal to'],
+      ['&le;','&#8804;','≤','math','Less-than or equal to'],
+      ['&ge;','&#8805;','≥','math','Greater-than or equal to'],
+      ['&asymp;','&#8776;','≈','math','Almost equal to'],
+      ['&prime;','&#8242;','′','math','Prime'],
+      ['&Prime;','&#8243;','″','math','Double prime'],
+      // Arrows
+      ['&larr;','&#8592;','←','arrows','Leftwards arrow'],
+      ['&rarr;','&#8594;','→','arrows','Rightwards arrow'],
+      ['&uarr;','&#8593;','↑','arrows','Upwards arrow'],
+      ['&darr;','&#8595;','↓','arrows','Downwards arrow'],
+      ['&harr;','&#8596;','↔','arrows','Left right arrow'],
+      ['&lArr;','&#8656;','⇐','arrows','Leftwards double arrow'],
+      ['&rArr;','&#8658;','⇒','arrows','Rightwards double arrow'],
+      ['&hArr;','&#8660;','⇔','arrows','Left right double arrow'],
+      // Greek
+      ['&alpha;','&#945;','α','greek','Greek small letter alpha'],
+      ['&beta;','&#946;','β','greek','Greek small letter beta'],
+      ['&gamma;','&#947;','γ','greek','Greek small letter gamma'],
+      ['&delta;','&#948;','δ','greek','Greek small letter delta'],
+      ['&epsilon;','&#949;','ε','greek','Greek small letter epsilon'],
+      ['&zeta;','&#950;','ζ','greek','Greek small letter zeta'],
+      ['&eta;','&#951;','η','greek','Greek small letter eta'],
+      ['&theta;','&#952;','θ','greek','Greek small letter theta'],
+      ['&lambda;','&#955;','λ','greek','Greek small letter lambda'],
+      ['&mu;','&#956;','μ','greek','Greek small letter mu'],
+      ['&pi;','&#960;','π','greek','Greek small letter pi'],
+      ['&sigma;','&#963;','σ','greek','Greek small letter sigma'],
+      ['&tau;','&#964;','τ','greek','Greek small letter tau'],
+      ['&phi;','&#966;','φ','greek','Greek small letter phi'],
+      ['&omega;','&#969;','ω','greek','Greek small letter omega'],
+      ['&Omega;','&#937;','Ω','greek','Greek capital letter omega'],
+      // Symbols
+      ['&bull;','&#8226;','•','symbols','Bullet'],
+      ['&dagger;','&#8224;','†','symbols','Dagger'],
+      ['&Dagger;','&#8225;','‡','symbols','Double dagger'],
+      ['&sect;','&#167;','§','symbols','Section sign'],
+      ['&para;','&#182;','¶','symbols','Pilcrow sign'],
+      ['&spades;','&#9824;','♠','symbols','Black spade suit'],
+      ['&clubs;','&#9827;','♣','symbols','Black club suit'],
+      ['&hearts;','&#9829;','♥','symbols','Black heart suit'],
+      ['&diams;','&#9830;','♦','symbols','Black diamond suit'],
+      ['&star;','&#9733;','★','symbols','Black star'],
+      ['&phone;','&#9742;','☎','symbols','Black telephone'],
+      ['&check;','&#10003;','✓','symbols','Check mark'],
+      ['&#10007;','&#10007;','✗','symbols','Ballot X'],
+      ['&hearts;','&#9829;','♥','symbols','Heart'],
+      ['&#9786;','&#9786;','☺','symbols','White smiling face'],
+    ];
+
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function filter() {
+      const q   = document.getElementById('search').value.toLowerCase().trim();
+      const cat = document.getElementById('filterCat').value;
+      const filtered = ENTITIES.filter(([named, num, ch, c, desc]) => {
+        const matchCat = !cat || c === cat;
+        const matchQ   = !q || named.toLowerCase().includes(q) || num.includes(q) || ch === q || desc.toLowerCase().includes(q) || num.replace(/&#|;/g,'').includes(q);
+        return matchCat && matchQ;
+      });
+      document.getElementById('count').textContent = `${filtered.length} of ${ENTITIES.length} entities`;
+      document.getElementById('grid').innerHTML = '<div class="entity-grid">' +
+        filtered.map(([named, num, ch, , desc]) =>
+          `<div class="entity-card" onclick="copyEntity('${escHtml(named)}')" title="${escHtml(desc)}">
+            <div class="entity-char">${escHtml(ch)}</div>
+            <div class="entity-name">${escHtml(named)}</div>
+            <div class="entity-num">${num}</div>
+          </div>`
+        ).join('') + '</div>';
+    }
+
+    async function copyEntity(entity) {
+      try {
+        await navigator.clipboard.writeText(entity);
+        document.getElementById('status').textContent = `Copied: ${entity} ✓`;
+        document.getElementById('status').className = 'status ok';
+      } catch {
+        document.getElementById('status').textContent = 'Copy failed';
+        document.getElementById('status').className = 'status err';
+      }
+    }
+
+    document.getElementById('search').addEventListener('input', filter);
+    document.getElementById('filterCat').addEventListener('change', filter);
+    filter();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

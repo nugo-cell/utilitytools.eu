@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>CSV to XML Converter — Free Online Tool | UtilityTools.eu</title>
+  <meta name="description" content="Convert CSV data to well-formed XML in your browser. Choose root element name, row element name, and column header handling. Free, no upload.">
+  <meta name="keywords" content="csv to xml, csv xml converter, convert csv to xml online, csv to xml transform, csv xml generator">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/csv-xml">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="CSV to XML Converter — Free Online Tool">
+  <meta property="og:description" content="Convert CSV data to well-formed XML. Choose element names, handle headers. Free, browser-only.">
+  <meta property="og:url" content="https://utilitytools.eu/csv-xml">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="CSV to XML Converter — Free Online Tool">
+  <meta name="twitter:description" content="Convert CSV to XML online. Free, browser-only.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>CSV to XML Converter</h1>
+      <p>Paste CSV data and convert it to structured, well-formed XML. Runs entirely in your browser.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:10px;align-items:center">
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem">
+          Delimiter:
+          <select id="delimiter" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border,#ccc)">
+            <option value=",">Comma (,)</option>
+            <option value=";">Semicolon (;)</option>
+            <option value="&#9;">Tab</option>
+            <option value="|">Pipe (|)</option>
+          </select>
+        </label>
+        <label class="checkbox"><input type="checkbox" id="hasHeader" checked> First row is header</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem">
+          Root: <input id="rootName" type="text" value="root" style="width:80px;padding:4px 8px;border-radius:6px;border:1px solid var(--border,#ccc);font-family:monospace">
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem">
+          Row: <input id="rowName" type="text" value="row" style="width:80px;padding:4px 8px;border-radius:6px;border:1px solid var(--border,#ccc);font-family:monospace">
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem">
+          Col: <input id="colName" type="text" value="col" style="width:80px;padding:4px 8px;border-radius:6px;border:1px solid var(--border,#ccc);font-family:monospace">
+        </label>
+      </div>
+
+      <div class="row" style="margin-bottom:12px;gap:8px">
+        <button id="convertBtn">Convert to XML ▶</button>
+        <button id="copyBtn" class="secondary" style="margin-left:auto">Copy output</button>
+        <button id="downloadBtn" class="secondary">Download .xml</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+
+      <div class="split">
+        <div>
+          <label for="input">CSV Input</label>
+          <textarea id="input" style="font-family:monospace;font-size:0.82rem;min-height:200px" placeholder="name,age,city&#10;Alice,30,Copenhagen&#10;Bob,25,London"></textarea>
+        </div>
+        <div>
+          <label for="output">XML Output</label>
+          <textarea id="output" readonly style="font-family:monospace;font-size:0.82rem;min-height:200px" placeholder="XML output will appear here…"></textarea>
+        </div>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <script>
+    const input  = document.getElementById('input');
+    const output = document.getElementById('output');
+    const status = document.getElementById('status');
+
+    function setStatus(msg, ok) { status.textContent = msg; status.className = 'status ' + (ok ? 'ok' : 'err'); }
+
+    function parseCSV(text, delimiter) {
+      const rows = [];
+      const lines = text.split(/\r?\n/);
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const cells = [];
+        let cur = '';
+        let inQ = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (ch === '"') {
+            if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+            else inQ = !inQ;
+          } else if (ch === delimiter && !inQ) {
+            cells.push(cur); cur = '';
+          } else {
+            cur += ch;
+          }
+        }
+        cells.push(cur);
+        rows.push(cells);
+      }
+      return rows;
+    }
+
+    function toXmlTag(s) {
+      // Make a valid XML element name from string
+      let t = s.replace(/[^a-zA-Z0-9_\-\.]/g, '_');
+      if (/^[^a-zA-Z_]/.test(t)) t = '_' + t;
+      return t || 'col';
+    }
+
+    function escXml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    document.getElementById('convertBtn').onclick = () => {
+      const raw = input.value.trim();
+      if (!raw) { setStatus('Paste CSV first', false); return; }
+      const delimiter = document.getElementById('delimiter').value;
+      const hasHeader = document.getElementById('hasHeader').checked;
+      const rootName  = toXmlTag(document.getElementById('rootName').value || 'root');
+      const rowName   = toXmlTag(document.getElementById('rowName').value || 'row');
+      const colName   = document.getElementById('colName').value || 'col';
+      try {
+        const rows = parseCSV(raw, delimiter);
+        if (rows.length === 0) { setStatus('No data', false); return; }
+        let headers = [];
+        let dataRows = rows;
+        if (hasHeader) { headers = rows[0]; dataRows = rows.slice(1); }
+
+        let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<${rootName}>\n`;
+        for (const row of dataRows) {
+          xml += `  <${rowName}>\n`;
+          for (let i = 0; i < row.length; i++) {
+            const tag = hasHeader ? toXmlTag(headers[i] || colName + (i+1)) : colName + (i+1);
+            xml += `    <${tag}>${escXml(row[i])}</${tag}>\n`;
+          }
+          xml += `  </${rowName}>\n`;
+        }
+        xml += `</${rootName}>`;
+        output.value = xml;
+        setStatus(`Converted ${dataRows.length} rows ✓`, true);
+      } catch (e) { setStatus('Error: ' + e.message, false); }
+    };
+
+    document.getElementById('copyBtn').onclick = async () => {
+      if (!output.value) { setStatus('Nothing to copy', false); return; }
+      try { await navigator.clipboard.writeText(output.value); setStatus('Copied ✓', true); }
+      catch { setStatus('Copy failed', false); }
+    };
+
+    document.getElementById('downloadBtn').onclick = () => {
+      if (!output.value) { setStatus('Nothing to download', false); return; }
+      const blob = new Blob([output.value], { type: 'application/xml' });
+      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'output.xml' });
+      a.click(); URL.revokeObjectURL(a.href);
+    };
+
+    document.getElementById('clearBtn').onclick = () => {
+      input.value = ''; output.value = ''; setStatus('', true);
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>YAML ↔ JSON Converter — Free Online Tool | UtilityTools.eu</title>
+  <meta name="description" content="Convert YAML to JSON or JSON to YAML instantly in your browser. Supports nested objects, arrays, multi-line strings and anchors. Free, no upload.">
+  <meta name="keywords" content="yaml to json, json to yaml, yaml json converter, convert yaml online, yaml parser online, json yaml transform">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/yaml-json">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="YAML ↔ JSON Converter — Free Online Tool">
+  <meta property="og:description" content="Convert YAML to JSON or JSON to YAML in your browser. Free, no upload.">
+  <meta property="og:url" content="https://utilitytools.eu/yaml-json">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="YAML ↔ JSON Converter — Free Online Tool">
+  <meta name="twitter:description" content="Convert YAML to JSON or JSON to YAML. Free, browser-only.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>YAML ↔ JSON Converter</h1>
+      <p>Convert YAML to JSON or JSON to YAML. Supports nested structures, arrays, multi-line strings and YAML anchors.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px;gap:8px;flex-wrap:wrap">
+        <button id="yamlToJsonBtn">YAML → JSON ▶</button>
+        <button id="jsonToYamlBtn" class="secondary">JSON → YAML ▶</button>
+        <button id="copyBtn" class="secondary" style="margin-left:auto">Copy output</button>
+        <button id="downloadBtn" class="secondary">Download</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+
+      <div class="split">
+        <div>
+          <label for="input">Input (YAML or JSON)</label>
+          <textarea id="input" style="font-family:monospace;font-size:0.82rem;min-height:220px" placeholder="Paste YAML or JSON here…">name: John Doe
+age: 30
+address:
+  street: 123 Main St
+  city: Copenhagen
+  country: Denmark
+hobbies:
+  - reading
+  - cycling
+  - coding
+active: true</textarea>
+        </div>
+        <div>
+          <label for="output">Output</label>
+          <textarea id="output" readonly style="font-family:monospace;font-size:0.82rem;min-height:220px" placeholder="Output will appear here…"></textarea>
+        </div>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <!-- js-yaml from CDN for full YAML 1.2 support -->
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+  <script>
+    const input  = document.getElementById('input');
+    const output = document.getElementById('output');
+    const status = document.getElementById('status');
+    let lastOutput = '';
+    let lastExt = 'txt';
+
+    function setStatus(msg, ok) { status.textContent = msg; status.className = 'status ' + (ok ? 'ok' : 'err'); }
+
+    document.getElementById('yamlToJsonBtn').onclick = () => {
+      const raw = input.value.trim();
+      if (!raw) { setStatus('Paste YAML first', false); return; }
+      try {
+        const obj = jsyaml.load(raw);
+        lastOutput = JSON.stringify(obj, null, 2);
+        lastExt = 'json';
+        output.value = lastOutput;
+        setStatus('Converted to JSON ✓', true);
+      } catch (e) { setStatus('YAML parse error: ' + e.message, false); }
+    };
+
+    document.getElementById('jsonToYamlBtn').onclick = () => {
+      const raw = input.value.trim();
+      if (!raw) { setStatus('Paste JSON first', false); return; }
+      try {
+        const obj = JSON.parse(raw);
+        lastOutput = jsyaml.dump(obj, { indent: 2 });
+        lastExt = 'yaml';
+        output.value = lastOutput;
+        setStatus('Converted to YAML ✓', true);
+      } catch (e) { setStatus('JSON parse error: ' + e.message, false); }
+    };
+
+    document.getElementById('copyBtn').onclick = async () => {
+      if (!output.value) { setStatus('Nothing to copy', false); return; }
+      try { await navigator.clipboard.writeText(output.value); setStatus('Copied ✓', true); }
+      catch { setStatus('Copy failed', false); }
+    };
+
+    document.getElementById('downloadBtn').onclick = () => {
+      if (!output.value) { setStatus('Nothing to download', false); return; }
+      const type = lastExt === 'json' ? 'application/json' : 'text/yaml';
+      const blob = new Blob([output.value], { type });
+      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `output.${lastExt}` });
+      a.click(); URL.revokeObjectURL(a.href);
+    };
+
+    document.getElementById('clearBtn').onclick = () => {
+      input.value = ''; output.value = ''; lastOutput = ''; setStatus('', true);
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

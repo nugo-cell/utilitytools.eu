@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>HTML Validator — Check HTML Syntax Online | UtilityTools.eu</title>
+  <meta name="description" content="Validate HTML code in your browser. Detect missing tags, unclosed elements, invalid attributes and structural errors. Free, no upload.">
+  <meta name="keywords" content="html validator, validate html online, html syntax checker, html error checker, html lint">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/html-validator">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="HTML Validator — Check HTML Syntax Online">
+  <meta property="og:description" content="Validate HTML code in your browser. Detect unclosed tags, missing attributes and structural errors. Free.">
+  <meta property="og:url" content="https://utilitytools.eu/html-validator">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="HTML Validator — Free Online Tool">
+  <meta name="twitter:description" content="Validate HTML code in your browser. Free, no upload.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>HTML Validator</h1>
+      <p>Check HTML for unclosed tags, missing required attributes, deprecated elements, and structural issues.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <button id="validateBtn">Validate HTML ▶</button>
+        <button id="clearBtn" class="secondary" style="margin-left:auto">Clear</button>
+      </div>
+      <label for="input">HTML to validate</label>
+      <textarea id="input" placeholder="Paste your HTML here…" style="font-family:monospace;font-size:0.82rem;min-height:200px"></textarea>
+      <div id="status" class="status"></div>
+      <div id="results" style="margin-top:16px"></div>
+    </div>
+  </div>
+
+  <style>
+    .issue { padding:10px 14px; border-radius:8px; margin-bottom:8px; font-size:0.88rem; border-left:4px solid; }
+    .issue.error   { background:#fff0f0; border-color:#e53e3e; color:#742a2a; }
+    .issue.warning { background:#fffbeb; border-color:#d97706; color:#7c5500; }
+    .issue.info    { background:#ebf8ff; border-color:#3182ce; color:#1a365d; }
+    .issue-tag { font-weight:700; margin-right:8px; }
+    .valid-banner { background:#f0fff4; border:1px solid #68d391; border-radius:8px; padding:14px; color:#276749; font-weight:600; text-align:center; }
+  </style>
+
+  <script>
+    const input   = document.getElementById('input');
+    const status  = document.getElementById('status');
+    const results = document.getElementById('results');
+
+    function setStatus(msg, ok) {
+      status.textContent = msg;
+      status.className = 'status ' + (ok ? 'ok' : 'err');
+    }
+
+    const VOID_ELEMENTS = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
+    const DEPRECATED = new Set(['acronym','applet','basefont','big','blink','center','dir','font','frame','frameset','isindex','listing','marquee','menu','nobr','noframes','plaintext','rb','rtc','spacer','strike','tt','xmp']);
+    const REQUIRED_ATTRS = { img: ['alt'], a: [], input: [] };
+    const OBSOLETE_ATTRS = ['align','bgcolor','border','cellpadding','cellspacing','color','face','height','hspace','language','link','nowrap','size','text','type','valign','vlink','width'];
+
+    function validateHTML(html) {
+      const issues = [];
+      const stack  = [];
+
+      // Check DOCTYPE
+      if (!/<!doctype\s+html/i.test(html)) {
+        issues.push({ level: 'warning', msg: 'Missing <!DOCTYPE html> declaration at the top of the document.' });
+      }
+
+      // Parse tags
+      const tagRe = /<(\/?[A-Za-z][A-Za-z0-9-]*)([^>]*)>/g;
+      let m;
+      while ((m = tagRe.exec(html)) !== null) {
+        const full = m[0];
+        const rawName = m[1];
+        const attrs  = m[2];
+        const isClose = rawName.startsWith('/');
+        const name = rawName.replace(/^\//, '').toLowerCase();
+        const isSelfClose = full.endsWith('/>') || VOID_ELEMENTS.has(name);
+
+        // Deprecated elements
+        if (DEPRECATED.has(name)) {
+          issues.push({ level: 'warning', msg: `<${name}> is deprecated in HTML5. Use a modern alternative.` });
+        }
+
+        // Void elements that shouldn't be closed
+        if (isClose && VOID_ELEMENTS.has(name)) {
+          issues.push({ level: 'error', msg: `</${name}> is a void element and cannot have a closing tag.` });
+          continue;
+        }
+
+        // Missing required attrs
+        if (REQUIRED_ATTRS[name]) {
+          for (const req of REQUIRED_ATTRS[name]) {
+            if (!new RegExp(`\\b${req}\\s*=`, 'i').test(attrs)) {
+              issues.push({ level: 'warning', msg: `<${name}> is missing required attribute: ${req}.` });
+            }
+          }
+        }
+
+        // Obsolete presentation attributes
+        for (const oa of OBSOLETE_ATTRS) {
+          if (new RegExp(`\\b${oa}\\s*=`, 'i').test(attrs)) {
+            issues.push({ level: 'info', msg: `<${name} ${oa}="…"> — "${oa}" is a presentational attribute; use CSS instead.` });
+            break;
+          }
+        }
+
+        if (!isClose && !isSelfClose) {
+          stack.push(name);
+        } else if (isClose) {
+          if (stack.length && stack[stack.length - 1] === name) {
+            stack.pop();
+          } else {
+            const idx = stack.lastIndexOf(name);
+            if (idx === -1) {
+              issues.push({ level: 'error', msg: `Unexpected closing tag </${name}> — no matching open tag found.` });
+            } else {
+              const unclosed = stack.splice(idx).slice(0, -1);
+              for (const u of unclosed.reverse()) {
+                issues.push({ level: 'error', msg: `<${u}> is not closed before </${name}>.` });
+              }
+              stack.pop(); // remove the matched name (now at end after splice)
+            }
+          }
+        }
+      }
+
+      // Remaining unclosed tags
+      for (const tag of stack.reverse()) {
+        if (!VOID_ELEMENTS.has(tag)) {
+          issues.push({ level: 'error', msg: `<${tag}> was opened but never closed.` });
+        }
+      }
+
+      return issues;
+    }
+
+    document.getElementById('validateBtn').onclick = () => {
+      const raw = input.value.trim();
+      if (!raw) { setStatus('Paste some HTML first', false); return; }
+      results.innerHTML = '';
+      const issues = validateHTML(raw);
+      if (issues.length === 0) {
+        results.innerHTML = '<div class="valid-banner">✅ No issues found — HTML looks valid!</div>';
+        setStatus('Valid ✓', true);
+      } else {
+        const errors   = issues.filter(i => i.level === 'error').length;
+        const warnings = issues.filter(i => i.level === 'warning').length;
+        setStatus(`Found ${errors} error(s), ${warnings} warning(s)`, errors > 0 ? false : true);
+        results.innerHTML = issues.map(i =>
+          `<div class="issue ${i.level}"><span class="issue-tag">${i.level.toUpperCase()}</span>${escHtml(i.msg)}</div>`
+        ).join('');
+      }
+    };
+
+    document.getElementById('clearBtn').onclick = () => {
+      input.value = ''; results.innerHTML = ''; setStatus('', true);
+    };
+
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

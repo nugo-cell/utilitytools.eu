@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>I18N Standards &amp; Code Snippets — Internationalization Reference | UtilityTools.eu</title>
+  <meta name="description" content="Reference guide for internationalization (i18n) standards: locale codes, language tags (BCP 47), currency codes (ISO 4217), country codes (ISO 3166), timezone identifiers, and code snippets.">
+  <meta name="keywords" content="i18n standards, locale codes, bcp47, iso 3166, iso 4217, language codes, country codes, currency codes, timezone list, internationalization reference">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/i18n">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="I18N Standards &amp; Code Snippets — Internationalization Reference">
+  <meta property="og:description" content="Reference guide for i18n: locale codes, BCP 47, ISO 3166, ISO 4217, timezones and code snippets. Free.">
+  <meta property="og:url" content="https://utilitytools.eu/i18n">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="I18N Standards Reference — Free Online Tool">
+  <meta name="twitter:description" content="Locale codes, BCP 47, ISO 3166, ISO 4217, timezones and i18n code snippets. Free.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>I18N Standards &amp; Code Snippets</h1>
+      <p>Reference for internationalisation: locale codes, language tags, country codes, currency codes, timezones, and ready-to-use code snippets.</p>
+    </div>
+
+    <div class="panel">
+      <!-- Tabs -->
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:16px;border-bottom:2px solid var(--border,#e2e8f0);padding-bottom:8px">
+        <button class="tab-btn active" data-tab="locales">Locales (BCP 47)</button>
+        <button class="tab-btn" data-tab="countries">Countries (ISO 3166)</button>
+        <button class="tab-btn" data-tab="currencies">Currencies (ISO 4217)</button>
+        <button class="tab-btn" data-tab="timezones">Timezones (IANA)</button>
+        <button class="tab-btn" data-tab="snippets">Code Snippets</button>
+      </div>
+
+      <input id="search" type="text" placeholder="Search…" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border,#ccc);box-sizing:border-box;margin-bottom:12px">
+      <span id="count" style="font-size:0.85rem;color:#888;display:block;margin-bottom:10px"></span>
+
+      <div id="tabContent"></div>
+    </div>
+  </div>
+
+  <style>
+    .tab-btn { padding:6px 14px; border-radius:6px; border:1px solid var(--border,#e2e8f0); background:#f7f9fc; cursor:pointer; font-size:0.83rem; }
+    .tab-btn.active { background:var(--accent,#4f8ef7); color:#fff; border-color:var(--accent,#4f8ef7); }
+    .i18n-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+    .i18n-table th { background:#f0f4ff; padding:9px 12px; text-align:left; font-weight:600; position:sticky;top:0;z-index:1; border-bottom:2px solid var(--border,#e2e8f0); }
+    .i18n-table td { padding:7px 12px; border-bottom:1px solid var(--border,#f0f2f5); }
+    .i18n-table tr:hover td { background:#f7f9fc; }
+    .i18n-table .mono { font-family:monospace; color:#2d3a8c; cursor:pointer; }
+    .i18n-table .mono:hover { text-decoration:underline; }
+    .snippet-box { background:#1e2433; color:#e2e8f0; border-radius:8px; padding:16px; font-family:monospace; font-size:0.82rem; white-space:pre; overflow-x:auto; margin-bottom:16px; position:relative; }
+    .snippet-copy { position:absolute; top:10px; right:10px; padding:3px 10px; font-size:0.75rem; }
+    .snippet-title { font-weight:700; margin-bottom:8px; font-size:0.9rem; color:#444; }
+  </style>
+
+  <script>
+    const LOCALES = [
+      ['af','Afrikaans','af-ZA'],['ar','Arabic','ar-SA'],['bg','Bulgarian','bg-BG'],
+      ['ca','Catalan','ca-ES'],['cs','Czech','cs-CZ'],['cy','Welsh','cy-GB'],
+      ['da','Danish','da-DK'],['de','German','de-DE'],['de-AT','German (Austria)','de-AT'],
+      ['de-CH','German (Switzerland)','de-CH'],['el','Greek','el-GR'],
+      ['en','English','en-US'],['en-AU','English (Australia)','en-AU'],
+      ['en-GB','English (UK)','en-GB'],['es','Spanish','es-ES'],
+      ['es-MX','Spanish (Mexico)','es-MX'],['et','Estonian','et-EE'],
+      ['fa','Persian','fa-IR'],['fi','Finnish','fi-FI'],['fr','French','fr-FR'],
+      ['fr-CA','French (Canada)','fr-CA'],['he','Hebrew','he-IL'],
+      ['hi','Hindi','hi-IN'],['hr','Croatian','hr-HR'],['hu','Hungarian','hu-HU'],
+      ['id','Indonesian','id-ID'],['it','Italian','it-IT'],['ja','Japanese','ja-JP'],
+      ['ko','Korean','ko-KR'],['lt','Lithuanian','lt-LT'],['lv','Latvian','lv-LV'],
+      ['ms','Malay','ms-MY'],['nl','Dutch','nl-NL'],['no','Norwegian','nb-NO'],
+      ['pl','Polish','pl-PL'],['pt','Portuguese','pt-PT'],['pt-BR','Portuguese (Brazil)','pt-BR'],
+      ['ro','Romanian','ro-RO'],['ru','Russian','ru-RU'],['sk','Slovak','sk-SK'],
+      ['sl','Slovenian','sl-SI'],['sq','Albanian','sq-AL'],['sr','Serbian','sr-RS'],
+      ['sv','Swedish','sv-SE'],['th','Thai','th-TH'],['tr','Turkish','tr-TR'],
+      ['uk','Ukrainian','uk-UA'],['vi','Vietnamese','vi-VN'],
+      ['zh','Chinese (Simplified)','zh-CN'],['zh-TW','Chinese (Traditional)','zh-TW'],
+    ];
+
+    const COUNTRIES = [
+      ['AF','AFG','004','Afghanistan'],['AL','ALB','008','Albania'],
+      ['DZ','DZA','012','Algeria'],['AR','ARG','032','Argentina'],
+      ['AU','AUS','036','Australia'],['AT','AUT','040','Austria'],
+      ['BE','BEL','056','Belgium'],['BR','BRA','076','Brazil'],
+      ['BG','BGR','100','Bulgaria'],['CA','CAN','124','Canada'],
+      ['CL','CHL','152','Chile'],['CN','CHN','156','China'],
+      ['CO','COL','170','Colombia'],['HR','HRV','191','Croatia'],
+      ['CZ','CZE','203','Czech Republic'],['DK','DNK','208','Denmark'],
+      ['EG','EGY','818','Egypt'],['FI','FIN','246','Finland'],
+      ['FR','FRA','250','France'],['DE','DEU','276','Germany'],
+      ['GR','GRC','300','Greece'],['HU','HUN','348','Hungary'],
+      ['IN','IND','356','India'],['ID','IDN','360','Indonesia'],
+      ['IR','IRN','364','Iran'],['IQ','IRQ','368','Iraq'],
+      ['IE','IRL','372','Ireland'],['IL','ISR','376','Israel'],
+      ['IT','ITA','380','Italy'],['JP','JPN','392','Japan'],
+      ['MX','MEX','484','Mexico'],['MA','MAR','504','Morocco'],
+      ['NL','NLD','528','Netherlands'],['NZ','NZL','554','New Zealand'],
+      ['NG','NGA','566','Nigeria'],['NO','NOR','578','Norway'],
+      ['PK','PAK','586','Pakistan'],['PL','POL','616','Poland'],
+      ['PT','PRT','620','Portugal'],['RO','ROU','642','Romania'],
+      ['RU','RUS','643','Russia'],['SA','SAU','682','Saudi Arabia'],
+      ['ZA','ZAF','710','South Africa'],['KR','KOR','410','South Korea'],
+      ['ES','ESP','724','Spain'],['SE','SWE','752','Sweden'],
+      ['CH','CHE','756','Switzerland'],['TH','THA','764','Thailand'],
+      ['TR','TUR','792','Turkey'],['UA','UKR','804','Ukraine'],
+      ['GB','GBR','826','United Kingdom'],['US','USA','840','United States'],
+      ['VN','VNM','704','Vietnam'],
+    ];
+
+    const CURRENCIES = [
+      ['USD','840','US Dollar','$'],['EUR','978','Euro','€'],
+      ['GBP','826','British Pound Sterling','£'],['JPY','392','Japanese Yen','¥'],
+      ['AUD','036','Australian Dollar','A$'],['CAD','124','Canadian Dollar','C$'],
+      ['CHF','756','Swiss Franc','Fr'],['CNY','156','Chinese Yuan','¥'],
+      ['SEK','752','Swedish Krona','kr'],['NZD','554','New Zealand Dollar','NZ$'],
+      ['MXN','484','Mexican Peso','$'],['SGD','702','Singapore Dollar','S$'],
+      ['HKD','344','Hong Kong Dollar','HK$'],['NOK','578','Norwegian Krone','kr'],
+      ['DKK','208','Danish Krone','kr'],['PLN','985','Polish Złoty','zł'],
+      ['CZK','203','Czech Koruna','Kč'],['HUF','348','Hungarian Forint','Ft'],
+      ['RON','946','Romanian Leu','lei'],['TRY','949','Turkish Lira','₺'],
+      ['RUB','643','Russian Ruble','₽'],['INR','356','Indian Rupee','₹'],
+      ['BRL','986','Brazilian Real','R$'],['ZAR','710','South African Rand','R'],
+      ['SAR','682','Saudi Riyal','ر.س'],['AED','784','UAE Dirham','د.إ'],
+      ['ILS','376','Israeli New Shekel','₪'],['KRW','410','South Korean Won','₩'],
+      ['IDR','360','Indonesian Rupiah','Rp'],['MYR','458','Malaysian Ringgit','RM'],
+      ['PHP','608','Philippine Peso','₱'],['THB','764','Thai Baht','฿'],
+      ['VND','704','Vietnamese Dong','₫'],['UAH','980','Ukrainian Hryvnia','₴'],
+    ];
+
+    const TIMEZONES = (() => {
+      try { return Intl.supportedValuesOf('timeZone').map(tz => {
+        try {
+          const now = new Date();
+          const offset = new Intl.DateTimeFormat('en', { timeZone: tz, timeZoneName: 'short' })
+            .formatToParts(now).find(p => p.type === 'timeZoneName')?.value || '';
+          return [tz, offset, tz.split('/')[0] || 'Other'];
+        } catch { return [tz, '', 'Other']; }
+      }); }
+      catch { return [['UTC','UTC','UTC'],['America/New_York','EST/EDT','America'],['Europe/London','GMT/BST','Europe'],['Asia/Tokyo','JST','Asia']]; }
+    })();
+
+    const SNIPPETS = [
+      { title: 'JavaScript — Format date with locale', lang: 'js', code:
+`// Format a date for different locales
+const date = new Date();
+
+// US format: 6/1/2026
+console.log(new Intl.DateTimeFormat('en-US').format(date));
+
+// German format: 1.6.2026
+console.log(new Intl.DateTimeFormat('de-DE').format(date));
+
+// Full format with time
+console.log(new Intl.DateTimeFormat('en-GB', {
+  dateStyle: 'full', timeStyle: 'short'
+}).format(date));` },
+      { title: 'JavaScript — Format currency', lang: 'js', code:
+`const amount = 1234567.89;
+
+// US Dollar
+console.log(new Intl.NumberFormat('en-US', {
+  style: 'currency', currency: 'USD'
+}).format(amount)); // $1,234,567.89
+
+// Euro (German)
+console.log(new Intl.NumberFormat('de-DE', {
+  style: 'currency', currency: 'EUR'
+}).format(amount)); // 1.234.567,89 €
+
+// Japanese Yen
+console.log(new Intl.NumberFormat('ja-JP', {
+  style: 'currency', currency: 'JPY'
+}).format(amount)); // ¥1,234,568` },
+      { title: 'JavaScript — Pluralisation (Intl.PluralRules)', lang: 'js', code:
+`const pr = new Intl.PluralRules('en-US');
+console.log(pr.select(0)); // "other"
+console.log(pr.select(1)); // "one"
+console.log(pr.select(2)); // "other"
+
+const plurals = {
+  one: '1 item',
+  other: (n) => \`\${n} items\`
+};
+
+function localise(n) {
+  const rule = pr.select(n);
+  return typeof plurals[rule] === 'function' ? plurals[rule](n) : plurals[rule];
+}
+
+console.log(localise(1)); // "1 item"
+console.log(localise(5)); // "5 items"` },
+      { title: 'JavaScript — Sort strings with locale', lang: 'js', code:
+`const words = ['Zebra', 'apple', 'Mango', 'cherry'];
+
+// Locale-aware sort (case-insensitive)
+const sorted = words.sort(new Intl.Collator('en', {
+  sensitivity: 'base'
+}).compare);
+
+console.log(sorted);
+// ['apple', 'cherry', 'Mango', 'Zebra']` },
+      { title: 'Java — Locale-aware date formatting', lang: 'java', code:
+`import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+import java.util.Locale;
+
+LocalDate date = LocalDate.now();
+
+// US format
+DateTimeFormatter usFormatter = DateTimeFormatter
+    .ofLocalizedDate(FormatStyle.MEDIUM)
+    .withLocale(Locale.US);
+System.out.println(date.format(usFormatter)); // Jun 1, 2026
+
+// German format
+DateTimeFormatter deFormatter = DateTimeFormatter
+    .ofLocalizedDate(FormatStyle.MEDIUM)
+    .withLocale(Locale.GERMANY);
+System.out.println(date.format(deFormatter)); // 01.06.2026` },
+      { title: 'Python — Locale formatting with Babel', lang: 'python', code:
+`from babel.numbers import format_currency
+from babel.dates import format_date
+from datetime import date
+
+today = date.today()
+
+# Format date
+print(format_date(today, locale='en_US'))    # Jun 1, 2026
+print(format_date(today, locale='de_DE'))    # 1. Jun. 2026
+print(format_date(today, locale='ja_JP'))    # 2026年6月1日
+
+# Format currency
+print(format_currency(1234.56, 'USD', locale='en_US'))  # $1,234.56
+print(format_currency(1234.56, 'EUR', locale='de_DE'))  # 1.234,56 €` },
+    ];
+
+    let activeTab = 'locales';
+    const searchEl = document.getElementById('search');
+    const countEl  = document.getElementById('count');
+    const tabContent = document.getElementById('tabContent');
+
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    async function copyText(text, btn) {
+      try { await navigator.clipboard.writeText(text); if (btn) btn.textContent = 'Copied!'; setTimeout(() => { if (btn) btn.textContent = 'Copy'; }, 2000); }
+      catch {}
+    }
+
+    function renderLocales(q) {
+      const filtered = LOCALES.filter(([code,,tag]) =>
+        !q || code.toLowerCase().includes(q) || tag.toLowerCase().includes(q) || LOCALES.find(([c,,]) => c===code)?.[1]?.toLowerCase().includes(q)
+      );
+      countEl.textContent = `${filtered.length} locales`;
+      return `<table class="i18n-table"><thead><tr><th>BCP 47 Tag</th><th>Language</th><th>Example Locale</th><th>Sample</th></tr></thead><tbody>` +
+        filtered.map(([code, lang, tag]) => {
+          let sample = '';
+          try { sample = new Intl.DateTimeFormat(tag, { dateStyle: 'medium' }).format(new Date()); } catch {}
+          return `<tr><td><span class="mono" onclick="copyText('${code}')">${code}</span></td><td>${escHtml(lang)}</td><td><span class="mono" onclick="copyText('${tag}')">${tag}</span></td><td style="font-size:0.8rem;color:#666">${sample}</td></tr>`;
+        }).join('') + '</tbody></table>';
+    }
+
+    function renderCountries(q) {
+      const filtered = COUNTRIES.filter(([a2,a3,num,name]) =>
+        !q || a2.toLowerCase().includes(q) || a3.toLowerCase().includes(q) || num.includes(q) || name.toLowerCase().includes(q)
+      );
+      countEl.textContent = `${filtered.length} countries`;
+      return `<table class="i18n-table"><thead><tr><th>Alpha-2</th><th>Alpha-3</th><th>Numeric</th><th>Country</th></tr></thead><tbody>` +
+        filtered.map(([a2,a3,num,name]) =>
+          `<tr><td><span class="mono" onclick="copyText('${a2}')">${a2}</span></td><td><span class="mono" onclick="copyText('${a3}')">${a3}</span></td><td>${num}</td><td>${escHtml(name)}</td></tr>`
+        ).join('') + '</tbody></table>';
+    }
+
+    function renderCurrencies(q) {
+      const filtered = CURRENCIES.filter(([code,,name]) =>
+        !q || code.toLowerCase().includes(q) || name.toLowerCase().includes(q)
+      );
+      countEl.textContent = `${filtered.length} currencies`;
+      return `<table class="i18n-table"><thead><tr><th>ISO 4217</th><th>Num</th><th>Currency</th><th>Symbol</th><th>Sample</th></tr></thead><tbody>` +
+        filtered.map(([code, num, name, sym]) => {
+          let sample = '';
+          try { sample = new Intl.NumberFormat('en-US', { style: 'currency', currency: code }).format(1234.56); } catch {}
+          return `<tr><td><span class="mono" onclick="copyText('${code}')">${code}</span></td><td>${num}</td><td>${escHtml(name)}</td><td style="font-size:1.1rem">${escHtml(sym)}</td><td style="font-family:monospace;font-size:0.82rem;color:#666">${escHtml(sample)}</td></tr>`;
+        }).join('') + '</tbody></table>';
+    }
+
+    function renderTimezones(q) {
+      const filtered = TIMEZONES.filter(([tz]) => !q || tz.toLowerCase().includes(q));
+      countEl.textContent = `${filtered.length} timezones`;
+      return `<table class="i18n-table"><thead><tr><th>IANA Timezone</th><th>Current Offset</th><th>Region</th></tr></thead><tbody>` +
+        filtered.slice(0, 200).map(([tz, offset, region]) =>
+          `<tr><td><span class="mono" onclick="copyText('${tz}')">${tz}</span></td><td>${escHtml(offset)}</td><td style="font-size:0.8rem;color:#888">${escHtml(region)}</td></tr>`
+        ).join('') + '</tbody></table>' + (filtered.length > 200 ? `<p style="font-size:0.82rem;color:#888;margin-top:8px">Showing first 200 of ${filtered.length} results. Refine your search.</p>` : '');
+    }
+
+    function renderSnippets(q) {
+      countEl.textContent = '';
+      const filtered = SNIPPETS.filter(s => !q || s.title.toLowerCase().includes(q) || s.code.toLowerCase().includes(q));
+      return filtered.map((s, i) =>
+        `<div class="snippet-title">${escHtml(s.title)}</div>
+         <div class="snippet-box" id="snip${i}"><button class="copy-btn secondary snippet-copy" onclick="copySnip(${i}, this)">Copy</button>${escHtml(s.code)}</div>`
+      ).join('');
+    }
+
+    window.copySnip = function(i, btn) {
+      copyText(SNIPPETS[i].code, btn);
+    };
+
+    function render() {
+      const q = searchEl.value.toLowerCase().trim();
+      if (activeTab === 'locales')    tabContent.innerHTML = renderLocales(q);
+      else if (activeTab === 'countries') tabContent.innerHTML = renderCountries(q);
+      else if (activeTab === 'currencies') tabContent.innerHTML = renderCurrencies(q);
+      else if (activeTab === 'timezones') tabContent.innerHTML = renderTimezones(q);
+      else if (activeTab === 'snippets') tabContent.innerHTML = renderSnippets(q);
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeTab = btn.dataset.tab;
+        searchEl.placeholder = activeTab === 'snippets' ? 'Search code snippets…' : 'Search…';
+        render();
+      });
+    });
+
+    searchEl.addEventListener('input', render);
+    render();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

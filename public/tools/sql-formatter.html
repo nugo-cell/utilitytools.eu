@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>SQL Formatter &amp; Beautifier — Free Online Tool | UtilityTools.eu</title>
+  <meta name="description" content="Format and beautify SQL queries online. Supports SELECT, INSERT, UPDATE, DELETE, CREATE and more. Free, browser-only, no upload.">
+  <meta name="keywords" content="sql formatter, sql beautifier, format sql online, pretty print sql, sql indenter, sql query formatter">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/sql-formatter">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="SQL Formatter &amp; Beautifier — Free Online Tool">
+  <meta property="og:description" content="Format and beautify SQL queries online. Supports SELECT, INSERT, UPDATE, DELETE and more. Free, browser-only.">
+  <meta property="og:url" content="https://utilitytools.eu/sql-formatter">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SQL Formatter — Free Online Tool">
+  <meta name="twitter:description" content="Format and beautify SQL queries online. Free, browser-only.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"SQL Formatter & Beautifier","description":"Format and beautify SQL queries online. Browser-only, no upload.","url":"https://utilitytools.eu/sql-formatter","applicationCategory":"DeveloperApplication","operatingSystem":"Any (Web)","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"publisher":{"@type":"Organization","name":"UtilityTools.eu","url":"https://utilitytools.eu"}}</script>
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>SQL Formatter &amp; Beautifier</h1>
+      <p>Paste any SQL query and get clean, readable, properly indented SQL with keyword highlighting.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <button id="formatBtn">Format SQL ▶</button>
+        <button id="minifyBtn" class="secondary">Minify</button>
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem">
+          Keywords:
+          <select id="kwCase" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border,#ccc)">
+            <option value="upper" selected>UPPERCASE</option>
+            <option value="lower">lowercase</option>
+            <option value="keep">Keep as-is</option>
+          </select>
+        </label>
+        <button id="copyBtn" class="secondary" style="margin-left:auto">Copy output</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+
+      <div class="split">
+        <div>
+          <label for="input">Input SQL</label>
+          <textarea id="input" placeholder="SELECT u.id, u.name, o.total FROM users u JOIN orders o ON u.id = o.user_id WHERE u.active = 1 ORDER BY o.total DESC;" style="font-family:monospace;font-size:0.82rem"></textarea>
+        </div>
+        <div>
+          <label for="output">Formatted SQL</label>
+          <textarea id="output" readonly placeholder="Formatted output will appear here…" style="font-family:monospace;font-size:0.82rem"></textarea>
+        </div>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <script>
+    const input  = document.getElementById('input');
+    const output = document.getElementById('output');
+    const status = document.getElementById('status');
+
+    function setStatus(msg, ok) {
+      status.textContent = msg;
+      status.className = 'status ' + (ok ? 'ok' : 'err');
+    }
+
+    // Keywords that start a new line
+    const NEWLINE_BEFORE = ['SELECT','FROM','WHERE','JOIN','LEFT JOIN','RIGHT JOIN','INNER JOIN','OUTER JOIN','FULL JOIN','CROSS JOIN',
+      'ON','AND','OR','ORDER BY','GROUP BY','HAVING','LIMIT','OFFSET','INSERT INTO','VALUES','UPDATE','SET',
+      'DELETE FROM','CREATE TABLE','CREATE INDEX','DROP TABLE','ALTER TABLE','UNION','UNION ALL','EXCEPT','INTERSECT',
+      'WITH','CASE','WHEN','THEN','ELSE','END'];
+
+    function applyKwCase(sql, mode) {
+      if (mode === 'keep') return sql;
+      const kwRe = new RegExp('\\b(' + NEWLINE_BEFORE.join('|').replace(/ /g, '\\s+') + ')\\b', 'gi');
+      return sql.replace(kwRe, m => mode === 'upper' ? m.toUpperCase() : m.toLowerCase());
+    }
+
+    function formatSQL(sql, kwCase) {
+      // Normalise whitespace
+      let s = sql.replace(/\s+/g, ' ').trim();
+      s = applyKwCase(s, kwCase);
+
+      // Insert newlines before major keywords
+      const kwPattern = new RegExp(
+        '\\b(' + NEWLINE_BEFORE.map(k => k.replace(/ /g,'\\s+')).join('|') + ')\\b',
+        'gi'
+      );
+
+      let result = '';
+      let depth = 0;
+      let i = 0;
+      // Simple tokeniser for parens & keywords
+      const tokens = s.split(/(\(|\)|,)/);
+
+      let lines = [s];
+      // Replace keyword boundaries with newlines
+      let formatted = s.replace(kwPattern, (m, kw, offset) => {
+        // Don't add newline at very start
+        if (offset === 0) return m;
+        return '\n' + m;
+      });
+
+      // Handle subqueries indentation
+      const indentChar = '  ';
+      let indentLevel = 0;
+      const outLines = [];
+      for (const line of formatted.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        // Count open/close parens to track depth
+        const opens  = (trimmed.match(/\(/g) || []).length;
+        const closes = (trimmed.match(/\)/g) || []).length;
+        outLines.push(indentChar.repeat(indentLevel) + trimmed);
+        indentLevel = Math.max(0, indentLevel + opens - closes);
+      }
+      return outLines.join('\n');
+    }
+
+    function minifySQL(sql) {
+      return sql.replace(/\s{2,}/g, ' ').replace(/\s*,\s*/g, ', ').trim();
+    }
+
+    document.getElementById('formatBtn').onclick = () => {
+      const raw = input.value.trim();
+      if (!raw) { setStatus('Paste some SQL first', false); return; }
+      try {
+        const kwCase = document.getElementById('kwCase').value;
+        output.value = formatSQL(raw, kwCase);
+        setStatus('Formatted ✓', true);
+      } catch (e) { setStatus('Error: ' + e.message, false); }
+    };
+
+    document.getElementById('minifyBtn').onclick = () => {
+      const raw = input.value.trim();
+      if (!raw) { setStatus('Paste some SQL first', false); return; }
+      output.value = minifySQL(raw);
+      setStatus('Minified ✓', true);
+    };
+
+    document.getElementById('copyBtn').onclick = async () => {
+      if (!output.value) { setStatus('Nothing to copy', false); return; }
+      try { await navigator.clipboard.writeText(output.value); setStatus('Copied ✓', true); }
+      catch { setStatus('Copy failed', false); }
+    };
+
+    document.getElementById('clearBtn').onclick = () => {
+      input.value = ''; output.value = ''; setStatus('', true);
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>String Utilities — Reverse, Count, Wrap, Trim &amp; More | UtilityTools.eu</title>
+  <meta name="description" content="A collection of handy string utilities: reverse, word count, line count, remove duplicates, sort lines, trim, wrap, pad, truncate and more. Free, browser-only.">
+  <meta name="keywords" content="string utilities, string tools, reverse string, word count, sort lines, remove duplicates, text tools, string manipulation online">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/string-utils">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="String Utilities — Reverse, Count, Sort &amp; More">
+  <meta property="og:description" content="Handy string utilities: reverse, word count, sort lines, remove duplicates, trim, wrap and more. Free, browser-only.">
+  <meta property="og:url" content="https://utilitytools.eu/string-utils">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="String Utilities — Free Online Tool">
+  <meta name="twitter:description" content="Reverse, count, sort, wrap, trim strings. Free, browser-only.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>String Utilities</h1>
+      <p>A collection of handy text manipulation operations — reverse, count, sort lines, remove duplicates, trim, pad, and more.</p>
+    </div>
+
+    <div class="panel">
+      <label for="input">Input text</label>
+      <textarea id="input" style="font-family:monospace;font-size:0.85rem;min-height:140px;margin-bottom:12px" placeholder="Type or paste text here…">Hello, World!
+This is a sample text.
+Hello, World!
+  extra spaces
+line three</textarea>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:12px">
+        <button class="op" data-op="reverse">Reverse String</button>
+        <button class="op" data-op="reverseLines">Reverse Lines</button>
+        <button class="op" data-op="sortAsc">Sort Lines A→Z</button>
+        <button class="op" data-op="sortDesc">Sort Lines Z→A</button>
+        <button class="op" data-op="removeDups">Remove Duplicates</button>
+        <button class="op" data-op="trimLines">Trim Each Line</button>
+        <button class="op" data-op="removeEmpty">Remove Empty Lines</button>
+        <button class="op" data-op="upper">UPPERCASE</button>
+        <button class="op" data-op="lower">lowercase</button>
+        <button class="op" data-op="title">Title Case</button>
+        <button class="op" data-op="sentence">Sentence case</button>
+        <button class="op" data-op="camel">camelCase</button>
+        <button class="op" data-op="snake">snake_case</button>
+        <button class="op" data-op="kebab">kebab-case</button>
+        <button class="op" data-op="shuffle">Shuffle Lines</button>
+        <button class="op" data-op="numberLines">Number Lines</button>
+        <button class="op" data-op="stripHtml">Strip HTML Tags</button>
+        <button class="op" data-op="countWords" style="background:#f0f4ff;border-color:#b0c4f0">Count Words/Lines</button>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+        <label style="font-size:0.85rem">Wrap at (chars):</label>
+        <input id="wrapWidth" type="number" value="80" min="10" max="500" style="width:70px;padding:6px 10px;border-radius:8px;border:1px solid var(--border,#ccc)">
+        <button class="op" data-op="wrap">Wrap Text</button>
+
+        <label style="font-size:0.85rem;margin-left:12px">Pad to:</label>
+        <input id="padWidth" type="number" value="20" min="1" max="500" style="width:70px;padding:6px 10px;border-radius:8px;border:1px solid var(--border,#ccc)">
+        <select id="padSide" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border,#ccc)">
+          <option value="right">Pad right</option>
+          <option value="left">Pad left</option>
+        </select>
+        <input id="padChar" type="text" value=" " maxlength="1" style="width:40px;padding:6px 8px;border-radius:8px;border:1px solid var(--border,#ccc);font-family:monospace">
+        <button class="op" data-op="pad">Pad Each Line</button>
+      </div>
+
+      <label for="output">Output</label>
+      <div class="row" style="margin-bottom:6px;gap:8px">
+        <button id="copyBtn" class="secondary">Copy output</button>
+        <button id="clearBtn" class="secondary" style="margin-left:auto">Clear</button>
+      </div>
+      <textarea id="output" readonly style="font-family:monospace;font-size:0.85rem;min-height:140px" placeholder="Output will appear here…"></textarea>
+      <div id="status" class="status"></div>
+      <div id="stats" style="margin-top:10px;font-size:0.83rem;color:#666;display:flex;flex-wrap:wrap;gap:16px"></div>
+    </div>
+  </div>
+
+  <script>
+    const inputEl  = document.getElementById('input');
+    const outputEl = document.getElementById('output');
+    const status   = document.getElementById('status');
+    const stats    = document.getElementById('stats');
+
+    function setStatus(msg, ok) { status.textContent = msg; status.className = 'status ' + (ok ? 'ok' : 'err'); }
+
+    const OPS = {
+      reverse:     s => s.split('').reverse().join(''),
+      reverseLines:s => s.split('\n').reverse().join('\n'),
+      sortAsc:     s => s.split('\n').sort((a,b) => a.localeCompare(b)).join('\n'),
+      sortDesc:    s => s.split('\n').sort((a,b) => b.localeCompare(a)).join('\n'),
+      removeDups:  s => [...new Set(s.split('\n'))].join('\n'),
+      trimLines:   s => s.split('\n').map(l => l.trim()).join('\n'),
+      removeEmpty: s => s.split('\n').filter(l => l.trim()).join('\n'),
+      upper:       s => s.toUpperCase(),
+      lower:       s => s.toLowerCase(),
+      title:       s => s.replace(/\b\w/g, c => c.toUpperCase()),
+      sentence:    s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(),
+      camel:       s => s.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (_,c) => c.toUpperCase()),
+      snake:       s => s.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'').toLowerCase(),
+      kebab:       s => s.replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-]/g,'').toLowerCase(),
+      shuffle:     s => s.split('\n').sort(() => Math.random() - 0.5).join('\n'),
+      numberLines: s => s.split('\n').map((l,i) => `${i+1}. ${l}`).join('\n'),
+      stripHtml:   s => s.replace(/<[^>]+>/g,''),
+      countWords: (s) => {
+        const words = s.trim().split(/\s+/).filter(Boolean).length;
+        const lines = s.split('\n').length;
+        const chars = s.length;
+        const charsNoWS = s.replace(/\s/g,'').length;
+        stats.innerHTML = `<span>Words: <strong>${words}</strong></span><span>Lines: <strong>${lines}</strong></span><span>Characters: <strong>${chars}</strong></span><span>Chars (no spaces): <strong>${charsNoWS}</strong></span>`;
+        return s; // don't modify
+      },
+      wrap: (s) => {
+        const w = parseInt(document.getElementById('wrapWidth').value) || 80;
+        return s.split('\n').map(line => {
+          const words = line.split(' ');
+          const result = [];
+          let cur = '';
+          for (const word of words) {
+            if ((cur + ' ' + word).trim().length > w) { if (cur) result.push(cur); cur = word; }
+            else cur = cur ? cur + ' ' + word : word;
+          }
+          if (cur) result.push(cur);
+          return result.join('\n');
+        }).join('\n');
+      },
+      pad: (s) => {
+        const w   = parseInt(document.getElementById('padWidth').value) || 20;
+        const side = document.getElementById('padSide').value;
+        const ch  = document.getElementById('padChar').value || ' ';
+        return s.split('\n').map(l => side === 'left' ? l.padStart(w, ch) : l.padEnd(w, ch)).join('\n');
+      }
+    };
+
+    document.querySelectorAll('.op').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const raw = inputEl.value;
+        const op  = btn.dataset.op;
+        try {
+          const result = OPS[op](raw);
+          if (op !== 'countWords') outputEl.value = result;
+          setStatus(btn.textContent + ' ✓', true);
+        } catch (e) { setStatus('Error: ' + e.message, false); }
+      });
+    });
+
+    document.getElementById('copyBtn').onclick = async () => {
+      if (!outputEl.value) { setStatus('Nothing to copy', false); return; }
+      try { await navigator.clipboard.writeText(outputEl.value); setStatus('Copied ✓', true); }
+      catch { setStatus('Copy failed', false); }
+    };
+
+    document.getElementById('clearBtn').onclick = () => { inputEl.value = ''; outputEl.value = ''; stats.innerHTML = ''; setStatus('', true); };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

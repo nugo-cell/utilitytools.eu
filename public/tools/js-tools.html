@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>JavaScript Beautifier &amp; Minifier — Free Online Tool | UtilityTools.eu</title>
+  <meta name="description" content="Beautify or minify JavaScript code online. Format messy JS with proper indentation or minify for production. Free, browser-only, no upload.">
+  <meta name="keywords" content="javascript beautifier, javascript minifier, js formatter, js beautify online, format javascript, minify js online">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/js-tools">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="JavaScript Beautifier &amp; Minifier — Free Online Tool">
+  <meta property="og:description" content="Beautify or minify JavaScript code online. Free, browser-only, no upload.">
+  <meta property="og:url" content="https://utilitytools.eu/js-tools">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="JavaScript Beautifier &amp; Minifier — Free Online Tool">
+  <meta name="twitter:description" content="Beautify or minify JavaScript code online. Free.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>JavaScript Beautifier &amp; Minifier</h1>
+      <p>Format messy JavaScript with proper indentation or minify it for production deployment.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px;align-items:center">
+        <button id="beautifyBtn">Beautify ▶</button>
+        <button id="minifyBtn" class="secondary">Minify ▶</button>
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem">
+          Indent:
+          <select id="indent" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border,#ccc)">
+            <option value="2" selected>2 spaces</option>
+            <option value="4">4 spaces</option>
+            <option value="tab">Tab</option>
+          </select>
+        </label>
+        <button id="copyBtn" class="secondary" style="margin-left:auto">Copy output</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+
+      <div class="split">
+        <div>
+          <label for="input">Input JavaScript</label>
+          <textarea id="input" style="font-family:monospace;font-size:0.8rem;min-height:220px" placeholder="Paste JavaScript here…"></textarea>
+        </div>
+        <div>
+          <label for="output">Output</label>
+          <textarea id="output" readonly style="font-family:monospace;font-size:0.8rem;min-height:220px" placeholder="Output will appear here…"></textarea>
+        </div>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <!-- js-beautify via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/js-beautify@1.15.1/js/lib/beautify.min.js"></script>
+  <script>
+    const input  = document.getElementById('input');
+    const output = document.getElementById('output');
+    const status = document.getElementById('status');
+
+    function setStatus(msg, ok) { status.textContent = msg; status.className = 'status ' + (ok ? 'ok' : 'err'); }
+
+    function getIndent() {
+      const v = document.getElementById('indent').value;
+      return v === 'tab' ? '\t' : parseInt(v);
+    }
+
+    document.getElementById('beautifyBtn').onclick = () => {
+      const raw = input.value.trim();
+      if (!raw) { setStatus('Paste JavaScript first', false); return; }
+      try {
+        const indent = getIndent();
+        const opts = typeof indent === 'string'
+          ? { indent_char: '\t', indent_size: 1 }
+          : { indent_size: indent, indent_char: ' ' };
+        output.value = js_beautify(raw, opts);
+        setStatus('Beautified ✓', true);
+      } catch (e) { setStatus('Error: ' + e.message, false); }
+    };
+
+    document.getElementById('minifyBtn').onclick = () => {
+      const raw = input.value.trim();
+      if (!raw) { setStatus('Paste JavaScript first', false); return; }
+      try {
+        // Simple minifier: remove comments, collapse whitespace
+        let min = raw
+          .replace(/\/\*[\s\S]*?\*\//g, '')     // block comments
+          .replace(/\/\/[^\n]*/g, '')            // line comments
+          .replace(/\s{2,}/g, ' ')               // collapse spaces
+          .replace(/\s*([{};,:=\+\-\*\/\(\)\[\]<>!&|?])\s*/g, '$1') // spacing around operators
+          .replace(/\n+/g, '')
+          .trim();
+        output.value = min;
+        const saved = raw.length > 0 ? Math.round((1 - min.length / raw.length) * 100) : 0;
+        setStatus(`Minified ✓ — saved ${saved}% (${raw.length} → ${min.length} chars)`, true);
+      } catch (e) { setStatus('Error: ' + e.message, false); }
+    };
+
+    document.getElementById('copyBtn').onclick = async () => {
+      if (!output.value) { setStatus('Nothing to copy', false); return; }
+      try { await navigator.clipboard.writeText(output.value); setStatus('Copied ✓', true); }
+      catch { setStatus('Copy failed', false); }
+    };
+
+    document.getElementById('clearBtn').onclick = () => { input.value = ''; output.value = ''; setStatus('', true); };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

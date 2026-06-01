@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>XSD Generator — Generate XML Schema from XML | UtilityTools.eu</title>
+  <meta name="description" content="Automatically generate an XSD (XML Schema Definition) from any XML document. Infers types, nesting, and attributes. Free, browser-only, no upload.">
+  <meta name="keywords" content="xsd generator, xml schema generator, generate xsd from xml, xml schema definition, xsd from xml online">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/xsd-generator">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="XSD Generator — Generate XML Schema from XML">
+  <meta property="og:description" content="Generate XSD (XML Schema) from any XML document automatically. Free, browser-only.">
+  <meta property="og:url" content="https://utilitytools.eu/xsd-generator">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="XSD Generator — Free Online Tool">
+  <meta name="twitter:description" content="Generate XML Schema from XML. Free, browser-only.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>XSD Generator</h1>
+      <p>Infer an XML Schema Definition (XSD) from any XML document. Types, nesting, and attributes are auto-detected.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px;gap:8px;flex-wrap:wrap">
+        <button id="generateBtn">Generate XSD ▶</button>
+        <button id="copyBtn" class="secondary" style="margin-left:auto">Copy XSD</button>
+        <button id="downloadBtn" class="secondary">Download .xsd</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+
+      <div class="split">
+        <div>
+          <label for="input">XML Input</label>
+          <textarea id="input" style="font-family:monospace;font-size:0.8rem;min-height:220px" placeholder="Paste your XML here…">&lt;?xml version="1.0"?&gt;
+&lt;employees&gt;
+  &lt;employee id="1" active="true"&gt;
+    &lt;name&gt;Alice Johnson&lt;/name&gt;
+    &lt;department&gt;Engineering&lt;/department&gt;
+    &lt;salary&gt;75000&lt;/salary&gt;
+    &lt;hireDate&gt;2020-03-15&lt;/hireDate&gt;
+  &lt;/employee&gt;
+  &lt;employee id="2" active="false"&gt;
+    &lt;name&gt;Bob Smith&lt;/name&gt;
+    &lt;department&gt;Marketing&lt;/department&gt;
+    &lt;salary&gt;62000&lt;/salary&gt;
+    &lt;hireDate&gt;2019-07-01&lt;/hireDate&gt;
+  &lt;/employee&gt;
+&lt;/employees&gt;</textarea>
+        </div>
+        <div>
+          <label for="output">Generated XSD</label>
+          <textarea id="output" readonly style="font-family:monospace;font-size:0.8rem;min-height:220px" placeholder="XSD will appear here…"></textarea>
+        </div>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <script>
+    const input  = document.getElementById('input');
+    const output = document.getElementById('output');
+    const status = document.getElementById('status');
+
+    function setStatus(msg, ok) { status.textContent = msg; status.className = 'status ' + (ok ? 'ok' : 'err'); }
+
+    function inferType(val) {
+      if (val === 'true' || val === 'false') return 'xs:boolean';
+      if (/^\d+$/.test(val)) return 'xs:integer';
+      if (/^\d+\.\d+$/.test(val)) return 'xs:decimal';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return 'xs:date';
+      if (/^\d{4}-\d{2}-\d{2}T/.test(val)) return 'xs:dateTime';
+      return 'xs:string';
+    }
+
+    // Collect schema info from DOM
+    function analyseNode(node, schema) {
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      const name = node.localName;
+      if (!schema[name]) {
+        schema[name] = { attrs: {}, children: {}, textType: null, maxOccurs: 1 };
+      } else {
+        schema[name].maxOccurs = 'unbounded';
+      }
+      const info = schema[name];
+
+      for (const attr of node.attributes) {
+        info.attrs[attr.name] = inferType(attr.value);
+      }
+
+      const childElems = [...node.childNodes].filter(n => n.nodeType === Node.ELEMENT_NODE);
+      if (childElems.length === 0) {
+        const text = node.textContent.trim();
+        if (text) info.textType = inferType(text);
+      }
+
+      const seen = {};
+      for (const child of childElems) {
+        analyseNode(child, schema);
+        const cname = child.localName;
+        if (!info.children[cname]) info.children[cname] = { maxOccurs: 1 };
+        else info.children[cname].maxOccurs = 'unbounded';
+        seen[cname] = true;
+      }
+
+      return schema;
+    }
+
+    function generateXSD(xmlStr) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xmlStr, 'application/xml');
+      const err = doc.querySelector('parsererror');
+      if (err) throw new Error(err.textContent.split('\n')[0].trim());
+
+      const schema = {};
+      analyseNode(doc.documentElement, schema);
+
+      const pad = '  ';
+      let xsd = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+      xsd += `<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">\n\n`;
+
+      // Root element declaration
+      xsd += `${pad}<xs:element name="${doc.documentElement.localName}" type="${doc.documentElement.localName}Type"/>\n\n`;
+
+      // Generate complex types
+      function typeFor(name, info) {
+        const hasChildren = Object.keys(info.children).length > 0;
+        const hasAttrs    = Object.keys(info.attrs).length > 0;
+        let t = `${pad}<xs:complexType name="${name}Type">\n`;
+        if (hasChildren) {
+          t += `${pad}${pad}<xs:sequence>\n`;
+          for (const [childName, childInfo] of Object.entries(info.children)) {
+            const occ = childInfo.maxOccurs === 'unbounded' ? ' maxOccurs="unbounded"' : '';
+            t += `${pad}${pad}${pad}<xs:element name="${childName}" type="${childName}Type"${occ}/>\n`;
+          }
+          t += `${pad}${pad}</xs:sequence>\n`;
+        } else if (info.textType && info.textType !== 'xs:string') {
+          t += `${pad}${pad}<xs:simpleContent>\n`;
+          t += `${pad}${pad}${pad}<xs:extension base="${info.textType}">\n`;
+          for (const [attrName, attrType] of Object.entries(info.attrs)) {
+            t += `${pad}${pad}${pad}${pad}<xs:attribute name="${attrName}" type="${attrType}"/>\n`;
+          }
+          t += `${pad}${pad}${pad}</xs:extension>\n`;
+          t += `${pad}${pad}</xs:simpleContent>\n`;
+          t += `${pad}</xs:complexType>\n\n`;
+          return t;
+        }
+        for (const [attrName, attrType] of Object.entries(info.attrs)) {
+          t += `${pad}${pad}<xs:attribute name="${attrName}" type="${attrType}"/>\n`;
+        }
+        t += `${pad}</xs:complexType>\n\n`;
+        return t;
+      }
+
+      for (const [name, info] of Object.entries(schema)) {
+        xsd += typeFor(name, info);
+      }
+
+      xsd += `</xs:schema>`;
+      return xsd;
+    }
+
+    document.getElementById('generateBtn').onclick = () => {
+      const raw = input.value.trim();
+      if (!raw) { setStatus('Paste XML first', false); return; }
+      try {
+        output.value = generateXSD(raw);
+        setStatus('XSD generated ✓', true);
+      } catch (e) { setStatus('Error: ' + e.message, false); }
+    };
+
+    document.getElementById('copyBtn').onclick = async () => {
+      if (!output.value) { setStatus('Nothing to copy', false); return; }
+      try { await navigator.clipboard.writeText(output.value); setStatus('Copied ✓', true); }
+      catch { setStatus('Copy failed', false); }
+    };
+
+    document.getElementById('downloadBtn').onclick = () => {
+      if (!output.value) { setStatus('Nothing to download', false); return; }
+      const blob = new Blob([output.value], { type: 'application/xml' });
+      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'schema.xsd' });
+      a.click(); URL.revokeObjectURL(a.href);
+    };
+
+    document.getElementById('clearBtn').onclick = () => { input.value = ''; output.value = ''; setStatus('', true); };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

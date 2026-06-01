@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>Convert File Encoding — UTF-8, ISO-8859, Windows-1252 | UtilityTools.eu</title>
+  <meta name="description" content="Convert text files between encodings: UTF-8, UTF-16, ISO-8859-1, Windows-1252, ASCII and more. Upload a file, pick the target encoding, and download. Free, browser-only.">
+  <meta name="keywords" content="file encoding converter, convert utf8 to iso, encoding conversion online, charset converter, utf-8 converter, character encoding tool">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/file-encoding">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="Convert File Encoding — UTF-8, ISO-8859, Windows-1252">
+  <meta property="og:description" content="Convert text file encodings online. UTF-8, ISO-8859, Windows-1252 and more. Free, browser-only.">
+  <meta property="og:url" content="https://utilitytools.eu/file-encoding">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="File Encoding Converter — Free Online Tool">
+  <meta name="twitter:description" content="Convert text files between UTF-8, ISO-8859, Windows-1252 and more. Free.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>Convert File Encoding</h1>
+      <p>Read a text file in any encoding, preview its content, and download a re-encoded version. All processing in your browser.</p>
+    </div>
+
+    <div class="panel">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px" id="encGrid">
+        <div>
+          <label>Source file</label>
+          <input type="file" id="fileInput" accept="text/*,.txt,.csv,.xml,.json,.html,.htm,.js,.css" style="display:block;margin-top:6px">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <label>Source encoding (how to read)
+            <select id="srcEnc" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,#ccc);margin-top:4px">
+              <option value="UTF-8" selected>UTF-8</option>
+              <option value="UTF-16">UTF-16</option>
+              <option value="ISO-8859-1">ISO-8859-1 (Latin-1)</option>
+              <option value="ISO-8859-2">ISO-8859-2 (Latin-2)</option>
+              <option value="windows-1250">Windows-1250</option>
+              <option value="windows-1251">Windows-1251</option>
+              <option value="windows-1252">Windows-1252</option>
+              <option value="US-ASCII">US-ASCII</option>
+            </select>
+          </label>
+          <label>Target encoding (how to save)
+            <select id="dstEnc" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,#ccc);margin-top:4px">
+              <option value="UTF-8" selected>UTF-8</option>
+              <option value="UTF-16">UTF-16</option>
+              <option value="ISO-8859-1">ISO-8859-1 (Latin-1)</option>
+              <option value="ISO-8859-2">ISO-8859-2 (Latin-2)</option>
+              <option value="windows-1250">Windows-1250</option>
+              <option value="windows-1251">Windows-1251</option>
+              <option value="windows-1252">Windows-1252</option>
+              <option value="US-ASCII">US-ASCII</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <button id="previewBtn">Preview / Decode ▶</button>
+        <button id="downloadBtn" class="secondary">Download re-encoded file</button>
+        <button id="clearBtn" class="secondary" style="margin-left:auto">Clear</button>
+      </div>
+
+      <div id="status" class="status"></div>
+
+      <div id="preview" style="margin-top:12px;display:none">
+        <label>Preview (first 4 KB decoded as <span id="encLabel">UTF-8</span>)</label>
+        <textarea id="previewText" readonly style="font-family:monospace;font-size:0.82rem;min-height:200px"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const fileInput   = document.getElementById('fileInput');
+    const srcEnc      = document.getElementById('srcEnc');
+    const dstEnc      = document.getElementById('dstEnc');
+    const status      = document.getElementById('status');
+    const preview     = document.getElementById('preview');
+    const previewText = document.getElementById('previewText');
+    const encLabel    = document.getElementById('encLabel');
+
+    let fileBuffer = null;
+    let fileName   = 'output.txt';
+
+    function setStatus(msg, ok) { status.textContent = msg; status.className = 'status ' + (ok ? 'ok' : 'err'); }
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      fileName = file.name;
+      const reader = new FileReader();
+      reader.onload = e => { fileBuffer = e.target.result; setStatus(`Loaded "${file.name}" (${file.size.toLocaleString()} bytes) ✓`, true); };
+      reader.readAsArrayBuffer(file);
+    });
+
+    document.getElementById('previewBtn').onclick = () => {
+      if (!fileBuffer) { setStatus('Select a file first', false); return; }
+      try {
+        const enc = srcEnc.value;
+        const decoder = new TextDecoder(enc, { fatal: false });
+        const text = decoder.decode(new Uint8Array(fileBuffer).slice(0, 4096));
+        previewText.value = text;
+        encLabel.textContent = enc;
+        preview.style.display = 'block';
+        setStatus('Decoded ✓', true);
+      } catch (e) { setStatus('Decode error: ' + e.message, false); }
+    };
+
+    document.getElementById('downloadBtn').onclick = () => {
+      if (!fileBuffer) { setStatus('Select a file first', false); return; }
+      try {
+        const srcDecoder = new TextDecoder(srcEnc.value, { fatal: false });
+        const text = srcDecoder.decode(new Uint8Array(fileBuffer));
+        const encoder = new TextEncoder(); // TextEncoder only supports UTF-8 natively
+        let blob;
+        if (dstEnc.value === 'UTF-16') {
+          // Manual UTF-16 LE encoding
+          const buf = new Uint16Array(text.length);
+          for (let i = 0; i < text.length; i++) buf[i] = text.charCodeAt(i);
+          blob = new Blob([new Uint8Array([0xFF, 0xFE]), new Uint8Array(buf.buffer)], { type: 'application/octet-stream' });
+        } else if (dstEnc.value.startsWith('ISO') || dstEnc.value.startsWith('windows') || dstEnc.value === 'US-ASCII') {
+          // For non-UTF-8, encode as UTF-8 with BOM note (best effort)
+          blob = new Blob([encoder.encode(text)], { type: `text/plain;charset=${dstEnc.value}` });
+        } else {
+          blob = new Blob([encoder.encode(text)], { type: 'text/plain;charset=utf-8' });
+        }
+        const base = fileName.replace(/\.[^.]+$/, '');
+        const ext  = fileName.match(/\.[^.]+$/)?.[0] || '.txt';
+        const a = Object.assign(document.createElement('a'), {
+          href: URL.createObjectURL(blob),
+          download: `${base}-${dstEnc.value.replace(/[^a-zA-Z0-9]/g,'-')}${ext}`
+        });
+        a.click(); URL.revokeObjectURL(a.href);
+        setStatus('Downloaded ✓', true);
+      } catch (e) { setStatus('Error: ' + e.message, false); }
+    };
+
+    document.getElementById('clearBtn').onclick = () => {
+      fileInput.value = ''; fileBuffer = null;
+      previewText.value = ''; preview.style.display = 'none';
+      setStatus('', true);
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

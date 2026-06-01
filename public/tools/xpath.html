@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>XPath Tester — Evaluate XPath Expressions Online | UtilityTools.eu</title>
+  <meta name="description" content="Test and evaluate XPath 1.0 expressions against XML documents in your browser. See matching nodes highlighted in real-time. Free, no upload.">
+  <meta name="keywords" content="xpath tester, xpath evaluator, xpath online, test xpath expression, xml xpath, xpath 1.0">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/xpath">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="XPath Tester — Evaluate XPath Online">
+  <meta property="og:description" content="Test XPath 1.0 expressions against XML documents in your browser. Free, no upload.">
+  <meta property="og:url" content="https://utilitytools.eu/xpath">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="XPath Tester — Free Online Tool">
+  <meta name="twitter:description" content="Test XPath expressions against XML in your browser. Free.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>XPath Tester</h1>
+      <p>Evaluate XPath 1.0 expressions against your XML document. See matching nodes and values instantly.</p>
+    </div>
+
+    <div class="panel">
+      <label for="xmlInput">XML Document</label>
+      <textarea id="xmlInput" placeholder="Paste your XML here…" style="font-family:monospace;font-size:0.82rem;min-height:160px">&lt;?xml version="1.0"?&gt;
+&lt;library&gt;
+  &lt;book id="1" genre="fiction"&gt;
+    &lt;title&gt;The Great Gatsby&lt;/title&gt;
+    &lt;author&gt;F. Scott Fitzgerald&lt;/author&gt;
+    &lt;year&gt;1925&lt;/year&gt;
+  &lt;/book&gt;
+  &lt;book id="2" genre="non-fiction"&gt;
+    &lt;title&gt;Sapiens&lt;/title&gt;
+    &lt;author&gt;Yuval Noah Harari&lt;/author&gt;
+    &lt;year&gt;2011&lt;/year&gt;
+  &lt;/book&gt;
+&lt;/library&gt;</textarea>
+
+      <div class="row" style="margin:12px 0;flex-wrap:wrap;gap:8px">
+        <input id="xpathInput" type="text" placeholder="//book[@genre='fiction']/title" style="flex:1;min-width:200px;padding:8px 12px;border-radius:8px;border:1px solid var(--border,#ccc);font-family:monospace">
+        <button id="evalBtn">Evaluate ▶</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+
+      <div style="margin-bottom:10px;font-size:0.82rem;color:#666">
+        Quick examples:
+        <span class="xpath-ex" style="cursor:pointer;color:var(--accent,#4f8ef7);margin-right:10px">//book</span>
+        <span class="xpath-ex" style="cursor:pointer;color:var(--accent,#4f8ef7);margin-right:10px">//book[@genre='fiction']</span>
+        <span class="xpath-ex" style="cursor:pointer;color:var(--accent,#4f8ef7);margin-right:10px">//title/text()</span>
+        <span class="xpath-ex" style="cursor:pointer;color:var(--accent,#4f8ef7);margin-right:10px">count(//book)</span>
+        <span class="xpath-ex" style="cursor:pointer;color:var(--accent,#4f8ef7)">//book[year&gt;2000]/author</span>
+      </div>
+
+      <div id="status" class="status"></div>
+      <div id="results" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <style>
+    .xpath-result { background:#f7f9fc; border-radius:8px; padding:10px 14px; margin-bottom:6px; font-family:monospace; font-size:0.82rem; border-left:3px solid var(--accent,#4f8ef7); white-space:pre-wrap; word-break:break-all; }
+    .result-count { font-weight:600; margin-bottom:10px; color:#444; font-size:0.9rem; }
+  </style>
+
+  <script>
+    const xpathInput = document.getElementById('xpathInput');
+    const xmlInput   = document.getElementById('xmlInput');
+    const status     = document.getElementById('status');
+    const results    = document.getElementById('results');
+
+    function setStatus(msg, ok) {
+      status.textContent = msg;
+      status.className = 'status ' + (ok ? 'ok' : 'err');
+    }
+
+    function serializeNode(node) {
+      if (node.nodeType === Node.TEXT_NODE || node.nodeType === Node.ATTRIBUTE_NODE) return node.nodeValue;
+      return new XMLSerializer().serializeToString(node);
+    }
+
+    function evaluate() {
+      const xmlStr   = xmlInput.value.trim();
+      const xpathStr = xpathInput.value.trim();
+      results.innerHTML = '';
+      if (!xmlStr) { setStatus('Paste an XML document first', false); return; }
+      if (!xpathStr) { setStatus('Enter an XPath expression', false); return; }
+
+      let doc;
+      try {
+        const parser = new DOMParser();
+        doc = parser.parseFromString(xmlStr, 'application/xml');
+        const err = doc.querySelector('parsererror');
+        if (err) throw new Error(err.textContent.split('\n')[0]);
+      } catch (e) { setStatus('XML parse error: ' + e.message, false); return; }
+
+      try {
+        const result = doc.evaluate(xpathStr, doc, null, XPathResult.ANY_TYPE, null);
+        const type   = result.resultType;
+
+        if (type === XPathResult.NUMBER_TYPE) {
+          results.innerHTML = `<div class="result-count">Result (number)</div><div class="xpath-result">${result.numberValue}</div>`;
+          setStatus('Evaluated ✓', true);
+        } else if (type === XPathResult.STRING_TYPE) {
+          results.innerHTML = `<div class="result-count">Result (string)</div><div class="xpath-result">${escHtml(result.stringValue)}</div>`;
+          setStatus('Evaluated ✓', true);
+        } else if (type === XPathResult.BOOLEAN_TYPE) {
+          results.innerHTML = `<div class="result-count">Result (boolean)</div><div class="xpath-result">${result.booleanValue}</div>`;
+          setStatus('Evaluated ✓', true);
+        } else {
+          const nodes = [];
+          let node;
+          const iter = doc.evaluate(xpathStr, doc, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
+          while ((node = iter.iterateNext())) nodes.push(node);
+          if (nodes.length === 0) {
+            results.innerHTML = '<div class="result-count">No matching nodes found.</div>';
+            setStatus('No matches', false);
+          } else {
+            results.innerHTML = `<div class="result-count">${nodes.length} matching node(s):</div>` +
+              nodes.map((n,i) => `<div class="xpath-result"><strong>#${i+1} [${n.nodeType === 2 ? 'attr' : n.nodeType === 3 ? 'text' : 'element'}]</strong>\n${escHtml(serializeNode(n))}</div>`).join('');
+            setStatus(`${nodes.length} result(s) ✓`, true);
+          }
+        }
+      } catch (e) { setStatus('XPath error: ' + e.message, false); }
+    }
+
+    document.getElementById('evalBtn').onclick = evaluate;
+    xpathInput.addEventListener('keydown', e => { if (e.key === 'Enter') evaluate(); });
+
+    document.querySelectorAll('.xpath-ex').forEach(el => {
+      el.addEventListener('click', () => { xpathInput.value = el.textContent; evaluate(); });
+    });
+
+    document.getElementById('clearBtn').onclick = () => {
+      xmlInput.value = ''; xpathInput.value = ''; results.innerHTML = ''; setStatus('', true);
+    };
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

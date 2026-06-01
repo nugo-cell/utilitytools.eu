@@ -128,6 +128,44 @@ const TOOLS = [
   { slug: 'xml-explorer', name: 'Interactive XML',         file: 'tools/xml-explorer.html', icon: '🔎XML',tags: ['developer','text'],           desc: 'Paste XML or drop a file (auto-detects XML inside oddly-named files) and click through it like folders.' },
   { slug: 'xml-editor',   name: 'XML Editor',              file: 'tools/xml-editor.html',   icon: '✎XML', tags: ['developer','text'],           desc: 'Interactively edit XML tags, attributes and text, add/remove elements, then download the modified file.' },
 
+  // -------- New Formatters --------
+  { slug: 'html-formatter', name: 'HTML Formatter & Beautifier', file: 'tools/html-formatter.html', icon: 'HTML', tags: ['developer','text','formatter'], desc: 'Beautify and format messy HTML with proper indentation or minify for production.' },
+  { slug: 'sql-formatter',  name: 'SQL Formatter & Beautifier',  file: 'tools/sql-formatter.html',  icon: 'SQL',  tags: ['developer','text','formatter'], desc: 'Format and beautify SQL queries with keyword casing and proper indentation.' },
+
+  // -------- New Validators --------
+  { slug: 'html-validator', name: 'HTML Validator',         file: 'tools/html-validator.html', icon: 'H✓',  tags: ['developer','text','validator'],  desc: 'Check HTML for unclosed tags, missing attributes, deprecated elements and structural errors.' },
+  { slug: 'xpath',          name: 'XPath Tester',           file: 'tools/xpath.html',          icon: 'XP',  tags: ['developer','text','xml'],        desc: 'Evaluate XPath 1.0 expressions against XML documents. See matching nodes highlighted.' },
+
+  // -------- New Generators / Testers --------
+  { slug: 'credit-card',    name: 'Credit Card Generator',  file: 'tools/credit-card.html',    icon: '💳',  tags: ['developer','generator','security'], desc: 'Generate Luhn-valid test credit card numbers for Visa, Mastercard, Amex and more. For testing only.' },
+  { slug: 'java-regex',     name: 'Java RegEx Tester',      file: 'tools/java-regex.html',     icon: 'J/./', tags: ['developer','text'],             desc: 'Test Java-compatible regular expressions with CASE_INSENSITIVE, MULTILINE, DOTALL flags and named groups.' },
+  { slug: 'cron',           name: 'Cron Expression Generator', file: 'tools/cron.html',        icon: '⏱',  tags: ['developer','time','generator'],  desc: 'Build, test and explain cron expressions for Unix and Quartz schedulers. Visualise next run times.' },
+
+  // -------- New Converters --------
+  { slug: 'xsd-generator',  name: 'XSD Generator',          file: 'tools/xsd-generator.html', icon: 'XSD', tags: ['developer','xml','converter'],   desc: 'Auto-generate an XSD (XML Schema Definition) from any XML document. Infers types and nesting.' },
+  { slug: 'xslt',           name: 'XSLT Transformer',        file: 'tools/xslt.html',          icon: 'XSL', tags: ['developer','xml','converter'],   desc: 'Apply XSL stylesheets to transform XML documents. XSLT 1.0 via the native browser engine.' },
+  { slug: 'xml-json',       name: 'XML ↔ JSON Converter',    file: 'tools/xml-json.html',      icon: 'X↔J', tags: ['developer','xml','converter'],   desc: 'Convert XML to JSON or JSON to XML. Handles attributes, nested elements and arrays.' },
+  { slug: 'csv-xml',        name: 'CSV to XML Converter',    file: 'tools/csv-xml.html',       icon: 'C→X', tags: ['developer','converter'],         desc: 'Convert CSV data to well-formed XML. Choose root element, row element, and handle headers.' },
+  { slug: 'yaml-json',      name: 'YAML ↔ JSON Converter',   file: 'tools/yaml-json.html',     icon: 'Y↔J', tags: ['developer','converter'],         desc: 'Convert YAML to JSON or JSON to YAML. Supports anchors, multi-line strings and nested structures.' },
+
+  // -------- New Encoders / Cryptography --------
+  { slug: 'file-encoding',  name: 'Convert File Encoding',  file: 'tools/file-encoding.html', icon: 'Enc', tags: ['developer','converter','security'], desc: 'Read a text file in any encoding (UTF-8, ISO-8859, Windows-1252) and download a re-encoded version.' },
+  { slug: 'hmac',           name: 'HMAC Generator',          file: 'tools/hmac.html',          icon: 'MAC', tags: ['developer','security','encoder'],  desc: 'Compute HMAC-SHA1/256/384/512 message authentication codes via the browser Web Crypto API.' },
+
+  // -------- Code Beautifiers / Minifiers --------
+  { slug: 'js-tools',       name: 'JavaScript Beautifier & Minifier', file: 'tools/js-tools.html',  icon: 'JS',  tags: ['developer','formatter'],  desc: 'Beautify messy JavaScript with proper indentation or minify for production. Browser-only.' },
+  { slug: 'css-tools',      name: 'CSS Beautifier & Minifier',        file: 'tools/css-tools.html', icon: 'CSS', tags: ['developer','formatter'],  desc: 'Format compressed CSS or minify stylesheets for faster page loads. Browser-only.' },
+
+  // -------- String Escaper & Utilities --------
+  { slug: 'string-escape',  name: 'String Escaper',          file: 'tools/string-escape.html', icon: 'Esc', tags: ['developer','text','encoder'],    desc: 'Escape/unescape strings for HTML, XML, JavaScript, JSON, Java/.NET, SQL and CSV contexts.' },
+  { slug: 'string-utils',   name: 'String Utilities',        file: 'tools/string-utils.html',  icon: 'Str', tags: ['developer','text'],              desc: 'Reverse, sort lines, remove duplicates, trim, wrap, pad, change case and more — all in one tool.' },
+
+  // -------- Web Resources --------
+  { slug: 'mime-types',     name: 'List of MIME Types',      file: 'tools/mime-types.html',    icon: '📋',  tags: ['developer','reference'],         desc: 'Complete searchable list of MIME types with file extensions. Find any content-type instantly.' },
+  { slug: 'html-entities',  name: 'HTML Entities Reference', file: 'tools/html-entities.html', icon: '&amp;', tags: ['developer','reference','text'], desc: 'Searchable reference of HTML entities. Click any entity to copy its name, number or character.' },
+  { slug: 'url-parser',     name: 'URL Parser & Query String Splitter', file: 'tools/url-parser.html', icon: '🔗', tags: ['developer','network'],   desc: 'Break any URL into protocol, host, path, port, query parameters and fragment. Decode and copy.' },
+  { slug: 'i18n',           name: 'I18N Standards & Snippets', file: 'tools/i18n.html',        icon: '🌐',  tags: ['developer','reference','i18n'],  desc: 'Locale codes (BCP 47), country codes (ISO 3166), currency codes (ISO 4217), IANA timezones and i18n code snippets.' },
+
   // -------- Image Toolkit (browser-only, no upload) --------
   { slug: 'img-compress',     name: 'Image Compressor',         file: 'tools/img-compress.html',     icon: 'Cmp', tags: ['image','design'],            desc: 'Compress JPG, PNG, WebP with a quality slider. See size before/after.' },
   { slug: 'img-convert',      name: 'Image Converter',          file: 'tools/img-convert.html',      icon: 'Cvt', tags: ['image','converter'],         desc: 'Convert images between JPG, PNG, WebP and AVIF (where supported).' },

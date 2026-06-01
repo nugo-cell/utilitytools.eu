@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>HTML Formatter &amp; Beautifier — Free Online Tool | UtilityTools.eu</title>
+  <meta name="description" content="Format, beautify and validate HTML code online. Paste messy HTML and get clean, properly indented markup instantly. Free, browser-only, no upload.">
+  <meta name="keywords" content="html formatter, html beautifier, format html online, pretty print html, html indenter, html cleaner">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/html-formatter">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="HTML Formatter &amp; Beautifier — Free Online Tool">
+  <meta property="og:description" content="Format, beautify and validate HTML code online. Paste messy HTML and get clean, properly indented markup instantly.">
+  <meta property="og:url" content="https://utilitytools.eu/html-formatter">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="HTML Formatter &amp; Beautifier — Free Online Tool">
+  <meta name="twitter:description" content="Format and beautify HTML code online. Free, browser-only.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"HTML Formatter & Beautifier","description":"Format, beautify and validate HTML code online. Browser-only, no upload.","url":"https://utilitytools.eu/html-formatter","applicationCategory":"DeveloperApplication","operatingSystem":"Any (Web)","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"publisher":{"@type":"Organization","name":"UtilityTools.eu","url":"https://utilitytools.eu"}}</script>
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>HTML Formatter &amp; Beautifier</h1>
+      <p>Paste minified or messy HTML and get clean, properly indented markup instantly.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <button id="formatBtn">Format HTML ▶</button>
+        <button id="minifyBtn" class="secondary">Minify</button>
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem">
+          Indent:
+          <select id="indentSize" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border,#ccc)">
+            <option value="2" selected>2 spaces</option>
+            <option value="4">4 spaces</option>
+            <option value="tab">Tab</option>
+          </select>
+        </label>
+        <button id="copyBtn" class="secondary" style="margin-left:auto">Copy output</button>
+        <button id="clearBtn" class="secondary">Clear</button>
+      </div>
+
+      <div class="split">
+        <div>
+          <label for="input">Input HTML</label>
+          <textarea id="input" placeholder="Paste your HTML here…" style="font-family:monospace;font-size:0.82rem"></textarea>
+        </div>
+        <div>
+          <label for="output">Formatted HTML</label>
+          <textarea id="output" readonly placeholder="Formatted output will appear here…" style="font-family:monospace;font-size:0.82rem"></textarea>
+        </div>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <script>
+    const input  = document.getElementById('input');
+    const output = document.getElementById('output');
+    const status = document.getElementById('status');
+
+    function setStatus(msg, ok) {
+      status.textContent = msg;
+      status.className = 'status ' + (ok ? 'ok' : 'err');
+    }
+
+    function getIndent() {
+      const v = document.getElementById('indentSize').value;
+      return v === 'tab' ? '\t' : ' '.repeat(parseInt(v));
+    }
+
+    const VOID_ELEMENTS = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
+    const INLINE_ELEMENTS = new Set(['a','abbr','acronym','b','bdo','big','br','button','cite','code','dfn','em','i','img','input','kbd','label','map','object','output','q','s','samp','select','small','span','strong','sub','sup','textarea','time','tt','u','var']);
+    const PRE_ELEMENTS = new Set(['pre','script','style','textarea']);
+
+    function formatHTML(html, indent) {
+      // Tokenise into tags and text
+      const tokens = [];
+      const re = /(<[^>]+>|<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>)/g;
+      let last = 0, m;
+      while ((m = re.exec(html)) !== null) {
+        if (m.index > last) tokens.push({ type: 'text', val: html.slice(last, m.index) });
+        const raw = m[0];
+        if (raw.startsWith('<!--') || raw.startsWith('<![')) {
+          tokens.push({ type: 'comment', val: raw });
+        } else {
+          const nameM = raw.match(/^<\/?([A-Za-z][A-Za-z0-9-]*)/);
+          const name = nameM ? nameM[1].toLowerCase() : '';
+          const isClose = raw.startsWith('</');
+          const isSelfClose = raw.endsWith('/>') || VOID_ELEMENTS.has(name);
+          tokens.push({ type: 'tag', val: raw, name, isClose, isSelfClose });
+        }
+        last = m.index + raw.length;
+      }
+      if (last < html.length) tokens.push({ type: 'text', val: html.slice(last) });
+
+      let depth = 0;
+      let out = '';
+      let inPre = false;
+
+      for (const tok of tokens) {
+        if (tok.type === 'text') {
+          const t = tok.val.replace(/\s+/g, ' ').trim();
+          if (t) out += indent.repeat(depth) + t + '\n';
+          continue;
+        }
+        if (tok.type === 'comment') {
+          out += indent.repeat(depth) + tok.val + '\n';
+          continue;
+        }
+        // tag
+        if (inPre) {
+          out += tok.val;
+          if (tok.isClose && PRE_ELEMENTS.has(tok.name)) { inPre = false; out += '\n'; }
+          continue;
+        }
+        if (tok.isClose) {
+          depth = Math.max(0, depth - 1);
+          out += indent.repeat(depth) + tok.val + '\n';
+        } else if (tok.isSelfClose) {
+          out += indent.repeat(depth) + tok.val + '\n';
+        } else {
+          out += indent.repeat(depth) + tok.val + '\n';
+          if (PRE_ELEMENTS.has(tok.name)) inPre = true;
+          else depth++;
+        }
+      }
+      return out.trimEnd();
+    }
+
+    function minifyHTML(html) {
+      return html
+        .replace(/<!--[\s\S]*?-->/g, '')
+        .replace(/\s{2,}/g, ' ')
+        .replace(/>\s+</g, '><')
+        .trim();
+    }
+
+    document.getElementById('formatBtn').onclick = () => {
+      const raw = input.value.trim();
+      if (!raw) { setStatus('Paste some HTML first', false); return; }
+      try {
+        output.value = formatHTML(raw, getIndent());
+        setStatus('Formatted ✓', true);
+      } catch (e) { setStatus('Error: ' + e.message, false); }
+    };
+
+    document.getElementById('minifyBtn').onclick = () => {
+      const raw = input.value.trim();
+      if (!raw) { setStatus('Paste some HTML first', false); return; }
+      output.value = minifyHTML(raw);
+      setStatus('Minified ✓', true);
+    };
+
+    document.getElementById('copyBtn').onclick = async () => {
+      if (!output.value) { setStatus('Nothing to copy', false); return; }
+      try { await navigator.clipboard.writeText(output.value); setStatus('Copied ✓', true); }
+      catch { setStatus('Copy failed', false); }
+    };
+
+    document.getElementById('clearBtn').onclick = () => {
+      input.value = ''; output.value = ''; setStatus('', true);
+    };
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

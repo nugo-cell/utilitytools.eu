@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>Java RegEx Tester — Test Java Regular Expressions Online | UtilityTools.eu</title>
+  <meta name="description" content="Test Java-compatible regular expressions online. Supports Java flags (CASE_INSENSITIVE, MULTILINE, DOTALL), named groups, and lookbehind. Free, browser-based.">
+  <meta name="keywords" content="java regex tester, java regular expression, java regex online, java pattern matcher, test regex java, java regex flags">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/java-regex">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="Java RegEx Tester — Test Java Regular Expressions Online">
+  <meta property="og:description" content="Test Java-compatible regular expressions with Java flags. Free, browser-based.">
+  <meta property="og:url" content="https://utilitytools.eu/java-regex">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Java RegEx Tester — Free Online Tool">
+  <meta name="twitter:description" content="Test Java regular expressions with Java-style flags online. Free.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Utility<span>Tools</span></div>
+    <a class="back" href="/">← All tools</a>
+  </nav>
+
+  <div class="container">
+    <div class="tool-header">
+      <h1>Java RegEx Tester</h1>
+      <p>Test Java-style regular expressions against sample text. Supports Java flags and match highlighting.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px;align-items:center">
+        <input id="pattern" type="text" placeholder="Java regex pattern, e.g. (\d{4})-(\d{2})-(\d{2})" style="flex:1;min-width:200px;padding:8px 12px;border-radius:8px;border:1px solid var(--border,#ccc);font-family:monospace">
+        <span style="font-size:0.85rem;color:#666">Flags:</span>
+        <label class="checkbox"><input type="checkbox" id="fi"> i (CASE_INSENSITIVE)</label>
+        <label class="checkbox"><input type="checkbox" id="fm" checked> m (MULTILINE)</label>
+        <label class="checkbox"><input type="checkbox" id="fs"> s (DOTALL)</label>
+        <label class="checkbox"><input type="checkbox" id="fg" checked> global (find all)</label>
+      </div>
+
+      <label for="testText">Test text</label>
+      <textarea id="testText" placeholder="Enter test text here…" style="font-family:monospace;font-size:0.85rem;min-height:120px">Meeting on 2025-06-15 and follow-up on 2025-07-01.
+Invoice #INV-2024-0042 due 2024-12-31.</textarea>
+
+      <div class="row" style="margin:12px 0;gap:8px;flex-wrap:wrap">
+        <button id="testBtn">Test ▶</button>
+        <button id="replaceToggle" class="secondary">Show Replace</button>
+        <button id="clearBtn" class="secondary" style="margin-left:auto">Clear</button>
+      </div>
+
+      <div id="replaceSection" style="display:none;margin-bottom:12px">
+        <label for="replacement">Replacement (use $1, $2… for groups)</label>
+        <input id="replacement" type="text" placeholder="$1/$2/$3" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--border,#ccc);font-family:monospace;box-sizing:border-box">
+        <button id="replaceBtn" style="margin-top:8px">Replace ▶</button>
+        <textarea id="replaceOut" readonly placeholder="Result appears here…" style="margin-top:8px;font-family:monospace;font-size:0.85rem"></textarea>
+      </div>
+
+      <div id="status" class="status"></div>
+      <div id="highlighted" style="margin-top:12px;font-family:monospace;font-size:0.85rem;background:#f7f9fc;border-radius:8px;padding:14px;white-space:pre-wrap;word-break:break-word;line-height:1.7;display:none"></div>
+      <div id="matches" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <style>
+    .match-box { background:#fff; border:1px solid var(--border,#e2e8f0); border-radius:8px; padding:10px 14px; margin-bottom:6px; font-size:0.85rem; }
+    .match-num { font-weight:700; color:var(--accent,#4f8ef7); margin-right:8px; }
+    .match-text { font-family:monospace; background:#eef2ff; padding:2px 6px; border-radius:4px; }
+    .group-label { color:#888; font-size:0.78rem; margin-top:4px; }
+    .hl { background:#ffd54f; border-radius:3px; }
+  </style>
+
+  <script>
+    const patternEl = document.getElementById('pattern');
+    const testText  = document.getElementById('testText');
+    const status    = document.getElementById('status');
+    const highlighted = document.getElementById('highlighted');
+    const matchesEl  = document.getElementById('matches');
+
+    function setStatus(msg, ok) {
+      status.textContent = msg;
+      status.className = 'status ' + (ok ? 'ok' : 'err');
+    }
+
+    function buildFlags() {
+      let f = '';
+      if (document.getElementById('fi').checked) f += 'i';
+      if (document.getElementById('fm').checked) f += 'm';
+      if (document.getElementById('fs').checked) f += 's';
+      if (document.getElementById('fg').checked) f += 'g';
+      return f;
+    }
+
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    document.getElementById('testBtn').onclick = () => {
+      const pat = patternEl.value;
+      const txt = testText.value;
+      matchesEl.innerHTML = '';
+      highlighted.style.display = 'none';
+      if (!pat) { setStatus('Enter a pattern', false); return; }
+      let re;
+      try { re = new RegExp(pat, buildFlags()); }
+      catch (e) { setStatus('Invalid regex: ' + e.message, false); return; }
+
+      const allMatches = [];
+      let m;
+      const gRe = new RegExp(pat, buildFlags().includes('g') ? buildFlags() : buildFlags() + 'g');
+      gRe.lastIndex = 0;
+      while ((m = gRe.exec(txt)) !== null) {
+        allMatches.push({ index: m.index, end: m.index + m[0].length, full: m[0], groups: [...m].slice(1) });
+        if (!buildFlags().includes('g')) break;
+        if (gRe.lastIndex === m.index) gRe.lastIndex++;
+      }
+
+      if (allMatches.length === 0) {
+        setStatus('No matches found', false);
+        matchesEl.innerHTML = '<p style="color:#888;font-size:0.9rem">No matches for this pattern.</p>';
+        return;
+      }
+
+      setStatus(`${allMatches.length} match(es) ✓`, true);
+
+      // Highlighted text
+      let html = '';
+      let pos = 0;
+      for (const match of allMatches) {
+        html += escHtml(txt.slice(pos, match.index));
+        html += `<mark class="hl" title="Match">${escHtml(match.full)}</mark>`;
+        pos = match.end;
+      }
+      html += escHtml(txt.slice(pos));
+      highlighted.innerHTML = html;
+      highlighted.style.display = 'block';
+
+      // Match list
+      matchesEl.innerHTML = allMatches.map((match, i) =>
+        `<div class="match-box">
+          <span class="match-num">Match #${i+1}</span>
+          <span class="match-text">${escHtml(match.full)}</span>
+          <span style="color:#888;font-size:0.78rem;margin-left:8px">at index ${match.index}</span>
+          ${match.groups.filter(g => g !== undefined).map((g, gi) =>
+            `<div class="group-label">Group ${gi+1}: <span class="match-text">${escHtml(String(g))}</span></div>`
+          ).join('')}
+        </div>`
+      ).join('');
+    };
+
+    document.getElementById('replaceToggle').onclick = () => {
+      const sec = document.getElementById('replaceSection');
+      sec.style.display = sec.style.display === 'none' ? 'block' : 'none';
+    };
+
+    document.getElementById('replaceBtn').onclick = () => {
+      const pat = patternEl.value;
+      const repl = document.getElementById('replacement').value;
+      const out  = document.getElementById('replaceOut');
+      if (!pat) { setStatus('Enter a pattern', false); return; }
+      let re;
+      try { re = new RegExp(pat, buildFlags()); }
+      catch (e) { setStatus('Invalid regex: ' + e.message, false); return; }
+      out.value = testText.value.replace(re, repl);
+      setStatus('Replaced ✓', true);
+    };
+
+    document.getElementById('clearBtn').onclick = () => {
+      patternEl.value = ''; testText.value = ''; matchesEl.innerHTML = '';
+      highlighted.style.display = 'none'; setStatus('', true);
+    };
+
+    patternEl.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('testBtn').click(); });
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+
