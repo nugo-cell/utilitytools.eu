@@ -239,6 +239,12 @@ const NOINDEX_TOOL_SLUGS = new Set([
 
 const TOOL_BY_SLUG = new Map(TOOLS.map(t => [t.slug, t]));
 
+// Single source of truth for the public tool count. Pages/scripts use the
+// {{TOOL_COUNT}} placeholder, which is substituted at serve time so the number
+// stays correct automatically as tools are added.
+const TOOL_COUNT = TOOLS.length;
+function injectToolCount(text) { return String(text).replace(/\{\{TOOL_COUNT\}\}/g, String(TOOL_COUNT)); }
+
 function escapeHtml(value) {
   return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -340,7 +346,15 @@ app.get('/', (req, res) => {
     '<div class="grid" id="toolGrid" aria-live="polite"></div>',
     `<div class="grid" id="toolGrid" aria-live="polite">${renderHomeToolCards()}\n      </div>`
   );
-  res.type('html').send(html);
+  res.type('html').send(injectToolCount(html));
+});
+
+// Serve consent.js with the live tool count substituted in.
+app.get('/consent.js', (req, res) => {
+  const js = fs.readFileSync(path.join(__dirname, 'public', 'consent.js'), 'utf8');
+  res.type('application/javascript')
+     .setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
+  res.send(injectToolCount(js));
 });
 
 app.get('/tools/:file', (req, res, next) => {
@@ -374,7 +388,10 @@ const pages = {
   '/contact':    'pages/contact.html'
 };
 for (const [route, file] of Object.entries(pages)) {
-  app.get(route, (req, res) => res.sendFile(path.join(__dirname, 'public', file)));
+  app.get(route, (req, res) => {
+    const html = fs.readFileSync(path.join(__dirname, 'public', file), 'utf8');
+    res.type('html').send(injectToolCount(html));
+  });
 }
 
 app.get('/blog/:slug', (req, res) => {

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>UtilityTools.eu — Free EU Online Tools, Privacy-First and Browser-First</title>
-  <meta name="description" content="UtilityTools.eu is a free European alternative for everyday online utilities — 120 tools including JSON formatter, password generator, file encryption, CV maker, invoice generator, currency converter, image tools and PDF editor. No tracking, no signup. Browser-first tools with clear privacy notes.">
+  <meta name="description" content="UtilityTools.eu is a free European alternative for everyday online utilities — {{TOOL_COUNT}} tools including JSON formatter, password generator, file encryption, CV maker, invoice generator, currency converter, image tools and PDF editor. No tracking, no signup. Browser-first tools with clear privacy notes.">
   <meta name="keywords" content="EU online tools, european utilities, privacy first tools, no tracking, GDPR friendly, free online tools, json formatter, password generator, file encryption, CV maker, invoice generator, currency converter, image tools, browser tools, no signup">
   <link rel="canonical" href="https://utilitytools.eu/">
   <meta name="robots" content="index,follow">
@@ -109,7 +109,7 @@
   <main class="container">
     <section class="hero">
       <h1>The free <span class="grad">European</span> toolbox<br>for your everyday browser tasks.</h1>
-      <p>120 privacy-first utilities for developers, writers, students and home — JSON, passwords, file encryption, CVs, invoices, currency converter, image tools, PDFs, Pomodoro and more. No accounts, no analytics tracking, and most tools process your input directly in your browser.</p>
+      <p>{{TOOL_COUNT}} privacy-first utilities for developers, writers, students and home — JSON, passwords, file encryption, CVs, invoices, currency converter, image tools, PDFs, Pomodoro and more. No accounts, no analytics tracking, and most tools process your input directly in your browser.</p>
       <div class="badges">
         <span class="eu-badge eu">Made in the EU</span>
         <span class="eu-badge"><span class="dot"></span> Zero tracking</span>
@@ -388,7 +388,7 @@
     document.getElementById('shareBtn').addEventListener('click', async () => {
       const data = {
         title: 'UtilityTools.eu — Free EU online tools',
-        text: '120 privacy-first browser tools — JSON, passwords, CVs, invoices, currency, PDFs, image tools and more. No analytics tracking, no signup.',
+        text: '{{TOOL_COUNT}} privacy-first browser tools — JSON, passwords, CVs, invoices, currency, PDFs, image tools and more. No analytics tracking, no signup.',
         url: 'https://utilitytools.eu/'
       };
       try {
