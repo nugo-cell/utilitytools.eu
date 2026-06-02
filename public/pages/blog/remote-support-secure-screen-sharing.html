@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consent-First Remote Support in the Browser — UtilityTools.eu</title>
+  <meta name="description" content="How browser-based remote support works: screen sharing, voice and full mouse/keyboard control with a tiny desktop helper — and the layered security model that keeps the customer in control the whole time.">
+  <meta name="keywords" content="remote support, remote desktop control, screen sharing browser, webrtc remote support, consent remote access, secure remote support">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://utilitytools.eu/blog/remote-support-secure-screen-sharing">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Consent-First Remote Support in the Browser">
+  <meta property="og:description" content="Screen sharing, voice and real mouse/keyboard control from a browser tab — and the security model that keeps the customer in charge.">
+  <meta property="og:url" content="https://utilitytools.eu/blog/remote-support-secure-screen-sharing">
+  <meta property="article:published_time" content="2026-06-02">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"Consent-First Remote Support in the Browser","datePublished":"2026-06-02","author":{"@type":"Organization","name":"UtilityTools.eu"},"publisher":{"@type":"Organization","name":"UtilityTools.eu"}}
+  </script>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog" class="active">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container-narrow">
+    <article class="prose">
+      <h1>Consent-first remote support in the browser</h1>
+      <p class="meta">June 2, 2026 · 9 min read</p>
+
+      <p>Helping someone with a computer problem usually means one of two extremes: either you talk them through every click over the phone, or you install heavyweight remote-desktop software that quietly keeps access long after the call ends. The <a href="/remote-support">Remote Support</a> tool on UtilityTools.eu aims for a calmer middle ground — real help, including moving the mouse and typing on the other machine, but built so the person receiving support stays in control of every step.</p>
+
+      <p>This article explains what the feature does, how the pieces fit together, and — because it is the part that matters most — exactly how the security model works.</p>
+
+      <h2>What it can do</h2>
+      <ul>
+        <li><strong>Screen sharing</strong> — the customer shares their screen so the agent can see the problem.</li>
+        <li><strong>Voice and chat</strong> — talk through the issue without a separate phone call, or type messages.</li>
+        <li><strong>Full-screen viewing</strong> — the agent can expand the shared screen edge-to-edge for detailed work.</li>
+        <li><strong>Real mouse &amp; keyboard control</strong> — with a separate approval, the agent can actually move the cursor and type on the customer’s computer.</li>
+      </ul>
+
+      <p>Screen sharing, voice and chat all run in the browser using WebRTC — no installation needed. The one thing a browser tab physically <em>cannot</em> do is move your real operating-system mouse or press real keys, so that single capability is handled by a tiny optional <strong>Desktop Helper</strong> the customer downloads and runs only when they want hands-on control.</p>
+
+      <h2>How a session flows</h2>
+      <ol>
+        <li>The customer opens <a href="/remote-support">Remote Support</a> and starts a session. They choose a <strong>password</strong> and receive a one-time <strong>code</strong> (formatted like <code>ABCD-EFGH</code>).</li>
+        <li>They give the agent the code and password. The agent enters both to <em>request</em> to join.</li>
+        <li>Nothing is shared until the customer <strong>approves the join</strong>.</li>
+        <li>The customer separately decides whether to <strong>share their screen</strong>.</li>
+        <li>If hands-on help is needed, the customer downloads the <strong>Desktop Helper</strong>, runs it, and pairs it with a 6-digit code shown in its window — then grants <strong>remote control</strong> as a distinct, revocable approval.</li>
+        <li>When finished, either side ends the session and everything is torn down.</li>
+      </ol>
+
+      <h2>The security model</h2>
+      <p>Remote control of a computer is exactly the kind of capability that deserves real scrutiny, so the design assumes the question every careful user asks: <em>“Can someone use this to get into my machine without me wanting it?”</em> The honest, detailed answer is below. The short version: access only exists because the customer creates it, every sensitive step needs a separate approval, and there is no unattended or silent reconnect.</p>
+
+      <h3>1. The customer creates access — there is no standing door</h3>
+      <p>A session does not exist until the customer starts one. There is no always-listening service waiting for an agent to dial in. The agent cannot initiate anything; they can only join a session that the customer deliberately created, using a code and password the customer chose and handed over out-of-band.</p>
+
+      <h3>2. Two secrets, single-use, with brute-force limits</h3>
+      <p>Joining requires <strong>both</strong> the one-time code and the password. The password is never stored in clear text — only a salted hash, compared in constant time. The code is <strong>single-use</strong>: the moment it is claimed it is burned, so it cannot be replayed. Wrong-password attempts are counted, and too many lock the code entirely, which stops guessing attacks.</p>
+
+      <h3>3. Layered approvals you can revoke instantly</h3>
+      <p>Seeing the screen, sharing audio, and controlling the mouse/keyboard are <strong>separate</strong> permissions. Approving a join does not start screen sharing; sharing the screen does not grant control. Remote control is its own explicit toggle, and the server <em>drops control input the instant the approval is not active</em>. Revoking is immediate — the agent’s clicks simply stop being delivered.</p>
+
+      <h3>4. The desktop helper is loopback-only and cannot be reached from the network</h3>
+      <p>This is the part people worry about most, so it is worth being precise. The Desktop Helper:</p>
+      <ul>
+        <li>Listens <strong>only on <code>127.0.0.1</code></strong> (localhost) and explicitly rejects any connection that is not from the local machine. It is <em>not</em> reachable from the internet or the local network.</li>
+        <li>Makes <strong>no outbound connection</strong> to the agent. The agent never connects to the customer’s computer. Instead, the customer’s own browser tab talks to the helper locally, and the agent only ever talks to the relay server.</li>
+        <li>Requires a <strong>6-digit pairing code</strong> — shown only in the helper’s own window — before the browser may send it anything. A wrong code is refused.</li>
+        <li>Injects input <strong>only while the control gate is on</strong>, which mirrors the customer’s server-side approval. It also auto-disables after 30 seconds of silence.</li>
+      </ul>
+      <p>In other words, there is no “reverse connection” an outsider can dial into. Even a program already running on the customer’s own machine would still need the pairing code <em>and</em> an active approval to do anything — and if hostile software is already running locally, it has far easier options than this narrow, gated path.</p>
+
+      <h3>5. No unattended access, and everything expires</h3>
+      <p>If the customer closes the tab or disconnects, the session ends — there is no silent reconnect and no saved credential to come back through. Sessions also time out automatically after a period of inactivity and have a hard maximum duration. Because session state lives in memory and dies with the session, there is nothing left behind to reuse afterward.</p>
+
+      <h3>6. Stopping is always one action away</h3>
+      <p>Any one of these halts input immediately: clicking <strong>Revoke remote control</strong> or <strong>Stop support</strong> in the browser, closing the helper window, pressing <strong>Ctrl+C</strong> in it, or simply doing nothing for 30 seconds. The customer never has to “find the right button” in a panic — multiple independent off-switches all work.</p>
+
+      <h3>7. Auditability</h3>
+      <p>Each session keeps an activity log of the meaningful events — when an agent joined, when control was approved, when it was revoked, when the session ended. The customer can see this trail, so the session is transparent rather than a black box.</p>
+
+      <h2>Honest limitations</h2>
+      <p>No tool should pretend to be magic, so here are the real edges:</p>
+      <ul>
+        <li><strong>WebRTC reveals IP addresses.</strong> Screen and voice are peer-to-peer, so during an approved session each side may learn the other’s public IP. Routing media through a relay (TURN) can hide this if needed.</li>
+        <li><strong>Social engineering is the real risk, not the network.</strong> The dangerous scenario is tricking someone into starting a session and reading out their code — which is why the tool repeatedly reminds customers to only do this with a person they actually contacted for help.</li>
+        <li><strong>The helper is unsigned today.</strong> Windows may show a SmartScreen prompt the first time it runs. That is a trust/UX issue, not a remote-access hole; code signing removes the prompt.</li>
+        <li><strong>Trust still matters.</strong> While you grant control, the agent can act on your machine. The protections limit <em>when</em> and <em>whether</em> that happens — they cannot replace choosing who you let in.</li>
+      </ul>
+
+      <h2>Why this design</h2>
+      <p>Traditional remote-desktop tools optimise for the technician: install once, connect anytime. That is convenient for IT departments but uncomfortable for everyday users who can’t tell whether access really ended. This feature flips the priority. It is slightly more work to start — a code, a password, explicit approvals — and that friction is the point. It makes <em>“I am temporarily letting this specific person help me right now”</em> the only thing that can happen.</p>
+
+      <h2>How to use it</h2>
+      <ol>
+        <li>Open <a href="/remote-support">Remote Support</a> and start a session; set a password and share the code with your helper.</li>
+        <li>Approve the join when they request it, then choose whether to share your screen.</li>
+        <li>For hands-on help, download and run the Desktop Helper, type its 6-digit code into the page, and approve remote control.</li>
+        <li>End the session — or just close the tab — when you’re done.</li>
+      </ol>
+
+      <h2>Related tools</h2>
+      <p>Try <a href="/remote-support">Remote Support</a>, <a href="/p2p-call">P2P Video Call</a>, <a href="/p2p-voice">P2P Voice Call</a>, <a href="/temp-chat">Temp Chat</a>, and <a href="/p2p-file">P2P File Transfer</a>.</p>
+    </article>
+  </main>
+
+  <script src="/site.js"></script>
+</body>
+</html>
+

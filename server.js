@@ -793,6 +793,7 @@ app.get('/robots.txt', (req, res) => {
 app.get('/sitemap.xml', (req, res) => {
   const urls = [
     '/', '/about', '/contact', '/disclaimer', '/privacy', '/terms', '/blog',
+    '/blog/remote-support-secure-screen-sharing',
     '/blog/p2p-file-transfer-no-upload',
     '/blog/temporary-encrypted-browser-chat',
     '/blog/p2p-video-call-browser',
