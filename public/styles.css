@@ -78,6 +78,114 @@ html, body {
   line-height: 1.5;
 }
 
+html body.home-page {
+  position: relative;
+  isolation: isolate;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 8% 12%, rgba(255,94,156,0.46), transparent 30%),
+    radial-gradient(circle at 88% 8%, rgba(0,212,170,0.38), transparent 32%),
+    radial-gradient(circle at 16% 92%, rgba(255,154,60,0.34), transparent 34%),
+    radial-gradient(circle at 82% 86%, rgba(56,189,248,0.34), transparent 36%),
+    linear-gradient(125deg, #12091f 0%, #111d3d 28%, #241047 52%, #092c35 76%, #2a153d 100%);
+  background-size: 140% 140%, 150% 150%, 145% 145%, 155% 155%, 300% 300%;
+  background-attachment: fixed;
+  animation: homeVibrantShift 18s ease-in-out infinite alternate;
+}
+
+.home-page .topnav,
+.home-page .container,
+.home-page .site-footer {
+  position: relative;
+  z-index: 1;
+}
+
+.vibrant-bubbles {
+  position: fixed;
+  inset: -12vh -10vw;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.vibrant-bubbles span {
+  position: absolute;
+  left: var(--x);
+  bottom: -22vh;
+  width: var(--s);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  opacity: 0;
+  background:
+    radial-gradient(circle at 30% 26%, rgba(255,255,255,0.95) 0 8%, rgba(255,255,255,0.45) 9% 18%, transparent 19%),
+    radial-gradient(circle at 42% 38%, var(--c1) 0 35%, var(--c2) 60%, transparent 72%);
+  box-shadow:
+    0 0 24px var(--glow),
+    0 0 64px var(--glow),
+    inset -10px -14px 24px rgba(0,0,0,0.18),
+    inset 8px 8px 18px rgba(255,255,255,0.20);
+  filter: saturate(1.45) blur(0.1px);
+  animation: bubbleFloat var(--d) linear infinite;
+  animation-delay: var(--delay);
+  will-change: transform, opacity;
+}
+
+.vibrant-bubbles span:nth-child(1)  { --x: 4%;  --s: 82px;  --d: 18s; --delay: -14s; --dx1: 12vw;  --dx2: -5vw;  --dx3: 9vw;   --c1: rgba(255,94,156,0.82); --c2: rgba(124,92,255,0.50); --glow: rgba(255,94,156,0.46); }
+.vibrant-bubbles span:nth-child(2)  { --x: 12%; --s: 38px;  --d: 12s; --delay: -7s;  --dx1: -8vw;  --dx2: 6vw;   --dx3: -3vw;  --c1: rgba(0,212,170,0.84);  --c2: rgba(56,189,248,0.50); --glow: rgba(0,212,170,0.42); }
+.vibrant-bubbles span:nth-child(3)  { --x: 20%; --s: 124px; --d: 24s; --delay: -18s; --dx1: 10vw;  --dx2: 18vw;  --dx3: 4vw;   --c1: rgba(255,154,60,0.78); --c2: rgba(255,94,156,0.48); --glow: rgba(255,154,60,0.38); }
+.vibrant-bubbles span:nth-child(4)  { --x: 31%; --s: 54px;  --d: 15s; --delay: -4s;  --dx1: -10vw; --dx2: 3vw;   --dx3: -12vw; --c1: rgba(56,189,248,0.84); --c2: rgba(124,92,255,0.48); --glow: rgba(56,189,248,0.44); }
+.vibrant-bubbles span:nth-child(5)  { --x: 39%; --s: 96px;  --d: 21s; --delay: -10s; --dx1: 14vw;  --dx2: -9vw;  --dx3: 11vw;  --c1: rgba(155,89,255,0.78); --c2: rgba(255,94,156,0.52); --glow: rgba(155,89,255,0.40); }
+.vibrant-bubbles span:nth-child(6)  { --x: 48%; --s: 44px;  --d: 13s; --delay: -11s; --dx1: 8vw;   --dx2: -12vw; --dx3: 2vw;   --c1: rgba(91,229,132,0.82); --c2: rgba(0,212,170,0.52);  --glow: rgba(91,229,132,0.40); }
+.vibrant-bubbles span:nth-child(7)  { --x: 56%; --s: 138px; --d: 26s; --delay: -20s; --dx1: -13vw; --dx2: 7vw;   --dx3: -8vw;  --c1: rgba(255,210,63,0.74); --c2: rgba(255,94,156,0.42); --glow: rgba(255,210,63,0.34); }
+.vibrant-bubbles span:nth-child(8)  { --x: 66%; --s: 62px;  --d: 16s; --delay: -2s;  --dx1: 7vw;   --dx2: -10vw; --dx3: 12vw;  --c1: rgba(255,94,156,0.82); --c2: rgba(56,189,248,0.46); --glow: rgba(255,94,156,0.42); }
+.vibrant-bubbles span:nth-child(9)  { --x: 73%; --s: 42px;  --d: 11s; --delay: -8s;  --dx1: -5vw;  --dx2: 9vw;   --dx3: -7vw;  --c1: rgba(0,212,170,0.84);  --c2: rgba(255,154,60,0.44); --glow: rgba(0,212,170,0.42); }
+.vibrant-bubbles span:nth-child(10) { --x: 80%; --s: 112px; --d: 23s; --delay: -16s; --dx1: -15vw; --dx2: -4vw;  --dx3: -18vw; --c1: rgba(56,189,248,0.80); --c2: rgba(124,92,255,0.54); --glow: rgba(56,189,248,0.40); }
+.vibrant-bubbles span:nth-child(11) { --x: 89%; --s: 72px;  --d: 17s; --delay: -12s; --dx1: -9vw;  --dx2: 4vw;   --dx3: -11vw; --c1: rgba(255,154,60,0.78); --c2: rgba(255,210,63,0.46); --glow: rgba(255,154,60,0.38); }
+.vibrant-bubbles span:nth-child(12) { --x: 96%; --s: 50px;  --d: 14s; --delay: -5s;  --dx1: -18vw; --dx2: -8vw;  --dx3: -16vw; --c1: rgba(124,92,255,0.82); --c2: rgba(255,94,156,0.50); --glow: rgba(124,92,255,0.44); }
+.vibrant-bubbles span:nth-child(13) { --x: 26%; --s: 32px;  --d: 10s; --delay: -9s;  --dx1: 4vw;   --dx2: -7vw;  --dx3: 8vw;   --c1: rgba(255,255,255,0.74); --c2: rgba(56,189,248,0.42); --glow: rgba(56,189,248,0.34); }
+.vibrant-bubbles span:nth-child(14) { --x: 61%; --s: 30px;  --d: 9s;  --delay: -3s;  --dx1: -6vw;  --dx2: 6vw;   --dx3: -4vw;  --c1: rgba(255,255,255,0.72); --c2: rgba(255,94,156,0.40); --glow: rgba(255,94,156,0.34); }
+.vibrant-bubbles span:nth-child(15) { --x: 8%;  --s: 156px; --d: 29s; --delay: -23s; --dx1: 20vw;  --dx2: 6vw;   --dx3: 16vw;  --c1: rgba(124,92,255,0.62); --c2: rgba(0,212,170,0.36);  --glow: rgba(124,92,255,0.32); }
+
+html[data-theme="light"] body.home-page {
+  background:
+    radial-gradient(circle at 8% 12%, rgba(255,94,156,0.30), transparent 30%),
+    radial-gradient(circle at 88% 8%, rgba(0,212,170,0.24), transparent 32%),
+    radial-gradient(circle at 16% 92%, rgba(255,154,60,0.26), transparent 34%),
+    radial-gradient(circle at 82% 86%, rgba(56,189,248,0.24), transparent 36%),
+    linear-gradient(125deg, #fff6fb 0%, #eef7ff 28%, #f4efff 52%, #ecfff8 76%, #fff8ec 100%);
+  background-size: 140% 140%, 150% 150%, 145% 145%, 155% 155%, 300% 300%;
+}
+
+@keyframes homeVibrantShift {
+  0%   { background-position: 0% 10%, 100% 0%, 8% 100%, 96% 84%, 0% 50%; }
+  50%  { background-position: 18% 34%, 72% 28%, 36% 76%, 70% 100%, 100% 50%; }
+  100% { background-position: 42% 0%, 52% 42%, 0% 64%, 100% 58%, 38% 50%; }
+}
+
+@keyframes bubbleFloat {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.55) rotate(0deg);
+  }
+  8% { opacity: 0.82; }
+  34% { transform: translate3d(var(--dx1), -42vh, 0) scale(0.95) rotate(115deg); }
+  68% { transform: translate3d(var(--dx2), -88vh, 0) scale(1.16) rotate(245deg); }
+  92% { opacity: 0.72; }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx3), -132vh, 0) scale(1.32) rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html body.home-page { animation: none; }
+  .vibrant-bubbles span {
+    animation: none;
+    opacity: 0.24;
+    transform: translateY(-45vh) scale(0.9);
+  }
+}
+
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
