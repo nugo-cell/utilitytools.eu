@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>Remote Support — Temporary, Consent-First Screen Sharing</title>
+  <meta name="description" content="Start a temporary remote support session and share a one-time code. A support agent can only join after you approve. You stay in control and can stop everything instantly.">
+  <meta name="robots" content="noindex,follow">
+  <link rel="canonical" href="https://utilitytools.eu/remote-support">
+  <style>
+    .rs-info{background:linear-gradient(135deg,rgba(0,212,170,0.08),rgba(124,92,255,0.08));border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--muted);margin-top:14px}
+    .rs-info b{color:var(--text)}
+    .rs-code{font-family:var(--mono);font-size:34px;font-weight:800;letter-spacing:4px;color:var(--accent);text-align:center;padding:16px;border:2px dashed var(--border-strong);border-radius:12px;background:var(--panel-2);user-select:all}
+    .rs-code-meta{font-size:13px;color:var(--muted);text-align:center;margin-top:8px}
+    .rs-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+    .rs-actions .btn-danger{background:#ff5e7e;color:#fff;border:0}
+    .rs-actions .btn-danger:hover{background:#ff3a5e}
+    .rs-actions .btn-secondary{background:var(--panel-2);color:var(--text);border:1px solid var(--border)}
+    .rs-stop{font-size:18px;font-weight:800;padding:16px 24px;width:100%}
+    .rs-status{font-size:13px;color:var(--muted);margin-top:10px;min-height:18px}
+    .rs-status .ok{color:var(--success);font-weight:600}
+    .rs-status .err{color:var(--danger);font-weight:600}
+    .rs-status .live{color:var(--accent);font-weight:600}
+
+    /* Persistent connection banner (always visible while an agent is connected). */
+    .rs-banner{position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;margin-bottom:14px;font-size:14px;font-weight:600}
+    .rs-banner .grow{flex:1;min-width:200px}
+    .rs-banner.connected{background:linear-gradient(135deg,rgba(0,212,170,.18),rgba(124,92,255,.18));border:1px solid var(--accent);color:var(--text)}
+    .rs-banner.control{background:linear-gradient(135deg,rgba(255,94,126,.22),rgba(255,154,60,.22));border:1px solid #ff5e7e;color:var(--text);animation:rsPulse 1.3s ease-in-out infinite}
+    .rs-banner .dot{width:10px;height:10px;border-radius:50%;background:var(--success);box-shadow:0 0 0 0 rgba(0,212,170,.6);animation:rsPulse 1.3s infinite}
+    @keyframes rsPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,94,126,.35)}50%{box-shadow:0 0 0 8px rgba(255,94,126,0)}}
+    .rs-banner button{padding:8px 14px;font-size:13px}
+
+    /* Approval prompt cards. */
+    .rs-prompt{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px;padding:14px 16px;border:1px solid var(--accent);border-radius:10px;background:linear-gradient(135deg,rgba(0,212,170,.12),rgba(124,92,255,.12));animation:rsKnock 1.4s ease-in-out infinite}
+    .rs-prompt.danger{border-color:#ff5e7e;background:linear-gradient(135deg,rgba(255,94,126,.14),rgba(255,154,60,.14))}
+    .rs-prompt .grow{flex:1;min-width:200px;font-size:14px;color:var(--text)}
+    .rs-prompt strong{color:var(--text)}
+    @keyframes rsKnock{0%,100%{box-shadow:0 0 0 0 rgba(124,92,255,.4)}50%{box-shadow:0 0 0 8px rgba(124,92,255,0)}}
+    .rs-prompt[hidden],.rs-banner[hidden],.rs-prompt.danger[hidden]{display:none}
+
+    .rs-stage{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:16/9;border:2px solid var(--border);margin-top:14px}
+    .rs-stage.live{border-color:var(--accent)}
+    .rs-stage video{width:100%;height:100%;object-fit:contain;background:#0a0a14;display:block}
+    .rs-stage .rs-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9ca3b8;font-size:14px;text-align:center;padding:14px}
+
+    .rs-chat{display:flex;flex-direction:column;height:260px;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:14px}
+    .rs-chat-log{flex:1;overflow-y:auto;padding:10px;font-size:13px;display:flex;flex-direction:column;gap:6px}
+    .rs-msg{padding:6px 10px;border-radius:8px;max-width:80%}
+    .rs-msg.me{align-self:flex-end;background:var(--accent);color:#fff}
+    .rs-msg.them{align-self:flex-start;background:var(--panel-2);color:var(--text);border:1px solid var(--border)}
+    .rs-msg .who{display:block;font-size:11px;opacity:.7;margin-bottom:2px}
+    .rs-chat-in{display:flex;border-top:1px solid var(--border)}
+    .rs-chat-in input{flex:1;border:0;background:var(--panel-2);color:var(--text);padding:10px 12px;font-size:14px}
+    .rs-chat-in input:focus{outline:0}
+    .rs-chat-in button{border:0;border-radius:0;padding:10px 16px}
+    .rs-log{margin-top:14px;max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:10px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+    .rs-log div{padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+    .rs-toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--accent);color:var(--text);padding:10px 18px;border-radius:8px;font-size:14px;z-index:1000;box-shadow:var(--shadow-soft);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none}
+    .rs-toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
+  </style>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Remote Support <span style="font-size:14px;font-weight:500;color:var(--success)">🔒 you stay in control</span></h1>
+      <p>Start a temporary support session and read the one-time code to your support agent. They can only join <b>after you approve</b>. You decide when to share your screen, you must separately approve remote control, and you can stop everything instantly. Nothing runs in the background and no access is kept after the session ends.</p>
+    </div>
+
+    <!-- Persistent banner — visible whenever an agent is connected. -->
+    <div class="rs-banner" id="banner" hidden role="status" aria-live="polite">
+      <span class="dot" aria-hidden="true"></span>
+      <span class="grow" id="bannerText">Support agent connected.</span>
+      <button type="button" class="btn-danger" id="bannerStop" style="background:#ff5e7e;color:#fff;border:0">Stop support</button>
+    </div>
+
+    <!-- START: shown until a session exists -->
+    <div class="panel" id="startPanel">
+      <h3 style="margin-top:0">Start a support session</h3>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 10px">
+        Only start a session if you are currently talking to a support agent you trust. You set a password now; your agent will need the one-time code <b>and</b> this password to join.
+      </p>
+      <label for="startPw" style="font-size:13px;color:var(--muted)">Set a session password</label>
+      <input id="startPw" type="text" placeholder="Choose a password to share with your agent" maxlength="128" autocomplete="off"
+             style="max-width:360px;margin:4px 0 12px">
+      <div class="rs-actions">
+        <button id="startBtn" type="button">▶ Start support session</button>
+        <button id="joinModeBtn" type="button" class="btn-secondary" style="background:var(--panel-2);color:var(--text);border:1px solid var(--border)">🔗 Join a session</button>
+      </div>
+
+      <!-- Inline join form (the joining/agent side) -->
+      <div id="joinForm" hidden style="margin-top:14px;padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--panel-2)">
+        <h4 style="margin:0 0 6px">Join an existing session</h4>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 10px">
+          To join you need two things from the person who started the session: their one-time <b>code</b> and the <b>password</b> they set. The customer still has to approve you before you can see anything.
+        </p>
+        <label for="joinCode" style="font-size:13px;color:var(--muted)">One-time support code</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px">
+          <input id="joinCode" type="text" placeholder="XXXX-XXXX" maxlength="9" aria-label="One-time support code"
+                 style="font-family:var(--mono);font-size:18px;letter-spacing:2px;text-transform:uppercase;max-width:220px">
+          <button id="joinGoBtn" type="button">Continue to join →</button>
+        </div>
+        <p style="color:var(--muted);font-size:12px;margin:10px 0 0">
+          You'll be taken to the join screen to enter the password and connect. No code yet? Ask the other person to press <b>Start support session</b> first.
+        </p>
+      </div>
+
+      <div class="rs-info">
+        <b>What happens next:</b> you receive a code, give your agent the code and password, they request to join, and you get a prompt to approve. You can refuse at any step, and closing this tab ends everything.
+      </div>
+    </div>
+
+    <!-- SESSION: shown after starting -->
+    <div class="panel" id="sessionPanel" hidden>
+      <h3 style="margin-top:0">Your one-time support code</h3>
+      <div class="rs-code" id="codeBox">––––-––––</div>
+      <div class="rs-code-meta" id="codeMeta">Read this code to your support agent. It expires soon and can only be used once.</div>
+      <div class="rs-code-meta" id="pwMeta" style="margin-top:6px">Session password: <b id="pwShow" style="font-family:var(--mono);color:var(--accent);user-select:all"></b> — share this together with the code.</div>
+
+      <p class="rs-status" id="status"></p>
+
+      <!-- Approve agent joining -->
+      <div class="rs-prompt" id="joinPrompt" hidden>
+        <span class="grow"><strong>👋 A support agent entered your code and wants to join.</strong> Approve only if you are expecting them.</span>
+        <button type="button" id="approveJoinBtn">✓ Approve</button>
+        <button type="button" id="denyJoinBtn" class="btn-danger" style="background:#ff5e7e;color:#fff;border:0">✕ Deny</button>
+      </div>
+
+      <!-- Approve remote control (separate, stronger confirmation) -->
+      <div class="rs-prompt danger" id="controlPrompt" hidden>
+        <span class="grow"><strong>⚠ The agent is requesting REMOTE CONTROL of your computer.</strong> This lets them move your mouse and type. Only approve if you understand and trust them. You can revoke instantly.</span>
+        <button type="button" id="approveControlBtn" class="btn-danger" style="background:#ff5e7e;color:#fff;border:0">Allow control</button>
+        <button type="button" id="declineControlBtn" class="btn-secondary" style="background:var(--panel-2);color:var(--text);border:1px solid var(--border)">No, keep view-only</button>
+      </div>
+
+      <!-- Agent asks you to share -->
+      <div class="rs-prompt" id="sharePrompt" hidden>
+        <span class="grow"><strong>🖥 The agent is asking you to share your screen.</strong> Use the button below when you are ready.</span>
+        <button type="button" id="shareAckBtn" class="btn-secondary" style="background:var(--panel-2);color:var(--text);border:1px solid var(--border)">Dismiss</button>
+      </div>
+
+      <div class="rs-actions" id="liveActions" hidden>
+        <button id="shareBtn" type="button">🖥 Share my screen</button>
+        <button id="micBtn" type="button" class="btn-secondary" style="background:var(--panel-2);color:var(--text);border:1px solid var(--border)">🎙 Turn on microphone</button>
+        <button id="revokeControlBtn" type="button" class="btn-danger" style="background:#ff5e7e;color:#fff;border:0" hidden>🛑 Revoke remote control</button>
+      </div>
+
+      <div class="rs-stage" id="stage" hidden>
+        <video id="selfPreview" autoplay muted playsinline></video>
+        <div class="rs-empty" id="stageEmpty">Your shared screen preview appears here.</div>
+      </div>
+
+      <h3 style="margin:18px 0 0">Chat with the agent</h3>
+      <div class="rs-chat">
+        <div class="rs-chat-log" id="chatLog"></div>
+        <div class="rs-chat-in">
+          <input id="chatInput" type="text" placeholder="Type a message…" maxlength="2000" disabled>
+          <button id="chatSend" type="button" disabled>Send</button>
+        </div>
+      </div>
+
+      <div class="rs-actions">
+        <button id="stopBtn" type="button" class="btn-danger rs-stop" style="background:#ff5e7e;color:#fff;border:0">🛑 Stop support &amp; end session</button>
+      </div>
+
+      <h3 style="margin:18px 0 0">Session activity (visible to you)</h3>
+      <div class="rs-log" id="auditLog"></div>
+
+      <div class="rs-info">
+        <b>You are always in control:</b> the agent cannot see anything until you approve, cannot control your computer without the separate confirmation above, and everything stops the moment you press <b>Stop support</b> or close this tab.
+      </div>
+    </div>
+  </main>
+
+  <div class="rs-toast" id="toast"></div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const ICE_SERVERS = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' }
+    ];
+
+    let session = null;        // { sessionId, customerToken, code }
+    let ws = null, pc = null;
+    let shareStream = null, micStream = null;
+    let state = null;          // last server state snapshot
+    let remoteControlActive = false;
+
+    function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),1900); }
+    function setStatus(m,k){ $('status').innerHTML = m ? `<span class="${k||''}">${m}</span>` : ''; }
+
+    // ---------- Join an existing session (agent side) ----------
+    // Joining requires the authenticated support-agent view, so we hand off to
+    // the agent dashboard with the code pre-filled. This keeps the "agents must
+    // be authenticated" rule intact while giving a Join entry point right here.
+    $('joinModeBtn').onclick = () => {
+      const f = $('joinForm');
+      f.hidden = !f.hidden;
+      if (!f.hidden) $('joinCode').focus();
+    };
+    function goJoin() {
+      const code = $('joinCode').value.trim().toUpperCase();
+      const url = '/support-agent' + (code ? ('#code=' + encodeURIComponent(code)) : '');
+      location.href = url;
+    }
+    $('joinGoBtn').onclick = goJoin;
+    $('joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') goJoin(); });
+
+    // ---------- Start a session ----------
+    $('startBtn').onclick = async () => {
+      const pw = $('startPw').value.trim();
+      if (pw.length < 4) { toast('Set a session password of at least 4 characters first'); $('startPw').focus(); return; }
+      $('startBtn').disabled = true;
+      try {
+        const r = await fetch('/api/support/session', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ secret: pw }) });
+        const j = await r.json();
+        if (!j.ok) throw new Error(j.error || 'Could not start session');
+        session = { sessionId: j.sessionId, customerToken: j.customerToken, code: j.code, secret: pw };
+        $('startPanel').hidden = true;
+        $('sessionPanel').hidden = false;
+        $('codeBox').textContent = j.code;
+        $('pwShow').textContent = pw;
+        const mins = Math.max(1, Math.round((j.codeExpiresAt - Date.now())/60000));
+        $('codeMeta').textContent = `Read this code to your support agent. It expires in about ${mins} minutes and can only be used once.`;
+        setStatus('Waiting for the agent to enter your code and password…', 'live');
+        connectWs();
+      } catch (e) {
+        $('startBtn').disabled = false;
+        toast('Error: ' + e.message);
+      }
+    };
+
+    function wsUrl(){
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      return `${proto}://${location.host}/ws/support?session=${encodeURIComponent(session.sessionId)}&role=customer&token=${encodeURIComponent(session.customerToken)}`;
+    }
+
+    function connectWs(){
+      ws = new WebSocket(wsUrl());
+      ws.onopen = () => setStatus('Waiting for the agent to enter your code…', 'live');
+      ws.onclose = () => { /* session end handled via 'ended' */ };
+      ws.onerror = () => setStatus('Connection problem.', 'err');
+      ws.onmessage = onWsMessage;
+    }
+
+    function send(obj){ if (ws && ws.readyState===1) ws.send(JSON.stringify(obj)); }
+
+    async function onWsMessage(ev){
+      let m; try { m = JSON.parse(ev.data); } catch(_) { return; }
+      switch(m.type){
+        case 'state': applyState(m.state); break;
+        case 'join_request':
+          $('joinPrompt').hidden = false;
+          setStatus('An agent is requesting to join — approve or deny below.', 'live');
+          break;
+        case 'share_request':
+          $('sharePrompt').hidden = false; break;
+        case 'control_request':
+          $('controlPrompt').hidden = false;
+          toast('Agent requested remote control'); break;
+        case 'signal': await onSignal(m.data); break;
+        case 'chat': addChat('them', m.text); break;
+        case 'control': handleControl(m.data); break;   // browser MVP: logged, not injected
+        case 'ended': onEnded(m.reason); break;
+      }
+    }
+
+    function applyState(st){
+      state = st;
+      // Persistent banner whenever the agent socket is connected.
+      const agentHere = st.presence && st.presence.agent && st.approvals.agentJoin;
+      const banner = $('banner');
+      if (agentHere) {
+        banner.hidden = false;
+        if (st.approvals.remoteControl) {
+          banner.className = 'rs-banner control';
+          $('bannerText').innerHTML = '⚠ <b>REMOTE CONTROL IS ACTIVE</b> — the agent can move your mouse and type. Press Stop to end immediately.';
+        } else {
+          banner.className = 'rs-banner connected';
+          $('bannerText').textContent = 'A support agent is connected and can see your screen only while you are sharing.';
+        }
+      } else {
+        banner.hidden = true;
+      }
+
+      // Live actions appear once the join is approved.
+      $('liveActions').hidden = !st.approvals.agentJoin;
+      $('stage').hidden = !st.approvals.agentJoin;
+      $('chatInput').disabled = !st.approvals.agentJoin;
+      $('chatSend').disabled = !st.approvals.agentJoin;
+
+      // Remote-control revoke button + local guard flag.
+      remoteControlActive = !!st.approvals.remoteControl;
+      $('revokeControlBtn').hidden = !remoteControlActive;
+
+      if (st.approvals.agentJoin) $('joinPrompt').hidden = true;
+      if (st.status === 'active' && st.presence.agent) {
+        setStatus('🟢 Agent connected. You control what they can see and do.', 'ok');
+      }
+      refreshAudit();
+    }
+
+    // ---------- Approvals ----------
+    $('approveJoinBtn').onclick = () => { send({type:'approve_join'}); $('joinPrompt').hidden = true; ensurePc(); };
+    $('denyJoinBtn').onclick = () => { send({type:'deny_join'}); $('joinPrompt').hidden = true; setStatus('You denied the agent. Read the code again or stop the session.', 'err'); };
+    $('approveControlBtn').onclick = () => { send({type:'approve_control'}); $('controlPrompt').hidden = true; toast('Remote control allowed — you can revoke any time'); };
+    $('declineControlBtn').onclick = () => { $('controlPrompt').hidden = true; toast('Kept view-only'); };
+    $('shareAckBtn').onclick = () => { $('sharePrompt').hidden = true; };
+    $('revokeControlBtn').onclick = () => { send({type:'revoke_control'}); toast('Remote control revoked'); };
+
+    $('bannerStop').onclick = stopSession;
+    $('stopBtn').onclick = stopSession;
+
+    // ---------- WebRTC (customer is the offerer once approved) ----------
+    function ensurePc(){
+      if (pc) return pc;
+      pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+      pc.onicecandidate = e => { if (e.candidate) send({type:'signal', data:{candidate:e.candidate}}); };
+      pc.onnegotiationneeded = async () => {
+        try { await pc.setLocalDescription(); send({type:'signal', data:{sdp:pc.localDescription}}); }
+        catch(err){ console.warn(err); }
+      };
+      return pc;
+    }
+
+    async function onSignal(data){
+      ensurePc();
+      try {
+        if (data.sdp){
+          await pc.setRemoteDescription(data.sdp);
+          if (data.sdp.type === 'offer'){
+            await pc.setLocalDescription();
+            send({type:'signal', data:{sdp:pc.localDescription}});
+          }
+        } else if (data.candidate){
+          try { await pc.addIceCandidate(data.candidate); } catch(_){}
+        }
+      } catch(e){ console.warn('signal error', e); }
+    }
+
+    // ---------- Screen sharing ----------
+    $('shareBtn').onclick = async () => {
+      if (shareStream){ stopShare(); return; }
+      try {
+        shareStream = await navigator.mediaDevices.getDisplayMedia({ video:{ frameRate:{ideal:15,max:30} }, audio:false });
+      } catch(e){ if (e && e.name === 'NotAllowedError') return; alert('Could not start screen share: ' + (e.message||e)); return; }
+      ensurePc();
+      const track = shareStream.getVideoTracks()[0];
+      pc.addTrack(track, shareStream);
+      $('selfPreview').srcObject = shareStream;
+      $('stageEmpty').style.display = 'none';
+      $('stage').classList.add('live');
+      track.addEventListener('ended', stopShare);
+      send({type:'share', on:true});
+      $('shareBtn').textContent = '🛑 Stop sharing screen';
+      toast('Screen sharing started');
+    };
+
+    function stopShare(){
+      if (!shareStream) return;
+      try { shareStream.getTracks().forEach(t=>t.stop()); } catch(_){}
+      // Remove the screen sender so the agent's view goes blank immediately.
+      if (pc){ pc.getSenders().filter(s=>s.track && s.track.kind==='video').forEach(s=>{ try{ pc.removeTrack(s); }catch(_){} }); }
+      shareStream = null;
+      $('selfPreview').srcObject = null;
+      $('stageEmpty').style.display = '';
+      $('stage').classList.remove('live');
+      send({type:'share', on:false});
+      $('shareBtn').textContent = '🖥 Share my screen';
+      toast('Screen sharing stopped');
+    }
+
+    // ---------- Microphone ----------
+    $('micBtn').onclick = async () => {
+      if (micStream){
+        try { micStream.getTracks().forEach(t=>t.stop()); } catch(_){}
+        if (pc){ pc.getSenders().filter(s=>s.track && s.track.kind==='audio').forEach(s=>{ try{ pc.removeTrack(s); }catch(_){} }); }
+        micStream = null; $('micBtn').textContent = '🎙 Turn on microphone'; toast('Microphone off'); return;
+      }
+      try { micStream = await navigator.mediaDevices.getUserMedia({ audio:{echoCancellation:true,noiseSuppression:true}, video:false }); }
+      catch(e){ alert('Could not access microphone: ' + e.message); return; }
+      ensurePc();
+      micStream.getAudioTracks().forEach(t => pc.addTrack(t, micStream));
+      $('micBtn').textContent = '🎙 Turn off microphone'; toast('Microphone on');
+    };
+
+    // ---------- Remote control (browser MVP: explicitly NOT injected) ----------
+    function handleControl(){
+      // Browser-only mode cannot safely inject OS-level mouse/keyboard events.
+      // The native helper (Phase 2) consumes these. We surface a one-time notice
+      // so it is obvious the gate works and control is scoped to approval.
+      if (!remoteControlActive) return;
+      if (!handleControl._warned){ handleControl._warned = true; toast('Control events received (handled by the native helper in Phase 2)'); }
+    }
+
+    // ---------- Chat ----------
+    function addChat(who, text){
+      const el = document.createElement('div');
+      el.className = 'rs-msg ' + (who==='me'?'me':'them');
+      el.innerHTML = `<span class="who">${who==='me'?'You':'Agent'}</span>${escapeHtml(text)}`;
+      $('chatLog').appendChild(el);
+      $('chatLog').scrollTop = $('chatLog').scrollHeight;
+    }
+    function sendChat(){
+      const v = $('chatInput').value.trim(); if (!v) return;
+      send({type:'chat', text:v}); addChat('me', v); $('chatInput').value='';
+    }
+    $('chatSend').onclick = sendChat;
+    $('chatInput').addEventListener('keydown', e => { if (e.key==='Enter') sendChat(); });
+
+    // ---------- Audit ----------
+    async function refreshAudit(){
+      if (!session) return;
+      try {
+        const r = await fetch(`/api/support/session/${session.sessionId}/audit`, { headers:{ 'Authorization':'Bearer '+session.customerToken } });
+        const j = await r.json();
+        if (!j.ok) return;
+        $('auditLog').innerHTML = j.audit.slice(-40).map(a =>
+          `<div>${a.at.replace('T',' ').slice(0,19)} · ${escapeHtml(a.event)} · ${escapeHtml(a.by)}</div>`).join('');
+      } catch(_){}
+    }
+
+    // ---------- End ----------
+    async function stopSession(){
+      if (!session) return;
+      send({type:'end'});
+      try { await fetch(`/api/support/session/${session.sessionId}/end`, { method:'POST', headers:{ 'Authorization':'Bearer '+session.customerToken, 'Content-Type':'application/json' }, body:'{}' }); } catch(_){}
+      cleanup();
+      setStatus('Support session ended. All access has been revoked.', 'err');
+      $('banner').hidden = true;
+      $('liveActions').hidden = true;
+      $('stage').hidden = true;
+    }
+
+    function onEnded(reason){
+      cleanup();
+      $('banner').hidden = true;
+      setStatus('Session ended (' + (reason||'closed') + '). All access has been revoked.', 'err');
+    }
+
+    function cleanup(){
+      stopShare();
+      if (micStream){ try { micStream.getTracks().forEach(t=>t.stop()); } catch(_){} micStream=null; }
+      if (pc){ try { pc.close(); } catch(_){} pc=null; }
+      if (ws){ try { ws.close(); } catch(_){} ws=null; }
+      $('chatInput').disabled = true; $('chatSend').disabled = true;
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    window.addEventListener('beforeunload', () => { try { if (session && ws && ws.readyState===1) ws.send(JSON.stringify({type:'end'})); } catch(_){} });
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+

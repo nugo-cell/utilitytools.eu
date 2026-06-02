@@ -7,6 +7,7 @@ const http = require('http');
 const fs = require('fs');
 const { WebSocketServer } = require('ws');
 const { TOOL_GUIDES, createDefaultToolGuide } = require('./tool-guides');
+const remoteSupport = require('./support/remote-support');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -220,7 +221,8 @@ const TOOLS = [
   { slug: 'typing-test',      name: 'Typing Speed Test',        file: 'tools/typing-test.html',      icon: '⌨',   tags: ['fun','productivity'],         desc: 'Measure your typing speed (WPM), accuracy, and errors with 30/60/120-second tests.' },
   { slug: 'encrypt',          name: 'File Encryption (AES-256)',file: 'tools/encrypt.html',          icon: '🔐',  tags: ['security','privacy','developer'], desc: 'Encrypt any file with a generated AES-256 key. The encrypted file can only be opened by that key.' },
   { slug: 'persona',          name: 'Random Persona Generator', file: 'tools/persona.html',          icon: '🧙',  tags: ['fun','generator','developer','writing'], desc: 'Generate a fictional person from medieval, modern, biblical or galaxy-far-away eras. Names, address, coordinates, family, contact details. Great for test data, RPG NPCs and stories.' },
-  { slug: 'ftp-explorer',     name: 'FTP Explorer',             file: 'tools/ftp-explorer.html',     icon: '📡',  tags: ['developer','network','documents'], desc: 'Connect to any FTP / FTPS server with your credentials, browse folders and files, and download. Credentials are sent over HTTPS to our server only to perform the FTP operation; nothing is stored.' }
+  { slug: 'ftp-explorer',     name: 'FTP Explorer',             file: 'tools/ftp-explorer.html',     icon: '📡',  tags: ['developer','network','documents'], desc: 'Connect to any FTP / FTPS server with your credentials, browse folders and files, and download. Credentials are sent over HTTPS to our server only to perform the FTP operation; nothing is stored.' },
+  { slug: 'remote-support',   name: 'Remote Support',           file: 'tools/remote-support.html',   icon: '🖥',  tags: ['communication','privacy','support'], desc: 'Start a temporary support session and share a one-time code. A support agent can only join after you approve. You always see the connection, control screen sharing and remote control, and can stop everything instantly. No unattended access.' }
 ];
 
 const ALL_TAGS = [...new Set(TOOLS.flatMap(t => t.tags))].sort();
@@ -231,7 +233,8 @@ const NOINDEX_TOOL_SLUGS = new Set([
   'scramble', 'mathtable', 'mathquiz', 'spelling', 'storyidea', 'memory',
   'text-translators', 'runes', 'pig-latin', 'upside-down', 'medieval',
   'emoji-text', 'hieroglyphics', 'scroll', 'yoda', 'pirate', 'shakespeare',
-  'old-english', 'certificate', 'img-meme', 'persona', 'braille', 'nato'
+  'old-english', 'certificate', 'img-meme', 'persona', 'braille', 'nato',
+  'remote-support'
 ]);
 
 const TOOL_BY_SLUG = new Map(TOOLS.map(t => [t.slug, t]));
@@ -382,6 +385,23 @@ app.get('/blog/:slug', (req, res) => {
 });
 
 app.get('/api/tools', (req, res) => res.json({ tools: TOOLS, tags: ALL_TAGS }));
+
+// ---------------- Remote Support ----------------
+// Consent-first temporary remote support sessions. All session/code/permission
+// logic + the audit trail live in ./support/remote-support.js. The customer UI
+// is the `remote-support` tool; the agent dashboard is served below (noindex).
+remoteSupport.registerRoutes(app, express.json({ limit: '8kb' }));
+
+app.get('/support-agent', (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  let html = fs.readFileSync(path.join(__dirname, 'public', 'support-agent.html'), 'utf8');
+  if (/<meta\s+name=["']robots["'][^>]*>/i.test(html)) {
+    html = html.replace(/<meta\s+name=["']robots["'][^>]*>/i, '<meta name="robots" content="noindex,nofollow">');
+  } else {
+    html = html.replace('</head>', '  <meta name="robots" content="noindex,nofollow">\n</head>');
+  }
+  res.type('html').send(html);
+});
 
 // ---------------- IP geolocation proxy ----------------
 // Browsers can't call ipwho.is directly anymore (free plan dropped CORS).
@@ -778,6 +798,10 @@ const httpServer = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 const rooms = new Map(); // roomId -> Set<WebSocket>
 
+// Support sessions get their own authenticated, session-scoped WS channel.
+const supportWss = new WebSocketServer({ noServer: true });
+supportWss.on('connection', (ws, req) => remoteSupport.handleConnection(ws, req));
+
 function isValidRoom(r) { return typeof r === 'string' && /^[A-Za-z0-9_-]{4,64}$/.test(r); }
 
 wss.on('connection', (ws, req) => {
@@ -959,6 +983,8 @@ httpServer.on('upgrade', (req, sock, head) => {
     wss.handleUpgrade(req, sock, head, ws => wss.emit('connection', ws, req));
   } else if (pathname === '/ws/chat') {
     chatWss.handleUpgrade(req, sock, head, ws => chatWss.emit('connection', ws, req));
+  } else if (pathname === '/ws/support') {
+    supportWss.handleUpgrade(req, sock, head, ws => supportWss.emit('connection', ws, req));
   } else {
     sock.destroy();
   }

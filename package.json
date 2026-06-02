@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "seo": "node scripts/apply-seo.js"
+    "seo": "node scripts/apply-seo.js",
+    "test:support": "node support/e2e-test.js"
   },
   "keywords": [
     "utilities",

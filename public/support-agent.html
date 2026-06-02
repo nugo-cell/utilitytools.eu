@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>Support Agent Dashboard — Remote Support</title>
+  <meta name="robots" content="noindex,nofollow">
+  <style>
+    .sa-grid{display:grid;grid-template-columns:1fr;gap:14px}
+    @media(min-width:900px){.sa-grid.live{grid-template-columns:2fr 1fr}}
+    .sa-status{font-size:13px;color:var(--muted);margin-top:10px;min-height:18px}
+    .sa-status .ok{color:var(--success);font-weight:600}
+    .sa-status .err{color:var(--danger);font-weight:600}
+    .sa-status .live{color:var(--accent);font-weight:600}
+    .sa-stage{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:16/9;border:2px solid var(--border)}
+    .sa-stage.live{border-color:var(--accent)}
+    .sa-stage video{width:100%;height:100%;object-fit:contain;background:#0a0a14;display:block}
+    .sa-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9ca3b8;font-size:14px;text-align:center;padding:14px}
+    .sa-badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+    .sa-badge{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:var(--panel-2);color:var(--muted)}
+    .sa-badge.on{border-color:var(--success);color:var(--success)}
+    .sa-badge.warn{border-color:#ff5e7e;color:#ff8aa0}
+    .sa-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+    .sa-actions .btn-secondary{background:var(--panel-2);color:var(--text);border:1px solid var(--border)}
+    .sa-actions .btn-danger{background:#ff5e7e;color:#fff;border:0}
+    .sa-chat{display:flex;flex-direction:column;height:300px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+    .sa-chat-log{flex:1;overflow-y:auto;padding:10px;font-size:13px;display:flex;flex-direction:column;gap:6px}
+    .sa-msg{padding:6px 10px;border-radius:8px;max-width:85%}
+    .sa-msg.me{align-self:flex-end;background:var(--accent);color:#fff}
+    .sa-msg.them{align-self:flex-start;background:var(--panel-2);color:var(--text);border:1px solid var(--border)}
+    .sa-msg .who{display:block;font-size:11px;opacity:.7;margin-bottom:2px}
+    .sa-chat-in{display:flex;border-top:1px solid var(--border)}
+    .sa-chat-in input{flex:1;border:0;background:var(--panel-2);color:var(--text);padding:10px 12px;font-size:14px}
+    .sa-chat-in input:focus{outline:0}
+    .sa-chat-in button{border:0;border-radius:0;padding:10px 16px}
+    .sa-log{margin-top:12px;max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:10px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+    .sa-log div{padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+    .sa-code-in{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .sa-code-in input{font-family:var(--mono);font-size:18px;letter-spacing:2px;max-width:220px;text-transform:uppercase}
+    .sa-warn{background:linear-gradient(135deg,rgba(255,94,126,.12),rgba(255,154,60,.12));border:1px solid #ff5e7e;border-radius:10px;padding:10px 14px;font-size:13px;color:var(--text);margin-top:12px}
+  </style>
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/remote-support">Customer view</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Join a Support Session</h1>
+      <p>Enter the one-time code and the password the customer set. You can view their screen and request control — but only after the customer approves each step.</p>
+    </div>
+
+    <!-- JOIN -->
+    <div class="panel" id="joinPanel">
+      <h3 style="margin-top:0">Join a support session</h3>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 12px">Ask the person who started the session for two things: their one-time <b>code</b> and the <b>password</b> they set. Enter both below.</p>
+      <label for="codeInput" style="font-size:13px;color:var(--muted)">One-time support code</label>
+      <input id="codeInput" type="text" placeholder="XXXX-XXXX" maxlength="9" aria-label="Support code"
+             style="font-family:var(--mono);font-size:18px;letter-spacing:2px;text-transform:uppercase;max-width:220px;margin:4px 0 12px">
+      <label for="joinPw" style="font-size:13px;color:var(--muted)">Session password</label>
+      <input id="joinPw" type="password" placeholder="Password the customer set" autocomplete="off" aria-label="Session password"
+             style="max-width:360px;margin:4px 0 12px">
+      <div class="sa-actions"><button id="joinBtn" type="button">Join session</button></div>
+      <p class="sa-status" id="joinStatus"></p>
+    </div>
+
+    <!-- LIVE -->
+    <div class="panel" id="livePanel" hidden>
+      <h3 style="margin-top:0">Session <span id="sessLabel" style="font-family:var(--mono);color:var(--accent)"></span></h3>
+      <div class="sa-badges">
+        <span class="sa-badge" id="bJoin">Awaiting approval</span>
+        <span class="sa-badge" id="bShare">Screen: off</span>
+        <span class="sa-badge" id="bControl">Control: off</span>
+      </div>
+      <p class="sa-status" id="liveStatus"></p>
+
+      <div class="sa-grid live">
+        <div>
+          <div class="sa-stage" id="stage">
+            <video id="remoteVid" autoplay playsinline></video>
+            <div class="sa-empty" id="stageEmpty">Waiting for the customer to approve and share their screen…</div>
+          </div>
+          <div class="sa-actions">
+            <button id="askShareBtn" type="button" class="btn-secondary" style="background:var(--panel-2);color:var(--text);border:1px solid var(--border)">🖥 Ask customer to share</button>
+            <button id="reqControlBtn" type="button" class="btn-secondary" style="background:var(--panel-2);color:var(--text);border:1px solid var(--border)">🖱 Request remote control</button>
+            <button id="endBtn" type="button" class="btn-danger" style="background:#ff5e7e;color:#fff;border:0">End session</button>
+          </div>
+          <div class="sa-warn" id="controlWarn" hidden>⚠ Remote control is active. Be careful — every action is logged and the customer can revoke instantly.</div>
+        </div>
+
+        <div>
+          <div class="sa-chat">
+            <div class="sa-chat-log" id="chatLog"></div>
+            <div class="sa-chat-in">
+              <input id="chatInput" type="text" placeholder="Message the customer…" maxlength="2000" aria-label="Message the customer" disabled>
+              <button id="chatSend" type="button" disabled>Send</button>
+            </div>
+          </div>
+          <div class="sa-log" id="auditLog"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const ICE_SERVERS = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' }
+    ];
+
+    let sess = null;           // { sessionId, agentToken }
+    let ws = null, pc = null;
+    let controlActive = false;
+
+    function setS(el,m,k){ $(el).innerHTML = m ? `<span class="${k||''}">${m}</span>` : ''; }
+
+    // Pre-fill the code if we were sent here from the Remote Support tool
+    // (e.g. /support-agent#code=XXXX-XXXX) and focus the password field.
+    (function prefillFromHash(){
+      const m = /(?:^|[#&])code=([^&]+)/.exec(location.hash || '');
+      if (m) {
+        try { $('codeInput').value = decodeURIComponent(m[1]).toUpperCase(); } catch(_) {}
+        setS('joinStatus', 'Code detected — enter the session password to join.', 'live');
+        $('joinPw').focus();
+      } else {
+        $('codeInput').focus();
+      }
+    })();
+
+    // ---------- Join with code + password ----------
+    $('joinBtn').onclick = async () => {
+      const code = $('codeInput').value.trim().toUpperCase();
+      const secret = $('joinPw').value;
+      if (!code) { setS('joinStatus','Enter the one-time code.','err'); $('codeInput').focus(); return; }
+      if (!secret) { setS('joinStatus','Enter the session password the customer set.','err'); $('joinPw').focus(); return; }
+      setS('joinStatus','Joining…','live');
+      try {
+        const r = await fetch('/api/support/join', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code, secret }) });
+        const j = await r.json();
+        if (!j.ok) throw new Error(j.error || 'Could not join');
+        sess = { sessionId: j.sessionId, agentToken: j.agentToken };
+        $('joinPanel').hidden = true;
+        $('livePanel').hidden = false;
+        $('sessLabel').textContent = j.sessionId.slice(0,8) + '…';
+        setS('liveStatus','Waiting for the customer to approve your join…','live');
+        connectWs();
+      } catch(e){ setS('joinStatus', e.message, 'err'); }
+    };
+
+    function wsUrl(){
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      return `${proto}://${location.host}/ws/support?session=${encodeURIComponent(sess.sessionId)}&role=agent&token=${encodeURIComponent(sess.agentToken)}`;
+    }
+    function connectWs(){
+      ws = new WebSocket(wsUrl());
+      ws.onclose = () => {};
+      ws.onerror = () => setS('liveStatus','Connection problem.','err');
+      ws.onmessage = onWsMessage;
+    }
+    function send(o){ if (ws && ws.readyState===1) ws.send(JSON.stringify(o)); }
+
+    async function onWsMessage(ev){
+      let m; try { m = JSON.parse(ev.data); } catch(_){ return; }
+      switch(m.type){
+        case 'state': applyState(m.state); break;
+        case 'join_approved':
+          setS('liveStatus','✓ Approved by customer — connecting…','ok');
+          $('chatInput').disabled=false; $('chatSend').disabled=false;
+          ensurePc(); kickOffer();
+          break;
+        case 'join_denied':
+          setS('liveStatus','✕ The customer denied your join request.','err');
+          break;
+        case 'control_approved':
+          controlActive = true; $('controlWarn').hidden=false; break;
+        case 'control_revoked':
+          controlActive = false; $('controlWarn').hidden=true; break;
+        case 'signal': await onSignal(m.data); break;
+        case 'chat': addChat('them', m.text); break;
+        case 'ended': onEnded(m.reason); break;
+      }
+    }
+
+    function applyState(st){
+      const a = st.approvals || {};
+      $('bJoin').textContent = a.agentJoin ? 'Approved' : 'Awaiting approval';
+      $('bJoin').className = 'sa-badge' + (a.agentJoin ? ' on' : '');
+      $('bShare').textContent = 'Screen: ' + (a.screenShare ? 'on' : 'off');
+      $('bShare').className = 'sa-badge' + (a.screenShare ? ' on' : '');
+      $('bControl').textContent = 'Control: ' + (a.remoteControl ? 'ON' : 'off');
+      $('bControl').className = 'sa-badge' + (a.remoteControl ? ' warn' : '');
+      controlActive = !!a.remoteControl;
+      $('controlWarn').hidden = !controlActive;
+      refreshAudit();
+    }
+
+    // ---------- WebRTC (agent is recvonly; customer offers) ----------
+    function ensurePc(){
+      if (pc) return pc;
+      pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+      pc.onicecandidate = e => { if (e.candidate) send({type:'signal', data:{candidate:e.candidate}}); };
+      pc.ontrack = e => {
+        $('remoteVid').srcObject = e.streams[0];
+        $('stage').classList.add('live');
+        $('stageEmpty').style.display='none';
+      };
+      // Receive-only transceivers so the customer's offer always has something to map to.
+      try { pc.addTransceiver('video', { direction:'recvonly' }); pc.addTransceiver('audio', { direction:'recvonly' }); } catch(_){}
+      pc.onnegotiationneeded = async () => {
+        try { await pc.setLocalDescription(); send({type:'signal', data:{sdp:pc.localDescription}}); } catch(err){ console.warn(err); }
+      };
+      return pc;
+    }
+    async function kickOffer(){
+      ensurePc();
+      try { await pc.setLocalDescription(); send({type:'signal', data:{sdp:pc.localDescription}}); } catch(_){}
+    }
+    async function onSignal(data){
+      ensurePc();
+      try {
+        if (data.sdp){
+          await pc.setRemoteDescription(data.sdp);
+          if (data.sdp.type === 'offer'){ await pc.setLocalDescription(); send({type:'signal', data:{sdp:pc.localDescription}}); }
+        } else if (data.candidate){ try { await pc.addIceCandidate(data.candidate); } catch(_){} }
+      } catch(e){ console.warn('signal error', e); }
+    }
+
+    // ---------- Actions ----------
+    $('askShareBtn').onclick = () => { send({type:'request_share'}); setS('liveStatus','Asked the customer to share their screen.','live'); };
+    $('reqControlBtn').onclick = () => { send({type:'request_control'}); setS('liveStatus','Requested remote control — waiting for the customer to confirm.','live'); };
+    $('endBtn').onclick = async () => {
+      send({type:'end'});
+      try { await fetch(`/api/support/session/${sess.sessionId}/end`, { method:'POST', headers:{'Authorization':'Bearer '+sess.agentToken,'Content-Type':'application/json'}, body:'{}' }); } catch(_){}
+      cleanup(); setS('liveStatus','Session ended.','err');
+    };
+
+    // ---------- Chat ----------
+    function addChat(who,text){
+      const el=document.createElement('div'); el.className='sa-msg '+(who==='me'?'me':'them');
+      el.innerHTML=`<span class="who">${who==='me'?'You':'Customer'}</span>${escapeHtml(text)}`;
+      $('chatLog').appendChild(el); $('chatLog').scrollTop=$('chatLog').scrollHeight;
+    }
+    function sendChat(){ const v=$('chatInput').value.trim(); if(!v) return; send({type:'chat',text:v}); addChat('me',v); $('chatInput').value=''; }
+    $('chatSend').onclick=sendChat;
+    $('chatInput').addEventListener('keydown',e=>{ if(e.key==='Enter') sendChat(); });
+
+    // ---------- Audit ----------
+    async function refreshAudit(){
+      if (!sess) return;
+      try {
+        const r = await fetch(`/api/support/session/${sess.sessionId}/audit`, { headers:{ 'Authorization':'Bearer '+sess.agentToken } });
+        const j = await r.json(); if (!j.ok) return;
+        $('auditLog').innerHTML = j.audit.slice(-30).map(a => `<div>${a.at.replace('T',' ').slice(0,19)} · ${escapeHtml(a.event)} · ${escapeHtml(a.by)}</div>`).join('');
+      } catch(_){}
+    }
+
+    function onEnded(reason){ cleanup(); setS('liveStatus','Session ended (' + (reason||'closed') + ').','err'); }
+    function cleanup(){
+      controlActive=false; $('controlWarn').hidden=true;
+      if (pc){ try{pc.close();}catch(_){} pc=null; }
+      if (ws){ try{ws.close();}catch(_){} ws=null; }
+      $('remoteVid').srcObject=null; $('stage').classList.remove('live');
+      $('chatInput').disabled=true; $('chatSend').disabled=true;
+    }
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
+
