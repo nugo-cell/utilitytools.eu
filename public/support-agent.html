@@ -15,7 +15,10 @@
     .sa-status .live{color:var(--accent);font-weight:600}
     .sa-stage{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:16/9;border:2px solid var(--border)}
     .sa-stage.live{border-color:var(--accent)}
+    .sa-stage.controlling{border-color:#ff5e7e;box-shadow:0 0 0 2px rgba(255,94,126,.45);cursor:crosshair}
     .sa-stage video{width:100%;height:100%;object-fit:contain;background:#0a0a14;display:block}
+    .sa-control-hint{position:absolute;left:10px;top:10px;background:rgba(255,94,126,.9);color:#fff;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;max-width:90%}
+    .sa-control-hint[hidden]{display:none}
     .sa-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9ca3b8;font-size:14px;text-align:center;padding:14px}
     .sa-badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
     .sa-badge{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:var(--panel-2);color:var(--muted)}
@@ -79,9 +82,10 @@
 
       <div class="sa-grid live">
         <div>
-          <div class="sa-stage" id="stage">
+          <div class="sa-stage" id="stage" tabindex="0">
             <video id="remoteVid" autoplay playsinline></video>
             <div class="sa-empty" id="stageEmpty">Waiting for the customer to approve and share their screen…</div>
+            <div class="sa-control-hint" id="controlHint" hidden>🖱 Controlling — click here and use your mouse/keyboard. Click outside to release keyboard.</div>
           </div>
           <div class="sa-actions">
             <button id="askShareBtn" type="button" class="btn-secondary" style="background:var(--panel-2);color:var(--text);border:1px solid var(--border)">🖥 Ask customer to share</button>
@@ -116,6 +120,7 @@
     let sess = null;           // { sessionId, agentToken }
     let ws = null, pc = null;
     let controlActive = false;
+    let helperPresent = false;
 
     function setS(el,m,k){ $(el).innerHTML = m ? `<span class="${k||''}">${m}</span>` : ''; }
 
@@ -177,9 +182,13 @@
           setS('liveStatus','✕ The customer denied your join request.','err');
           break;
         case 'control_approved':
-          controlActive = true; $('controlWarn').hidden=false; break;
+          controlActive = true; $('controlWarn').hidden=false; setControlCapture(true); break;
         case 'control_revoked':
-          controlActive = false; $('controlWarn').hidden=true; break;
+          controlActive = false; $('controlWarn').hidden=true; setControlCapture(false); break;
+        case 'helper':
+          helperPresent = !!m.on;
+          setS('liveStatus', helperPresent ? 'Customer desktop helper connected — real mouse/keyboard control is available once approved.' : 'Customer desktop helper disconnected — control will be view-only until they reconnect it.', helperPresent ? 'ok' : 'err');
+          break;
         case 'signal': await onSignal(m.data); break;
         case 'chat': addChat('them', m.text); break;
         case 'ended': onEnded(m.reason); break;
@@ -196,7 +205,76 @@
       $('bControl').className = 'sa-badge' + (a.remoteControl ? ' warn' : '');
       controlActive = !!a.remoteControl;
       $('controlWarn').hidden = !controlActive;
+      setControlCapture(controlActive);
       refreshAudit();
+    }
+
+    // ---------- Remote-control capture (mouse + keyboard over the screen video) ----------
+    // While control is approved, we capture pointer/keyboard events over the
+    // shared screen and send NORMALIZED (0..1) coordinates. The server only
+    // relays these while the customer's approval is live, and the customer's
+    // desktop helper only injects them while paired + approved.
+    let captureOn = false;
+    let lastMoveSent = 0;
+    const BTN = { 0:'left', 1:'middle', 2:'right' };
+
+    function videoContentRect(){
+      const v = $('remoteVid'); const r = v.getBoundingClientRect();
+      const vw = v.videoWidth, vh = v.videoHeight;
+      if (!vw || !vh || !r.width || !r.height) return null;
+      // object-fit: contain -> letterboxed; find the real content rectangle.
+      const scale = Math.min(r.width / vw, r.height / vh);
+      const cw = vw * scale, ch = vh * scale;
+      return { left: r.left + (r.width - cw)/2, top: r.top + (r.height - ch)/2, width: cw, height: ch };
+    }
+    function toNorm(e){
+      const c = videoContentRect(); if (!c) return null;
+      const x = (e.clientX - c.left) / c.width;
+      const y = (e.clientY - c.top) / c.height;
+      if (x < 0 || x > 1 || y < 0 || y > 1) return null;
+      return { x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) };
+    }
+    function sendControl(data){ if (controlActive) send({ type:'control', data }); }
+
+    function onMove(e){
+      const now = performance.now();
+      if (now - lastMoveSent < 25) return;       // ~40 fps cap
+      const p = toNorm(e); if (!p) return;
+      lastMoveSent = now;
+      sendControl({ kind:'move', x:p.x, y:p.y });
+    }
+    function onDown(e){ const p = toNorm(e); if (!p) return; e.preventDefault(); $('stage').focus(); sendControl({ kind:'down', button:BTN[e.button]||'left', x:p.x, y:p.y }); }
+    function onUp(e){ const p = toNorm(e); sendControl({ kind:'up', button:BTN[e.button]||'left', x:p?p.x:undefined, y:p?p.y:undefined }); }
+    function onWheel(e){ const p = toNorm(e); if (!p) return; e.preventDefault(); sendControl({ kind:'wheel', dy:e.deltaY }); }
+    function onContext(e){ e.preventDefault(); }
+    function onKeyDown(e){ if (document.activeElement !== $('stage')) return; e.preventDefault(); sendControl({ kind:'key', action:'down', code:e.code, key:e.key }); }
+    function onKeyUp(e){ if (document.activeElement !== $('stage')) return; e.preventDefault(); sendControl({ kind:'key', action:'up', code:e.code, key:e.key }); }
+
+    function setControlCapture(on){
+      if (on === captureOn) return;
+      captureOn = on;
+      const stage = $('stage');
+      if (on){
+        stage.classList.add('controlling');
+        $('controlHint').hidden = false;
+        stage.addEventListener('pointermove', onMove);
+        stage.addEventListener('pointerdown', onDown);
+        window.addEventListener('pointerup', onUp);
+        stage.addEventListener('wheel', onWheel, { passive:false });
+        stage.addEventListener('contextmenu', onContext);
+        window.addEventListener('keydown', onKeyDown, true);
+        window.addEventListener('keyup', onKeyUp, true);
+      } else {
+        stage.classList.remove('controlling');
+        $('controlHint').hidden = true;
+        stage.removeEventListener('pointermove', onMove);
+        stage.removeEventListener('pointerdown', onDown);
+        window.removeEventListener('pointerup', onUp);
+        stage.removeEventListener('wheel', onWheel);
+        stage.removeEventListener('contextmenu', onContext);
+        window.removeEventListener('keydown', onKeyDown, true);
+        window.removeEventListener('keyup', onKeyUp, true);
+      }
     }
 
     // ---------- WebRTC (agent is recvonly; customer offers) ----------
@@ -261,7 +339,7 @@
 
     function onEnded(reason){ cleanup(); setS('liveStatus','Session ended (' + (reason||'closed') + ').','err'); }
     function cleanup(){
-      controlActive=false; $('controlWarn').hidden=true;
+      controlActive=false; $('controlWarn').hidden=true; setControlCapture(false);
       if (pc){ try{pc.close();}catch(_){} pc=null; }
       if (ws){ try{ws.close();}catch(_){} ws=null; }
       $('remoteVid').srcObject=null; $('stage').classList.remove('live');

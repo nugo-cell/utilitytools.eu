@@ -248,10 +248,38 @@ npm start
 # Back in Tab A → Approve the join → Share my screen.
 ```
 
-### Phase 2 — Native helper for true control
-- Small signed desktop helper (Tauri/Electron/Go) that connects to the same session with the agent token and injects mouse/keyboard **only** while `remoteControl` is approved.
-- Separate customer password/confirmation for control (already modelled); instant revoke (already wired).
-- Optional safe file transfer over a WebRTC DataChannel (size/type limits, customer-approved).
+### Phase 2 — Native helper for true control — ✅ Implemented
+- **`desktop-helper/`** — a small Node app the **customer** runs on their own machine.
+  - Listens only on `127.0.0.1`; rejects non-loopback peers.
+  - Requires a **6-digit pairing code** handshake from the browser tab.
+  - Injects OS input via **koffi** (prebuilt FFI — no build tools) calling Win32
+    `user32.dll` (`SetCursorPos`, `mouse_event`, `keybd_event`). macOS/Linux pair
+    but report injection not-yet-implemented (drop-in `inject-*.js` to add them).
+  - Injects **only** while paired **and** the browser reports the approval gate is
+    on; auto-disables after 30 s idle; Ctrl+C / `q` / window close kills injection.
+- **Browser bridge**: the customer tab (which already receives the agent's gated
+  `control` events) forwards them to `ws://127.0.0.1:8765`. The agent page captures
+  mouse/keyboard over the screen video and sends **normalized 0..1** coordinates.
+- Separate customer approval/password for control (Phase 1) + instant revoke already
+  wired; revoke flips the server gate **and** the helper gate.
+- Audit: `desktop_helper_connected` / `desktop_helper_disconnected`.
+
+**Files**: `desktop-helper/agent.js`, `desktop-helper/inject-win.js`,
+`desktop-helper/package.json`, `desktop-helper/README.md`,
+`desktop-helper/bridge-test.js`. Agent capture lives in `public/support-agent.html`;
+the bridge in `public/tools/remote-support.html`.
+
+**Try the helper (Windows)**
+```powershell
+cd desktop-helper
+npm install
+npm start                 # shows a 6-digit pairing code
+# In the Remote Support tab: approve join → Desktop control → enter the code →
+# the agent approves/requests control → the agent can drive your mouse & keyboard.
+```
+
+**Still TODO in Phase 2**: code-signed installer / tray app, file transfer over a
+WebRTC DataChannel (size/type limits, customer-approved), multi-monitor mapping.
 
 ### Phase 3 — Polish & scale
 - Real agent accounts (DB), JWT + MFA, role-based access, multi-agent sessions.
@@ -287,6 +315,7 @@ npm start
 `session_started`, `code_generated`, `code_expired`, `join_password_failed`, `code_locked`,
 `agent_claimed_code`, `agent_join_approved`, `agent_join_denied`, `customer_connected`,
 `agent_connected`, `customer_disconnected`, `agent_disconnected`, `screen_share_requested`,
-`screen_share_started`, `screen_share_stopped`, `control_requested`,
+`screen_share_started`, `screen_share_stopped`, `desktop_helper_connected`,
+`desktop_helper_disconnected`, `control_requested`,
 `control_approved`, `control_revoked`, `session_ended`.
 

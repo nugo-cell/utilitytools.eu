@@ -151,6 +151,35 @@
         <button id="revokeControlBtn" type="button" class="btn-danger" style="background:#ff5e7e;color:#fff;border:0" hidden>🛑 Revoke remote control</button>
       </div>
 
+      <!-- Desktop control bridge (optional: lets the agent control mouse/keyboard) -->
+      <div id="helperPanel" hidden style="margin-top:12px;padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--panel-2)">
+        <h4 style="margin:0 0 6px">🖱 Desktop control (mouse &amp; keyboard)</h4>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 10px">
+          Optional. Screen sharing, voice and chat work without this. To let the agent actually <b>move your mouse and type</b>:
+        </p>
+        <ol style="color:var(--muted);font-size:13px;margin:0 0 10px;padding-left:20px">
+          <li>Click the button below to download <b>RemoteSupportHelper.exe</b>, then <b>double-click it</b> (no installation needed).</li>
+          <li>A small window opens showing a <b>6-digit pairing code</b>.</li>
+          <li>Type that code below and click <b>Connect helper</b>.</li>
+        </ol>
+        <p style="margin:0 0 12px">
+          <a id="helperDownload" href="/downloads/RemoteSupportHelper.exe" download
+             style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;background:var(--accent,#4c8bf5);color:#fff;font-weight:600;font-size:14px;text-decoration:none;border:0">
+            ⬇ Download RemoteSupportHelper.exe
+          </a>
+        </p>
+        <p style="color:var(--muted);font-size:12px;margin:0 0 10px">
+          You stay in control: the agent can only move things while you allow it, and closing the helper window stops it instantly.
+        </p>
+        <div id="helperConnectRow" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <input id="helperCode" type="text" inputmode="numeric" placeholder="6-digit pairing code" maxlength="6" aria-label="Helper pairing code"
+                 style="font-family:var(--mono);font-size:16px;letter-spacing:2px;max-width:200px">
+          <button id="helperConnectBtn" type="button" class="btn-secondary" style="background:var(--panel);color:var(--text);border:1px solid var(--border)">Connect helper</button>
+          <button id="helperDisconnectBtn" type="button" class="btn-danger" style="background:#ff5e7e;color:#fff;border:0" hidden>Disconnect helper</button>
+        </div>
+        <p class="rs-status" id="helperStatus" style="margin-top:8px"></p>
+      </div>
+
       <div class="rs-stage" id="stage" hidden>
         <video id="selfPreview" autoplay muted playsinline></video>
         <div class="rs-empty" id="stageEmpty">Your shared screen preview appears here.</div>
@@ -294,12 +323,16 @@
       // Live actions appear once the join is approved.
       $('liveActions').hidden = !st.approvals.agentJoin;
       $('stage').hidden = !st.approvals.agentJoin;
+      $('helperPanel').hidden = !st.approvals.agentJoin;
       $('chatInput').disabled = !st.approvals.agentJoin;
       $('chatSend').disabled = !st.approvals.agentJoin;
 
       // Remote-control revoke button + local guard flag.
       remoteControlActive = !!st.approvals.remoteControl;
       $('revokeControlBtn').hidden = !remoteControlActive;
+      // Mirror the approval to the desktop helper (gate). When control is off,
+      // the helper will refuse to inject even if it still receives events.
+      helperGate(remoteControlActive);
 
       if (st.approvals.agentJoin) $('joinPrompt').hidden = true;
       if (st.status === 'active' && st.presence.agent) {
@@ -392,13 +425,73 @@
       $('micBtn').textContent = '🎙 Turn off microphone'; toast('Microphone on');
     };
 
-    // ---------- Remote control (browser MVP: explicitly NOT injected) ----------
-    function handleControl(){
-      // Browser-only mode cannot safely inject OS-level mouse/keyboard events.
-      // The native helper (Phase 2) consumes these. We surface a one-time notice
-      // so it is obvious the gate works and control is scoped to approval.
+    // ---------- Remote control: forward to the local desktop helper ----------
+    // The server only relays control while the customer's approval is active, and
+    // the helper only injects while paired + gate-on. This is the customer side
+    // that bridges browser -> localhost helper -> operating system.
+    let helperWs = null, helperReady = false;
+
+    function setHelperStatus(m, k){ $('helperStatus').innerHTML = m ? `<span class="${k||''}">${m}</span>` : ''; }
+
+    function helperGate(on){
+      if (helperWs && helperReady && helperWs.readyState === 1) {
+        try { helperWs.send(JSON.stringify({ type:'gate', on: !!on })); } catch(_){}
+      }
+    }
+
+    $('helperConnectBtn').onclick = () => {
+      const code = $('helperCode').value.trim();
+      if (!/^\d{6}$/.test(code)) { setHelperStatus('Enter the 6-digit code shown in the helper window.', 'err'); return; }
+      const port = 8765;
+      try { helperWs = new WebSocket('ws://127.0.0.1:' + port); }
+      catch(e){ setHelperStatus('Could not reach the helper: ' + e.message, 'err'); return; }
+      setHelperStatus('Connecting to the desktop helper…', 'live');
+      helperWs.onopen = () => { try { helperWs.send(JSON.stringify({ type:'pair', code })); } catch(_){} };
+      helperWs.onerror = () => setHelperStatus('Could not connect. Is the Desktop Helper running on this computer?', 'err');
+      helperWs.onclose = () => {
+        if (helperReady) { setHelperStatus('Helper disconnected.', 'err'); send({type:'helper', on:false}); }
+        helperReady = false;
+        $('helperConnectRow').querySelector('#helperDisconnectBtn').hidden = true;
+        $('helperConnectBtn').hidden = false; $('helperCode').disabled = false;
+      };
+      helperWs.onmessage = (ev) => {
+        let m; try { m = JSON.parse(ev.data); } catch(_) { return; }
+        if (m.type === 'paired') {
+          helperReady = true;
+          const dims = m.screen ? ` (${m.screen.w}×${m.screen.h})` : '';
+          setHelperStatus('✓ Desktop helper connected' + dims + (m.canInject ? '. The agent can control this computer while you allow it.' : '. Note: this OS cannot inject input yet.'), 'ok');
+          $('helperConnectBtn').hidden = true; $('helperCode').disabled = true;
+          $('helperDisconnectBtn').hidden = false;
+          send({type:'helper', on:true});             // audit + tell the agent
+          helperGate(remoteControlActive);             // sync current approval
+        } else if (m.type === 'pair_failed') {
+          setHelperStatus('Pairing failed — wrong code. Check the helper window.', 'err');
+          try { helperWs.close(); } catch(_){}
+        }
+      };
+    };
+
+    $('helperDisconnectBtn').onclick = () => { disconnectHelper(); setHelperStatus('Helper disconnected.', ''); };
+
+    function disconnectHelper(){
+      if (helperWs) {
+        try { helperWs.send(JSON.stringify({ type:'end' })); } catch(_){}
+        try { helperWs.close(); } catch(_){}
+      }
+      helperWs = null; helperReady = false;
+      $('helperConnectBtn').hidden = false; $('helperCode').disabled = false;
+      $('helperDisconnectBtn').hidden = true;
+    }
+
+    function handleControl(data){
+      // Only forward while control is approved AND the helper is paired.
       if (!remoteControlActive) return;
-      if (!handleControl._warned){ handleControl._warned = true; toast('Control events received (handled by the native helper in Phase 2)'); }
+      if (helperWs && helperReady && helperWs.readyState === 1) {
+        try { helperWs.send(JSON.stringify({ type:'control', data })); } catch(_){}
+      } else if (!handleControl._warned) {
+        handleControl._warned = true;
+        toast('Agent is controlling — run & connect the Desktop Helper to apply it');
+      }
     }
 
     // ---------- Chat ----------
@@ -451,6 +544,7 @@
       if (micStream){ try { micStream.getTracks().forEach(t=>t.stop()); } catch(_){} micStream=null; }
       if (pc){ try { pc.close(); } catch(_){} pc=null; }
       if (ws){ try { ws.close(); } catch(_){} ws=null; }
+      disconnectHelper();
       $('chatInput').disabled = true; $('chatSend').disabled = true;
     }
 

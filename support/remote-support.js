@@ -27,7 +27,7 @@ const ABSOLUTE_MAX_MS      = 2 * 60 * 60 * 1000;   // hard cap on any session (2
 const MAX_SESSIONS         = 500;                  // global safety cap
 const MAX_AUDIT_ENTRIES    = 500;                  // per-session audit ring buffer
 const WS_MAX_MSG_BYTES     = 64 * 1024;            // SDP/ICE can be a few KB
-const WS_RATE_PER_WIN      = 80;                    // messages per window
+const WS_RATE_PER_WIN      = 600;                  // messages per window (high: live mouse moves)
 const WS_RATE_WIN_MS       = 5000;
 
 // Code alphabet excludes easily-confused characters (0/O, 1/I/L).
@@ -539,6 +539,14 @@ function routeMessage(s, role, msg) {
       if (role !== 'agent') return;
       if (!s.approvals.remoteControl) return;        // hard server-side gate
       sendTo(s, 'customer', { type: 'control', data: msg.data });
+      break;
+
+    // ---- Desktop helper presence (customer side). Audited + shown to agent so
+    //      the agent knows real OS control is actually possible. ----
+    case 'helper':
+      if (role !== 'customer') return;
+      addAudit(s, msg.on ? 'desktop_helper_connected' : 'desktop_helper_disconnected', 'customer');
+      sendTo(s, 'agent', { type: 'helper', on: !!msg.on });
       break;
 
     default:

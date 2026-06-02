@@ -1,0 +1,24 @@
+{
+  "name": "remote-support-desktop-helper",
+  "version": "1.0.0",
+  "description": "Customer-side desktop helper for UtilityTools Remote Support — injects the agent's mouse/keyboard only while remote control is approved.",
+  "private": true,
+  "bin": "agent.js",
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js",
+    "build": "pkg . --targets node22-win-x64 --output dist/RemoteSupportHelper.exe"
+  },
+  "dependencies": {
+    "ws": "^8.20.0"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.1.1"
+  },
+  "pkg": {
+    "scripts": [ "inject-win.js" ],
+    "assets": [],
+    "targets": [ "node22-win-x64" ],
+    "outputPath": "dist"
+  }
+}

@@ -392,6 +392,23 @@ app.get('/api/tools', (req, res) => res.json({ tools: TOOLS, tags: ALL_TAGS }));
 // is the `remote-support` tool; the agent dashboard is served below (noindex).
 remoteSupport.registerRoutes(app, express.json({ limit: '8kb' }));
 
+// Download the prebuilt customer desktop helper (built into desktop-helper/dist
+// via `npm run build`). If it hasn't been built yet, return a clear message.
+app.get('/downloads/RemoteSupportHelper.exe', (req, res) => {
+  const exePath = path.join(__dirname, 'desktop-helper', 'dist', 'RemoteSupportHelper.exe');
+  fs.access(exePath, fs.constants.R_OK, (err) => {
+    if (err) {
+      return res.status(404).type('text/plain').send(
+        'The desktop helper has not been built yet.\n' +
+        'Build it with: cd desktop-helper && npm install && npm run build'
+      );
+    }
+    res.setHeader('Content-Disposition', 'attachment; filename="RemoteSupportHelper.exe"');
+    res.type('application/octet-stream');
+    res.sendFile(exePath);
+  });
+});
+
 app.get('/support-agent', (req, res) => {
   res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   let html = fs.readFileSync(path.join(__dirname, 'public', 'support-agent.html'), 'utf8');
