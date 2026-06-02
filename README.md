@@ -2,7 +2,7 @@
 
 A Node.js + Express project that serves a suite of free, privacy-friendly web-based utilities. All tools run entirely in your browser — the server just hosts static files and a tiny JSON API.
 
-## Included tools (34 and growing)
+## Included tools (120 and growing)
 
 ### Developer
 | Route | Tool |
@@ -128,7 +128,7 @@ utility-tools/
     │   ├── about.html, disclaimer.html, privacy.html, terms.html
     │   ├── blog.html, 404.html
     │   └── blog/             # 7 articles
-    └── tools/                # 34 tool pages, one HTML file each
+    └── tools/                # 120 tool pages, one HTML file each
 ```
 
 ## Adding a new tool

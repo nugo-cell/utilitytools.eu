@@ -9,7 +9,7 @@
 
 (function () {
   // ---------------- Consent loader ----------------
-  // Auto-inject /consent.js into <head> so we don't have to edit 70 tool HTMLs.
+  // Auto-inject /consent.js into <head> so we don't have to edit 120 tool HTMLs.
   // consent.js owns the AdSense loader + the mandatory consent modal + guard.
   (function injectConsent() {
     if (document.querySelector('script[src="/consent.js"]')) return;
