@@ -33,7 +33,6 @@
       }
     })();
   </script>
-  <!-- Google AdSense is loaded by /consent.js only after the user grants consent. -->
   <style>
     /* Trust / share / contact banner */
     .trust-banner{
@@ -84,16 +83,11 @@
     }
   }
   </script>
-
-
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5700080992080321"
-          crossorigin="anonymous"></script>
 </head>
 <body class="home-page">
   <div class="vibrant-bubbles" aria-hidden="true">
-    <span></span><span></span><span></span><span></span><span></span>
-    <span></span><span></span><span></span><span></span><span></span>
-    <span></span><span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span>
   </div>
   <header class="topnav">
     <a href="/" class="brand">Utility<span>Tools</span><span class="tld">.eu</span></a>
@@ -179,16 +173,20 @@
         <a href="https://secureeu.eu" rel="noopener" target="_blank" title="Secure file transfer — European alternative to WeTransfer">SecureEU.eu — EU file transfer</a>
       </div>
       <div>
+        <h4>Advertise &amp; contact</h4>
+        <p>📢 <strong>Your banner here</strong> — we offer banner space on UtilityTools.eu. Contact us to feature your brand.</p>
+        <a href="mailto:jw.nugzar@gmail.com">jw.nugzar@gmail.com</a>
+      </div>
+      <div>
         <h4>Legal</h4>
         <a href="/disclaimer">Disclaimer</a>
         <a href="/privacy">Privacy</a>
         <a href="/terms">Terms</a>
-        <a href="#" id="utConsentRevoke">Consent settings</a>
       </div>
     </div>
     <div class="footer-bottom">
       <span>&copy; <span id="year"></span> UtilityTools.eu &middot; Made in the EU 🇪🇺</span>
-      <span>Hosted on DigitalOcean · Frankfurt 🇩🇪 · No user database · No analytics tracking · Ads by Google AdSense</span>
+      <span>Hosted on DigitalOcean · Frankfurt 🇩🇪 · No user database · No analytics tracking</span>
     </div>
   </footer>
 
@@ -402,15 +400,6 @@
         }
       } catch (_) { /* user cancelled — no-op */ }
     });
-
-    // ===== Consent settings link =====
-    document.addEventListener('click', e => {
-      const a = e.target.closest('#utConsentRevoke');
-      if (!a) return;
-      e.preventDefault();
-      if (window.UTConsent) window.UTConsent.revoke();
-    });
   </script>
-  <script src="/consent.js"></script>
 </body>
 </html>

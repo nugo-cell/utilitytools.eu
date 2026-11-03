@@ -83,14 +83,13 @@ html body.home-page {
   isolation: isolate;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 8% 12%, rgba(255,94,156,0.46), transparent 30%),
-    radial-gradient(circle at 88% 8%, rgba(0,212,170,0.38), transparent 32%),
-    radial-gradient(circle at 16% 92%, rgba(255,154,60,0.34), transparent 34%),
-    radial-gradient(circle at 82% 86%, rgba(56,189,248,0.34), transparent 36%),
-    linear-gradient(125deg, #12091f 0%, #111d3d 28%, #241047 52%, #092c35 76%, #2a153d 100%);
-  background-size: 140% 140%, 150% 150%, 145% 145%, 155% 155%, 300% 300%;
+    radial-gradient(circle at 10% 10%, rgba(124,92,255,0.14), transparent 42%),
+    radial-gradient(circle at 88% 8%, rgba(0,212,170,0.10), transparent 44%),
+    radial-gradient(circle at 82% 90%, rgba(56,189,248,0.10), transparent 46%),
+    linear-gradient(135deg, #0b1020 0%, #0e1530 45%, #121a3a 100%);
+  background-size: 150% 150%, 160% 160%, 160% 160%, 220% 220%;
   background-attachment: fixed;
-  animation: homeVibrantShift 18s ease-in-out infinite alternate;
+  animation: homeVibrantShift 36s ease-in-out infinite alternate;
 }
 
 .home-page .topnav,
@@ -117,14 +116,13 @@ html body.home-page {
   border-radius: 50%;
   opacity: 0;
   background:
-    radial-gradient(circle at 30% 26%, rgba(255,255,255,0.95) 0 8%, rgba(255,255,255,0.45) 9% 18%, transparent 19%),
-    radial-gradient(circle at 42% 38%, var(--c1) 0 35%, var(--c2) 60%, transparent 72%);
+    radial-gradient(circle at 30% 26%, rgba(255,255,255,0.55) 0 10%, rgba(255,255,255,0.20) 11% 22%, transparent 23%),
+    radial-gradient(circle at 42% 38%, var(--c1) 0 38%, var(--c2) 64%, transparent 74%);
   box-shadow:
-    0 0 24px var(--glow),
-    0 0 64px var(--glow),
-    inset -10px -14px 24px rgba(0,0,0,0.18),
-    inset 8px 8px 18px rgba(255,255,255,0.20);
-  filter: saturate(1.45) blur(0.1px);
+    0 0 14px var(--glow),
+    inset -8px -10px 18px rgba(0,0,0,0.12),
+    inset 6px 6px 14px rgba(255,255,255,0.12);
+  filter: saturate(1.05) blur(0.2px);
   animation: bubbleFloat var(--d) linear infinite;
   animation-delay: var(--delay);
   will-change: transform, opacity;
@@ -148,12 +146,11 @@ html body.home-page {
 
 html[data-theme="light"] body.home-page {
   background:
-    radial-gradient(circle at 8% 12%, rgba(255,94,156,0.30), transparent 30%),
-    radial-gradient(circle at 88% 8%, rgba(0,212,170,0.24), transparent 32%),
-    radial-gradient(circle at 16% 92%, rgba(255,154,60,0.26), transparent 34%),
-    radial-gradient(circle at 82% 86%, rgba(56,189,248,0.24), transparent 36%),
-    linear-gradient(125deg, #fff6fb 0%, #eef7ff 28%, #f4efff 52%, #ecfff8 76%, #fff8ec 100%);
-  background-size: 140% 140%, 150% 150%, 145% 145%, 155% 155%, 300% 300%;
+    radial-gradient(circle at 10% 10%, rgba(124,92,255,0.08), transparent 42%),
+    radial-gradient(circle at 88% 8%, rgba(0,212,170,0.06), transparent 44%),
+    radial-gradient(circle at 82% 90%, rgba(56,189,248,0.06), transparent 46%),
+    linear-gradient(135deg, #f8fafd 0%, #f2f6fc 50%, #eef3fb 100%);
+  background-size: 150% 150%, 160% 160%, 160% 160%, 220% 220%;
 }
 
 @keyframes homeVibrantShift {
@@ -167,10 +164,10 @@ html[data-theme="light"] body.home-page {
     opacity: 0;
     transform: translate3d(0, 0, 0) scale(0.55) rotate(0deg);
   }
-  8% { opacity: 0.82; }
+  8% { opacity: 0.32; }
   34% { transform: translate3d(var(--dx1), -42vh, 0) scale(0.95) rotate(115deg); }
   68% { transform: translate3d(var(--dx2), -88vh, 0) scale(1.16) rotate(245deg); }
-  92% { opacity: 0.72; }
+  92% { opacity: 0.26; }
   100% {
     opacity: 0;
     transform: translate3d(var(--dx3), -132vh, 0) scale(1.32) rotate(360deg);
