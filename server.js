@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const path = require('path');
 const http = require('http');
 const fs = require('fs');
+const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const { TOOL_GUIDES, createDefaultToolGuide } = require('./tool-guides');
 const remoteSupport = require('./support/remote-support');
@@ -39,6 +40,49 @@ app.use((req, res, next) => {
     const ua = (req.headers['user-agent'] || '-').slice(0, 80);
     console.log(`[req] ${req.method} ${req.originalUrl} ${res.statusCode} ${ms}ms ip=${ip} ua="${ua}"`);
   });
+  next();
+});
+
+// ---------------- Asset fingerprinting (cache busting) ----------------
+// Every HTML response gets its local .css/.js URLs rewritten to
+// "/file.css?v=<content-hash>". A deploy that changes a file changes its hash,
+// so browsers fetch the new version on the next page load without a manual
+// hard refresh. Versioned assets are cached as immutable; HTML always revalidates.
+const PUBLIC_DIR = path.join(__dirname, 'public');
+const assetHashCache = new Map(); // abs path -> { mtimeMs, size, hash }
+function assetVersion(urlPath) {
+  const abs = path.join(PUBLIC_DIR, urlPath);
+  if (!abs.startsWith(PUBLIC_DIR + path.sep)) return null;
+  let stat;
+  try { stat = fs.statSync(abs); } catch (_) { return null; }
+  if (!stat.isFile()) return null;
+  const cached = assetHashCache.get(abs);
+  if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) return cached.hash;
+  const hash = crypto.createHash('sha1').update(fs.readFileSync(abs)).digest('hex').slice(0, 10);
+  assetHashCache.set(abs, { mtimeMs: stat.mtimeMs, size: stat.size, hash });
+  return hash;
+}
+function versionAssets(html) {
+  return String(html).replace(/(\b(?:href|src)=["'])(\/[^"'?#]+\.(?:css|js))(?=["'])/gi, (m, attr, url) => {
+    const v = assetVersion(url);
+    return v ? `${attr}${url}?v=${v}` : m;
+  });
+}
+function sendHtmlFile(res, filePath, status, transform) {
+  fs.readFile(filePath, 'utf8', (err, html) => {
+    if (err) return res.status(404).type('text/plain').send('404 Not Found');
+    res.status(status || 200).type('html').send(transform ? transform(html) : html);
+  });
+}
+app.use((req, res, next) => {
+  const send = res.send;
+  res.send = function (body) {
+    if (typeof body === 'string' && /html/i.test(res.get('Content-Type') || '')) {
+      body = versionAssets(body);
+      if (!res.get('Cache-Control')) res.setHeader('Cache-Control', 'no-cache');
+    }
+    return send.call(this, body);
+  };
   next();
 });
 
@@ -355,13 +399,28 @@ app.get('/tools/:file', (req, res, next) => {
   res.type('html').send(renderToolPage(tool));
 });
 
-app.use(express.static(path.join(__dirname, 'public'), {
-  // 1 day for HTML, 7 days for static assets. Production browsers will revalidate.
+// Static .html files go through res.send so their asset URLs get versioned too.
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  if (!/\.html$/i.test(req.path)) return next();
+  let rel;
+  try { rel = decodeURIComponent(req.path); } catch (_) { return next(); }
+  const abs = path.join(PUBLIC_DIR, rel);
+  if (!abs.startsWith(PUBLIC_DIR + path.sep) || !fs.existsSync(abs)) return next();
+  sendHtmlFile(res, abs, 200, injectToolCount);
+});
+
+app.use(express.static(PUBLIC_DIR, {
   setHeaders: function (res, filePath) {
-    if (/\.(?:css|js|svg|webmanifest|png|jpg|jpeg|webp|woff2?)$/i.test(filePath)) {
+    if (/\.(?:css|js)$/i.test(filePath)) {
+      // ?v=<hash> URLs never change content, so cache them forever; bare URLs
+      // must revalidate (cheap 304 via ETag) so a deploy is picked up immediately.
+      const versioned = res.req && res.req.query && res.req.query.v;
+      res.setHeader('Cache-Control', versioned ? 'public, max-age=31536000, immutable' : 'no-cache');
+    } else if (/\.(?:svg|webmanifest|png|jpg|jpeg|webp|woff2?)$/i.test(filePath)) {
       res.setHeader('Cache-Control', 'public, max-age=604800');
     } else if (/\.html$/i.test(filePath)) {
-      res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
+      res.setHeader('Cache-Control', 'no-cache');
     }
   }
 }));
@@ -387,9 +446,9 @@ for (const [route, file] of Object.entries(pages)) {
 
 app.get('/blog/:slug', (req, res) => {
   const safe = req.params.slug.replace(/[^a-z0-9-]/gi, '');
-  res.sendFile(path.join(__dirname, 'public', 'pages', 'blog', safe + '.html'), err => {
-    if (err) res.status(404).sendFile(path.join(__dirname, 'public', 'pages', '404.html'));
-  });
+  const file = path.join(PUBLIC_DIR, 'pages', 'blog', safe + '.html');
+  if (fs.existsSync(file)) return sendHtmlFile(res, file);
+  sendHtmlFile(res, path.join(PUBLIC_DIR, 'pages', '404.html'), 404);
 });
 
 // Tools are appended to TOOLS over time, so array position doubles as the
@@ -831,9 +890,7 @@ app.get('/sitemap.xml', (req, res) => {
 });
 
 app.use((req, res) => {
-  res.status(404).sendFile(path.join(__dirname, 'public', 'pages', '404.html'), err => {
-    if (err) res.type('text/plain').send('404 Not Found');
-  });
+  sendHtmlFile(res, path.join(PUBLIC_DIR, 'pages', '404.html'), 404);
 });
 
 // ---------------- WebRTC signaling relay ----------------
