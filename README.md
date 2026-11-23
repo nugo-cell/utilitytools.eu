@@ -113,11 +113,6 @@ SITE_URL=https://yourdomain.com PORT=8080 npm start
 
 The `SITE_URL` is used in the sitemap and robots.txt so links are absolute.
 
-An anonymous page-view counter (no cookies, no IPs stored; bots excluded) is
-saved to `data/visits.json` every 15 seconds and on shutdown. Set
-`COUNTER_FILE=/path/to/visits.json` to store it on a persistent volume so the
-count survives redeploys. Totals are exposed at `/api/stats` (not shown on the
-site). On hosts without persistent disk the count resets on each deploy.
 
 ## Project structure
 

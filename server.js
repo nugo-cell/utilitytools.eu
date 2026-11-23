@@ -8,14 +8,10 @@ const fs = require('fs');
 const { WebSocketServer } = require('ws');
 const { TOOL_GUIDES, createDefaultToolGuide } = require('./tool-guides');
 const remoteSupport = require('./support/remote-support');
-const { createVisitCounter } = require('./visit-counter');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const SITE_URL = process.env.SITE_URL || (process.env.NODE_ENV === 'production' ? 'https://utilitytools.eu' : `http://localhost:${PORT}`);
-
-// Anonymous page-view counter persisted to disk (aggregate numbers only).
-const visitCounter = createVisitCounter(process.env.COUNTER_FILE || path.join(__dirname, 'data', 'visits.json'));
 
 // ---------------- Logging ----------------
 // Without this, DigitalOcean / Docker "Runtime Logs" appear empty because the
@@ -27,8 +23,8 @@ console.log(`[boot] ${startedAt} node=${process.version} env=${process.env.NODE_
 // Surface crashes instead of dying silently.
 process.on('uncaughtException',  err => console.error('[uncaughtException]', err && err.stack || err));
 process.on('unhandledRejection', err => console.error('[unhandledRejection]', err && err.stack || err));
-process.on('SIGTERM', () => { console.log('[shutdown] SIGTERM received, exiting'); visitCounter.flushSync(); process.exit(0); });
-process.on('SIGINT',  () => { console.log('[shutdown] SIGINT received, exiting');  visitCounter.flushSync(); process.exit(0); });
+process.on('SIGTERM', () => { console.log('[shutdown] SIGTERM received, exiting'); process.exit(0); });
+process.on('SIGINT',  () => { console.log('[shutdown] SIGINT received, exiting');  process.exit(0); });
 
 // Tiny access log — one line per request: method, path, status, duration, IP, UA.
 // Skips static asset chatter so the log stays readable.
@@ -45,15 +41,6 @@ app.use((req, res, next) => {
   });
   next();
 });
-
-// Count human page views (HTML routes only — no assets, APIs or sockets).
-app.use(visitCounter.middleware({
-  isPage: p => !p.includes('.') && !/^\/(?:api|ws|downloads)(?:\/|$)/.test(p),
-  resolveTool: p => {
-    const slug = p.replace(/^\/+|\/+$/g, '');
-    return TOOL_BY_SLUG.has(slug) ? slug : null;
-  }
-}));
 
 // ---------------- Security headers ----------------
 // Helmet adds CSP, HSTS, X-Content-Type-Options, Referrer-Policy, etc.
@@ -408,14 +395,9 @@ app.get('/blog/:slug', (req, res) => {
 // Tools are appended to TOOLS over time, so array position doubles as the
 // "added" order for the homepage "Recently added" sort.
 app.get('/api/tools', (req, res) => res.json({
-  tools: TOOLS.map((t, i) => ({ ...t, added: i, views: visitCounter.toolViews(t.slug) })),
+  tools: TOOLS.map((t, i) => ({ ...t, added: i })),
   tags: ALL_TAGS
 }));
-
-app.get('/api/stats', (req, res) => {
-  res.setHeader('Cache-Control', 'no-store');
-  res.json(visitCounter.stats());
-});
 
 // ---------------- Remote Support ----------------
 // Consent-first temporary remote support sessions. All session/code/permission
