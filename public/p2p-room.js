@@ -6,11 +6,7 @@
 (function () {
   'use strict';
 
-  const ICE_SERVERS = [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun.cloudflare.com:3478' }
-  ];
+  const ICE_SERVERS = window.UT_ICE_SERVERS || [{ urls: 'stun:stun.l.google.com:19302' }];
   // No 0/O/1/I/L so codes are easy to read aloud and type on a phone.
   const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 

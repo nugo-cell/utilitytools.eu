@@ -234,6 +234,7 @@
 
   <div class="vc-toast" id="toast"></div>
 
+  <script src="/ice.js"></script>
   <script>
     const $ = id => document.getElementById(id);
     const lobby = $('lobby'), callPanel = $('callPanel');
@@ -256,11 +257,7 @@
     let callStartedAt = 0, timerHandle = null;
     const DEV_KEY = 'utilitytools.p2pvoice.devices';
 
-    const ICE_SERVERS = [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun.cloudflare.com:3478' }
-    ];
+    const ICE_SERVERS = window.UT_ICE_SERVERS;
 
     // ---------- helpers ----------
     function genRoomId() {

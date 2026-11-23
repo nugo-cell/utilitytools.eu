@@ -203,17 +203,14 @@
 
   <div class="pf-toast" id="toast"></div>
 
+  <script src="/ice.js"></script>
   <script>
     const $ = id => document.getElementById(id);
     const lobby = $('lobby'), transferPanel = $('transferPanel');
     const status = $('status'), shareLink = $('shareLink'), roomLabel = $('roomLabel');
     const drop = $('drop'), fileInput = $('fileInput'), list = $('list');
 
-    const ICE_SERVERS = [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun.cloudflare.com:3478' }
-    ];
+    const ICE_SERVERS = window.UT_ICE_SERVERS;
     const CHUNK_SIZE = 64 * 1024;     // 64 KB chunks
     const HIGH_WATER  = 1024 * 1024;  // pause when 1 MB queued
 

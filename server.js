@@ -703,6 +703,64 @@ app.get('/api/ip-lookup', async (req, res) => {
   }
 });
 
+// ---------------- WebRTC ICE servers (STUN + Cloudflare TURN) ----------------
+// STUN alone fails behind strict NATs / firewalls / mobile CGNAT. When
+// CF_TURN_KEY_ID and CF_TURN_API_TOKEN are set, we mint short-lived Cloudflare
+// TURN credentials so those calls can fall back to a relay. The long-lived
+// key never leaves the server.
+const DEFAULT_ICE_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun.cloudflare.com:3478' }
+];
+const CF_TURN_KEY_ID    = process.env.CF_TURN_KEY_ID || '';
+const CF_TURN_API_TOKEN = process.env.CF_TURN_API_TOKEN || '';
+const TURN_TTL_SECONDS  = 12 * 60 * 60;
+const ICE_RATE_WINDOW_MS = 10 * 60 * 1000;
+const ICE_RATE_MAX = 30;
+const iceRate = new Map(); // ip -> { start, count }
+
+function iceRateLimited(ip) {
+  const now = Date.now();
+  const e = iceRate.get(ip);
+  if (!e || now - e.start > ICE_RATE_WINDOW_MS) {
+    iceRate.set(ip, { start: now, count: 1 });
+    if (iceRate.size > 5000) {
+      for (const [k, v] of iceRate) if (now - v.start > ICE_RATE_WINDOW_MS) iceRate.delete(k);
+    }
+    return false;
+  }
+  e.count++;
+  return e.count > ICE_RATE_MAX;
+}
+
+app.get('/api/ice', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!CF_TURN_KEY_ID || !CF_TURN_API_TOKEN) return res.json({ iceServers: DEFAULT_ICE_SERVERS, turn: false });
+  const ip = (req.headers['x-forwarded-for'] || req.ip || '').toString().split(',')[0].trim();
+  if (iceRateLimited(ip)) return res.json({ iceServers: DEFAULT_ICE_SERVERS, turn: false });
+  try {
+    const r = await fetch(`https://rtc.live.cloudflare.com/v1/turn/keys/${encodeURIComponent(CF_TURN_KEY_ID)}/credentials/generate-ice-servers`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${CF_TURN_API_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ttl: TURN_TTL_SECONDS }),
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!r.ok) throw new Error('Cloudflare TURN HTTP ' + r.status);
+    const j = await r.json();
+    if (!j || !Array.isArray(j.iceServers)) throw new Error('Unexpected Cloudflare TURN response');
+    // Port 53 is blocked by browsers and only causes ICE timeouts.
+    const iceServers = j.iceServers.map(s => {
+      const urls = (Array.isArray(s.urls) ? s.urls : [s.urls]).filter(u => !/:53(\?|$)/.test(u));
+      return { ...s, urls };
+    }).filter(s => s.urls.length);
+    res.json({ iceServers: [...DEFAULT_ICE_SERVERS.slice(0, 1), ...iceServers], turn: true });
+  } catch (e) {
+    console.warn('[ice] TURN credential fetch failed:', e.message);
+    res.json({ iceServers: DEFAULT_ICE_SERVERS, turn: false });
+  }
+});
+
 // ---------------- FTP explorer (server-side, ephemeral connection) ----------------
 // Browsers can't speak FTP/FTPS, so the FTP-Explorer tool POSTs credentials here
 // over HTTPS. We open a fresh control connection per request, perform the

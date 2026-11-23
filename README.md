@@ -125,6 +125,15 @@ SITE_URL=https://yourdomain.com PORT=8080 npm start
 
 The `SITE_URL` is used in the sitemap and robots.txt so links are absolute.
 
+### TURN relay for WebRTC tools (optional, recommended)
+
+Without TURN, P2P calls/transfers fail behind strict NATs or firewalls ("Connection failed"). To enable Cloudflare Realtime TURN, set:
+
+- `CF_TURN_KEY_ID` – the TURN Key ID (Cloudflare dashboard → Realtime → TURN Server)
+- `CF_TURN_API_TOKEN` – that key's API token (keep secret)
+
+`/api/ice` then issues 12-hour TURN credentials to the browser via `public/ice.js`. If unset or Cloudflare is unreachable, tools fall back to STUN only.
+
 
 ## Project structure
 
