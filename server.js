@@ -8,10 +8,14 @@ const fs = require('fs');
 const { WebSocketServer } = require('ws');
 const { TOOL_GUIDES, createDefaultToolGuide } = require('./tool-guides');
 const remoteSupport = require('./support/remote-support');
+const { createVisitCounter } = require('./visit-counter');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const SITE_URL = process.env.SITE_URL || (process.env.NODE_ENV === 'production' ? 'https://utilitytools.eu' : `http://localhost:${PORT}`);
+
+// Anonymous page-view counter persisted to disk (aggregate numbers only).
+const visitCounter = createVisitCounter(process.env.COUNTER_FILE || path.join(__dirname, 'data', 'visits.json'));
 
 // ---------------- Logging ----------------
 // Without this, DigitalOcean / Docker "Runtime Logs" appear empty because the
@@ -23,8 +27,8 @@ console.log(`[boot] ${startedAt} node=${process.version} env=${process.env.NODE_
 // Surface crashes instead of dying silently.
 process.on('uncaughtException',  err => console.error('[uncaughtException]', err && err.stack || err));
 process.on('unhandledRejection', err => console.error('[unhandledRejection]', err && err.stack || err));
-process.on('SIGTERM', () => { console.log('[shutdown] SIGTERM received, exiting'); process.exit(0); });
-process.on('SIGINT',  () => { console.log('[shutdown] SIGINT received, exiting');  process.exit(0); });
+process.on('SIGTERM', () => { console.log('[shutdown] SIGTERM received, exiting'); visitCounter.flushSync(); process.exit(0); });
+process.on('SIGINT',  () => { console.log('[shutdown] SIGINT received, exiting');  visitCounter.flushSync(); process.exit(0); });
 
 // Tiny access log — one line per request: method, path, status, duration, IP, UA.
 // Skips static asset chatter so the log stays readable.
@@ -42,9 +46,18 @@ app.use((req, res, next) => {
   next();
 });
 
+// Count human page views (HTML routes only — no assets, APIs or sockets).
+app.use(visitCounter.middleware({
+  isPage: p => !p.includes('.') && !/^\/(?:api|ws|downloads)(?:\/|$)/.test(p),
+  resolveTool: p => {
+    const slug = p.replace(/^\/+|\/+$/g, '');
+    return TOOL_BY_SLUG.has(slug) ? slug : null;
+  }
+}));
+
 // ---------------- Security headers ----------------
 // Helmet adds CSP, HSTS, X-Content-Type-Options, Referrer-Policy, etc.
-// CSP is hand-tuned to allow Google AdSense + the public CDNs the tools use.
+// CSP is hand-tuned to allow the public CDNs and APIs the tools use.
 app.use(helmet({
   contentSecurityPolicy: {
     useDefaults: true,
@@ -53,11 +66,6 @@ app.use(helmet({
       'script-src': [
         "'self'",
         "'unsafe-inline'", // tool pages have inline scripts; refactor later
-        'https://pagead2.googlesyndication.com',
-        'https://*.googlesyndication.com',
-        'https://*.doubleclick.net',
-        'https://*.google.com',
-        'https://*.gstatic.com',
         'https://cdn.jsdelivr.net',
         'https://cdnjs.cloudflare.com',
         'https://unpkg.com'
@@ -66,8 +74,8 @@ app.use(helmet({
       'img-src': ["'self'", 'data:', 'blob:', 'https:'],
       'media-src': ["'self'", 'data:', 'blob:'],
       'font-src': ["'self'", 'data:', 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com'],
-      'connect-src': ["'self'", 'ws:', 'wss:', 'https://*.googlesyndication.com', 'https://*.doubleclick.net', 'https://*.google.com', 'https://ipwho.is', 'https://api.frankfurter.app'],
-      'frame-src':  ['https://*.googlesyndication.com', 'https://*.doubleclick.net', 'https://*.google.com'],
+      'connect-src': ["'self'", 'ws:', 'wss:', 'https://ipwho.is', 'https://api.frankfurter.app'],
+      'frame-src':  ["'self'"],
       'object-src': ["'none'"],
       'base-uri':   ["'self'"],
       'form-action': ["'self'", 'mailto:']
@@ -227,8 +235,8 @@ const TOOLS = [
 
 const ALL_TAGS = [...new Set(TOOLS.flatMap(t => t.tags))].sort();
 
-// Temporarily keep decorative / low-practical-value pages out of the indexed set
-// during the AdSense content review. They remain reachable from direct links.
+// Keep decorative / low-practical-value pages out of the search-indexed set.
+// They remain reachable from direct links and the homepage.
 const NOINDEX_TOOL_SLUGS = new Set([
   'scramble', 'mathtable', 'mathquiz', 'spelling', 'storyidea', 'memory',
   'text-translators', 'runes', 'pig-latin', 'upside-down', 'medieval',
@@ -251,17 +259,21 @@ function escapeHtml(value) {
   }[ch]));
 }
 
+// Server-rendered cards (so the full tool list is crawlable without JS).
+// Must match the markup produced by toolCard() in public/index.html.
 function renderHomeToolCards() {
-  return TOOLS.map(t => `
-        <div class="card-wrap">
-          <a class="card" href="/${escapeHtml(t.slug)}" aria-label="${escapeHtml(t.name)}">
-            <div class="icon">${escapeHtml(t.icon)}</div>
-            <h3>${escapeHtml(t.name)}</h3>
-            <p>${escapeHtml(t.desc)}</p>
-            <div class="card-tags">${t.tags.map(tag => `<span>${escapeHtml(tag)}</span>`).join('')}</div>
-          </a>
-          <button class="fav-btn" data-slug="${escapeHtml(t.slug)}" title="Add to favorites" aria-label="Toggle favorite">☆</button>
-        </div>`).join('');
+  return TOOLS.map(t => {
+    const name = escapeHtml(t.name);
+    const slug = escapeHtml(t.slug);
+    return `
+        <article class="tool-card" data-slug="${slug}">
+          <span class="tool-icon" aria-hidden="true">${escapeHtml(t.icon)}</span>
+          <h3 class="tool-title"><a href="/${slug}">${name}</a></h3>
+          <p class="tool-desc">${escapeHtml(t.desc)}</p>
+          <ul class="tool-cats" aria-label="Categories">${t.tags.map(tag => `<li>${escapeHtml(tag)}</li>`).join('')}</ul>
+          <button type="button" class="fav-btn" data-slug="${slug}" aria-pressed="false" aria-label="Add ${name} to favorites" title="Add to favorites"><span aria-hidden="true">☆</span></button>
+        </article>`;
+  }).join('');
 }
 
 function renderGuide(slug) {
@@ -343,18 +355,10 @@ app.get('/', (req, res) => {
   const filePath = path.join(__dirname, 'public', 'index.html');
   let html = fs.readFileSync(filePath, 'utf8');
   html = html.replace(
-    '<div class="grid" id="toolGrid" aria-live="polite"></div>',
-    `<div class="grid" id="toolGrid" aria-live="polite">${renderHomeToolCards()}\n      </div>`
+    '<div class="tool-grid" id="toolGrid"></div>',
+    `<div class="tool-grid" id="toolGrid">${renderHomeToolCards()}\n      </div>`
   );
   res.type('html').send(injectToolCount(html));
-});
-
-// Serve consent.js with the live tool count substituted in.
-app.get('/consent.js', (req, res) => {
-  const js = fs.readFileSync(path.join(__dirname, 'public', 'consent.js'), 'utf8');
-  res.type('application/javascript')
-     .setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
-  res.send(injectToolCount(js));
 });
 
 app.get('/tools/:file', (req, res, next) => {
@@ -401,7 +405,17 @@ app.get('/blog/:slug', (req, res) => {
   });
 });
 
-app.get('/api/tools', (req, res) => res.json({ tools: TOOLS, tags: ALL_TAGS }));
+// Tools are appended to TOOLS over time, so array position doubles as the
+// "added" order for the homepage "Recently added" sort.
+app.get('/api/tools', (req, res) => res.json({
+  tools: TOOLS.map((t, i) => ({ ...t, added: i, views: visitCounter.toolViews(t.slug) })),
+  tags: ALL_TAGS
+}));
+
+app.get('/api/stats', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(visitCounter.stats());
+});
 
 // ---------------- Remote Support ----------------
 // Consent-first temporary remote support sessions. All session/code/permission

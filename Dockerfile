@@ -37,8 +37,13 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package*.json ./
 COPY server.js ./
 COPY tool-guides.js ./
+COPY visit-counter.js ./
 COPY support ./support
 COPY public ./public
+
+# Writable folder for the anonymous visit counter (override with COUNTER_FILE,
+# e.g. pointing at a mounted volume, to keep counts across redeploys)
+RUN mkdir -p /app/data && chown node:node /app/data
 
 # Drop root for safety (the `node` user ships with the official image)
 USER node

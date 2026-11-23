@@ -1,23 +1,12 @@
 // Shared site chrome — injects:
 //   1. Theme (light/dark) + early-init.
 //   2. Favicon, manifest, og:image (so we don't have to repeat in every HTML).
-//   3. AdSense loader via /consent.js (Google Auto Ads handles placement itself).
-  //   4. The footer (with the related EU project + a "Consent settings" link).
-//   5. A JSON-LD <SoftwareApplication> block per tool page (SEO).
-//   6. A "Related tools" block at the bottom of each tool page.
-//   7. Recently-used tracking (per slug, in localStorage).
+//   3. The footer (owner, contact, related EU project).
+//   4. A JSON-LD <SoftwareApplication> block per tool page (SEO).
+//   5. A "Related tools" block at the bottom of each tool page.
+//   6. Recently-used tracking (per slug, in localStorage).
 
 (function () {
-  // ---------------- Consent loader ----------------
-  // Auto-inject /consent.js into <head> so we don't have to edit 120 tool HTMLs.
-  // consent.js owns the AdSense loader + the mandatory consent modal + guard.
-  (function injectConsent() {
-    if (document.querySelector('script[src="/consent.js"]')) return;
-    var s = document.createElement('script');
-    s.src = '/consent.js';
-    document.head.appendChild(s);
-  })();
-
   // ---------------- Theme (light / dark) ----------------
   var THEME_KEY = 'utilitytools.theme';
   function getStoredTheme() {
@@ -38,13 +27,17 @@
   applyTheme(getStoredTheme() === 'dark' ? 'dark' : 'light');
 
   function injectThemeToggle() {
-    if (document.querySelector('.theme-toggle')) return;
-    var nav = document.querySelector('.topnav nav') || document.querySelector('.topnav');
-    if (!nav) return;
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'theme-toggle';
-    nav.appendChild(btn);
+    var btn = document.querySelector('.theme-toggle');
+    if (btn && btn.dataset.bound) return;
+    if (!btn) {
+      var nav = document.querySelector('.topnav nav') || document.querySelector('.topnav');
+      if (!nav) return;
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'theme-toggle';
+      nav.appendChild(btn);
+    }
+    btn.dataset.bound = '1';
     btn.addEventListener('click', function () {
       var next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
       try { localStorage.setItem(THEME_KEY, next); } catch (_) {}
@@ -137,9 +130,6 @@
     } catch (_) {}
   })();
 
-  // ---------------- Ad slots ----------------
-  // Removed: Google AdSense Auto Ads (loaded via consent.js) handles placement.
-
   injectThemeToggle();
 
   // ---------------- Per-tool SEO + Related tools ----------------
@@ -203,16 +193,18 @@
     }).catch(function () { /* offline - silent */ });
   }
 
-  // ---------------- Footer ----------------
-  if (document.querySelector('footer.site-footer')) return;
+  injectThemeToggle();
 
-  var footer = document.createElement('footer');
-  footer.className = 'site-footer';
-  footer.innerHTML = `
+  // ---------------- Footer ----------------
+  if (!document.querySelector('footer.site-footer')) {
+    var footer = document.createElement('footer');
+    footer.className = 'site-footer';
+    footer.innerHTML = `
     <div class="footer-inner">
       <div>
         <h4>UtilityTools.eu</h4>
         <p>A free European alternative for everyday online utilities. No analytics tracking, no accounts, and browser-first tools with clear privacy notes.</p>
+        <p>Privately owned by <a class="inline" href="https://www.linkedin.com/in/nugzari/" rel="noopener" target="_blank">Nugzar Guliashvili</a>.</p>
       </div>
       <div>
         <h4>Tools</h4>
@@ -228,30 +220,26 @@
         <a href="/about">About</a>
         <a href="/contact">Contact</a>
       </div>
-      <div class="partners-col">
+      <div>
         <h4>Related EU project</h4>
         <a href="https://secureeu.eu" rel="noopener" target="_blank" title="Secure file transfer — European alternative to WeTransfer">SecureEU.eu — EU file transfer</a>
+      </div>
+      <div>
+        <h4>Advertise &amp; contact</h4>
+        <p>Banner space may be offered as traffic grows — no tracking, ever.</p>
+        <a href="mailto:itsnugzar@gmail.com">itsnugzar@gmail.com</a>
       </div>
       <div>
         <h4>Legal</h4>
         <a href="/disclaimer">Disclaimer</a>
         <a href="/privacy">Privacy</a>
         <a href="/terms">Terms</a>
-        <a href="#" id="utConsentRevoke">Consent settings</a>
       </div>
     </div>
     <div class="footer-bottom">
       <span>&copy; ${new Date().getFullYear()} UtilityTools.eu &middot; Made in the EU 🇪🇺</span>
-      <span>Hosted on DigitalOcean · Frankfurt 🇩🇪 · No user database · No analytics tracking · Ads by Google AdSense</span>
+      <span>Hosted on DigitalOcean · Frankfurt 🇩🇪 · No analytics tracking</span>
     </div>`;
-  document.body.appendChild(footer);
-
-  var revoke = document.getElementById('utConsentRevoke');
-  if (revoke) revoke.addEventListener('click', function (e) {
-    e.preventDefault();
-    if (window.UTConsent) window.UTConsent.revoke();
-  });
-
-  injectThemeToggle();
+    document.body.appendChild(footer);
+  }
 })();
-
