@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .uc-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+    .uc-tabs button{background:var(--panel-2);color:var(--text);border:1px solid var(--border)}
+    .uc-tabs button[aria-selected="true"]{background:var(--accent);color:var(--btn-text);border-color:var(--accent)}
+    .uc-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:end}
+    @media (max-width:640px){.uc-grid{grid-template-columns:1fr}.uc-swap{justify-self:center}}
+    .uc-result{margin-top:18px;padding:16px;background:var(--panel-2);border:1px solid var(--border);border-radius:10px}
+    .uc-result .big{font-size:24px;font-weight:700;font-family:var(--mono);word-break:break-all}
+    .uc-result .formula{font-size:13px;color:var(--muted);margin-top:6px}
+    .uc-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px}
+    .uc-table td{padding:7px 10px;border-bottom:1px solid var(--border)}
+    .uc-table td:last-child{text-align:right;font-family:var(--mono);cursor:pointer}
+    .uc-table tr:hover td{background:var(--panel-2)}
+    .uc-note{font-size:13px;color:var(--muted);margin-top:8px}
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>Unit Converter — Length, Weight, Temperature, Cooking</title>
+  <meta name="description" content="Convert length, weight, temperature, volume, speed and cooking measurements instantly. Cups and spoons to grams for common ingredients. Free, in-browser.">
+  <meta name="keywords" content="unit converter, metric to imperial, cm to inches, kg to lbs, celsius to fahrenheit, cups to grams, mph to km/h, liters to gallons">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/unit-converter">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="Unit Converter — Length, Weight, Temperature, Cooking">
+  <meta property="og:description" content="Convert length, weight, temperature, volume, speed and cooking measurements instantly. Cups and spoons to grams for common ingredients. Free, in-browser.">
+  <meta property="og:url" content="https://utilitytools.eu/unit-converter">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Unit Converter — Length, Weight, Temperature, Cooking">
+  <meta name="twitter:description" content="Convert length, weight, temperature, volume, speed and cooking measurements instantly. Cups and spoons to grams for common ingredients. Free, in-browser.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Unit Converter",
+  "description": "Convert length, weight, temperature, volume, speed and cooking measurements instantly. Cups and spoons to grams for common ingredients. Free, in-browser.",
+  "url": "https://utilitytools.eu/unit-converter",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "Any (Web)",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "UtilityTools.eu",
+    "url": "https://utilitytools.eu"
+  }
+}</script>
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How are cups converted to grams?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Using typical densities for each ingredient (for example about 125 g per US cup of flour). Results are approximate because packing varies."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which cup size is used?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The US cup (236.6 mL) and a metric cup (250 mL) are both available."
+      }
+    }
+  ]
+}</script>
+  <!-- SEO:END -->
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Unit Converter</h1>
+      <p>Convert length, weight, temperature, volume, speed and cooking measurements instantly. Cooking mode converts cups and spoons to grams using common ingredient densities.</p>
+    </div>
+
+    <div class="panel">
+      <div class="uc-tabs" role="tablist" aria-label="Measurement category" id="tabs"></div>
+
+      <div class="uc-grid">
+        <div>
+          <label for="value">Value</label>
+          <input type="number" id="value" value="1" step="any" inputmode="decimal">
+          <label for="from" style="margin-top:10px">From</label>
+          <select id="from"></select>
+        </div>
+        <button type="button" class="secondary uc-swap" id="swap" title="Swap units" aria-label="Swap units">⇄</button>
+        <div>
+          <label for="precision">Significant digits</label>
+          <select id="precision">
+            <option value="4">4</option>
+            <option value="6" selected>6</option>
+            <option value="8">8</option>
+            <option value="12">12</option>
+          </select>
+          <label for="to" style="margin-top:10px">To</label>
+          <select id="to"></select>
+        </div>
+      </div>
+
+      <div id="ingredientRow" style="margin-top:12px" hidden>
+        <label for="ingredient">Ingredient (needed to convert between volume and weight)</label>
+        <select id="ingredient"></select>
+      </div>
+
+      <div class="uc-result" aria-live="polite">
+        <div class="big" id="result">—</div>
+        <div class="formula" id="formula"></div>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+
+    <div class="panel">
+      <h3 style="margin-top:0">All units in this category</h3>
+      <p class="uc-note">Click any value to copy it.</p>
+      <table class="uc-table"><tbody id="allBody"></tbody></table>
+    </div>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+
+    // Linear units: factor converts the unit to the category base unit.
+    const CATEGORIES = {
+      length: { label: 'Length', base: 'm', units: [
+        ['mm', 'Millimetre (mm)', 0.001], ['cm', 'Centimetre (cm)', 0.01], ['m', 'Metre (m)', 1],
+        ['km', 'Kilometre (km)', 1000], ['in', 'Inch (in)', 0.0254], ['ft', 'Foot (ft)', 0.3048],
+        ['yd', 'Yard (yd)', 0.9144], ['mi', 'Mile (mi)', 1609.344], ['nmi', 'Nautical mile (nmi)', 1852]
+      ], def: ['km', 'mi'] },
+      weight: { label: 'Weight', base: 'kg', units: [
+        ['mg', 'Milligram (mg)', 1e-6], ['g', 'Gram (g)', 0.001], ['kg', 'Kilogram (kg)', 1],
+        ['t', 'Tonne (t)', 1000], ['oz', 'Ounce (oz)', 0.028349523125], ['lb', 'Pound (lb)', 0.45359237],
+        ['st', 'Stone (st)', 6.35029318], ['ust', 'US short ton', 907.18474], ['ukt', 'UK long ton', 1016.0469088]
+      ], def: ['kg', 'lb'] },
+      temperature: { label: 'Temperature', units: [
+        ['C', 'Celsius (°C)'], ['F', 'Fahrenheit (°F)'], ['K', 'Kelvin (K)'], ['R', 'Rankine (°R)']
+      ], def: ['C', 'F'] },
+      volume: { label: 'Volume', base: 'L', units: [
+        ['ml', 'Millilitre (mL)', 0.001], ['l', 'Litre (L)', 1], ['m3', 'Cubic metre (m³)', 1000],
+        ['cm3', 'Cubic centimetre (cm³)', 0.001], ['in3', 'Cubic inch (in³)', 0.016387064], ['ft3', 'Cubic foot (ft³)', 28.316846592],
+        ['usfloz', 'US fluid ounce', 0.0295735295625], ['uscup', 'US cup', 0.2365882365], ['uspt', 'US pint', 0.473176473],
+        ['usqt', 'US quart', 0.946352946], ['usgal', 'US gallon', 3.785411784],
+        ['ukfloz', 'UK fluid ounce', 0.0284130625], ['ukpt', 'UK pint', 0.56826125], ['ukgal', 'UK gallon', 4.54609]
+      ], def: ['l', 'usgal'] },
+      speed: { label: 'Speed', base: 'm/s', units: [
+        ['ms', 'Metres per second (m/s)', 1], ['kmh', 'Kilometres per hour (km/h)', 1 / 3.6],
+        ['mph', 'Miles per hour (mph)', 0.44704], ['kn', 'Knot (kn)', 1852 / 3600], ['fts', 'Feet per second (ft/s)', 0.3048]
+      ], def: ['kmh', 'mph'] },
+      cooking: { label: 'Cooking', units: [
+        ['tsp', 'Teaspoon (US tsp)', 0.00492892159375, 'v'], ['tbsp', 'Tablespoon (US tbsp)', 0.01478676478125, 'v'],
+        ['floz', 'Fluid ounce (US fl oz)', 0.0295735295625, 'v'], ['cup', 'US cup (236.6 mL)', 0.2365882365, 'v'],
+        ['mcup', 'Metric cup (250 mL)', 0.25, 'v'], ['ml', 'Millilitre (mL)', 0.001, 'v'], ['l', 'Litre (L)', 1, 'v'],
+        ['g', 'Gram (g)', 0.001, 'w'], ['kg', 'Kilogram (kg)', 1, 'w'], ['oz', 'Ounce (oz)', 0.028349523125, 'w'],
+        ['lb', 'Pound (lb)', 0.45359237, 'w']
+      ], def: ['cup', 'g'] }
+    };
+
+    // Approximate densities in g/mL (kg/L), spooned & levelled where relevant.
+    const INGREDIENTS = [
+      ['water', 'Water', 1.0], ['milk', 'Milk', 1.03], ['flour', 'All-purpose flour', 0.528],
+      ['bread-flour', 'Bread flour', 0.55], ['sugar', 'Granulated sugar', 0.845], ['brown-sugar', 'Brown sugar (packed)', 0.93],
+      ['icing-sugar', 'Powdered / icing sugar', 0.507], ['butter', 'Butter', 0.959], ['oil', 'Vegetable oil', 0.92],
+      ['honey', 'Honey', 1.42], ['rice', 'Rice (uncooked)', 0.78], ['oats', 'Rolled oats', 0.38],
+      ['cocoa', 'Cocoa powder', 0.42], ['salt', 'Table salt', 1.2], ['yogurt', 'Yogurt', 1.03], ['cream', 'Heavy cream', 0.99]
+    ];
+
+    const state = { cat: 'length' };
+    try { const saved = localStorage.getItem('utilitytools.units.cat'); if (CATEGORIES[saved]) state.cat = saved; } catch (_) {}
+
+    function toCelsius(v, u) {
+      if (u === 'C') return v;
+      if (u === 'F') return (v - 32) * 5 / 9;
+      if (u === 'K') return v - 273.15;
+      if (u === 'R') return (v - 491.67) * 5 / 9;
+    }
+    function fromCelsius(c, u) {
+      if (u === 'C') return c;
+      if (u === 'F') return c * 9 / 5 + 32;
+      if (u === 'K') return c + 273.15;
+      if (u === 'R') return (c + 273.15) * 9 / 5;
+    }
+
+    function unitDef(cat, key) { return CATEGORIES[cat].units.find(u => u[0] === key); }
+    function density() {
+      const ing = INGREDIENTS.find(i => i[0] === $('ingredient').value);
+      return ing ? ing[2] : 1;
+    }
+
+    // Returns null when the conversion is impossible.
+    function convert(value, from, to, cat) {
+      if (cat === 'temperature') return fromCelsius(toCelsius(value, from), to);
+      const f = unitDef(cat, from), t = unitDef(cat, to);
+      let base = value * f[2];
+      if (cat === 'cooking' && f[3] !== t[3]) {
+        // base is litres (volume) or kilograms (weight); density in kg/L
+        base = f[3] === 'v' ? base * density() : base / density();
+      }
+      return base / t[2];
+    }
+
+    function fmt(n) {
+      if (!isFinite(n)) return '—';
+      const sig = Number($('precision').value);
+      const abs = Math.abs(n);
+      if (abs !== 0 && (abs < 1e-6 || abs >= 1e15)) return n.toExponential(sig - 1).replace(/\.?0+e/, 'e');
+      return new Intl.NumberFormat('en-US', { maximumSignificantDigits: sig }).format(n);
+    }
+
+    function buildTabs() {
+      const tabs = $('tabs');
+      tabs.innerHTML = '';
+      for (const [key, c] of Object.entries(CATEGORIES)) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.setAttribute('role', 'tab');
+        b.setAttribute('aria-selected', String(key === state.cat));
+        b.textContent = c.label;
+        b.onclick = () => { state.cat = key; try { localStorage.setItem('utilitytools.units.cat', key); } catch (_) {} buildTabs(); fillUnits(); };
+        tabs.appendChild(b);
+      }
+    }
+
+    function fillUnits() {
+      const c = CATEGORIES[state.cat];
+      const opts = c.units.map(u => `<option value="${u[0]}">${u[1]}</option>`).join('');
+      $('from').innerHTML = opts; $('to').innerHTML = opts;
+      $('from').value = c.def[0]; $('to').value = c.def[1];
+      $('ingredientRow').hidden = state.cat !== 'cooking';
+      update();
+    }
+
+    function update() {
+      const cat = state.cat;
+      const raw = $('value').value.trim();
+      const v = Number(raw);
+      const status = $('status');
+      status.textContent = ''; status.className = 'status';
+      if (raw === '' || !isFinite(v)) {
+        $('result').textContent = '—'; $('formula').textContent = 'Enter a number to convert.'; $('allBody').innerHTML = '';
+        return;
+      }
+      const from = $('from').value, to = $('to').value;
+      const fu = unitDef(cat, from), tu = unitDef(cat, to);
+      if (cat === 'temperature' && toCelsius(v, from) < -273.15) {
+        status.textContent = 'That is below absolute zero (−273.15 °C).'; status.className = 'status err';
+      }
+      const r = convert(v, from, to, cat);
+      $('result').textContent = `${fmt(v)} ${short(fu)} = ${fmt(r)} ${short(tu)}`;
+      let formula = '';
+      if (cat === 'temperature') formula = 'Temperature uses offset formulas, not a simple multiplier.';
+      else if (cat === 'cooking' && fu[3] !== tu[3]) {
+        const ing = INGREDIENTS.find(i => i[0] === $('ingredient').value);
+        formula = `Volume ↔ weight uses ${ing[1].toLowerCase()} at about ${ing[2]} g/mL. Real results vary with how ingredients are packed.`;
+      } else formula = `1 ${short(fu)} = ${fmt(convert(1, from, to, cat))} ${short(tu)}`;
+      $('formula').textContent = formula;
+
+      $('allBody').innerHTML = CATEGORIES[cat].units.map(u => {
+        const val = convert(v, from, u[0], cat);
+        return `<tr><td>${u[1]}</td><td title="Click to copy">${fmt(val)}</td></tr>`;
+      }).join('');
+    }
+
+    function short(u) {
+      const m = u[1].match(/\(([^)]+)\)/);
+      if (!m) return u[1];
+      if (/\d/.test(m[1])) return u[1].replace(/\s*\([^)]*\)/, '');
+      return m[1];
+    }
+
+    $('value').addEventListener('input', update);
+    $('from').addEventListener('change', update);
+    $('to').addEventListener('change', update);
+    $('precision').addEventListener('change', update);
+    $('ingredient').addEventListener('change', update);
+    $('swap').onclick = () => { const f = $('from').value; $('from').value = $('to').value; $('to').value = f; update(); };
+    $('allBody').addEventListener('click', async e => {
+      const td = e.target.closest('td:last-child'); if (!td) return;
+      try { await navigator.clipboard.writeText(td.textContent.replace(/,/g, '')); $('status').textContent = 'Copied ✓'; $('status').className = 'status ok'; }
+      catch (_) { $('status').textContent = 'Copy failed'; $('status').className = 'status err'; }
+    });
+
+    $('ingredient').innerHTML = INGREDIENTS.map(i => `<option value="${i[0]}">${i[1]}</option>`).join('');
+    $('ingredient').value = 'flour';
+    buildTabs();
+    fillUnits();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>

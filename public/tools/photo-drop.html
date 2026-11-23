@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    .ph-pair{display:flex;flex-wrap:wrap;gap:18px;align-items:center;background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:16px}
+    .ph-pair[hidden]{display:none}
+    .ph-qr{background:#fff;padding:12px;border-radius:10px;line-height:0;flex-shrink:0}
+    .ph-qr img,.ph-qr canvas{display:block;width:220px;height:220px}
+    .ph-code{font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:3px;color:var(--accent)}
+    .ph-link{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:8px}
+    .ph-link input{border:0;border-radius:0;font-family:var(--mono);font-size:12px}
+    .ph-link button{border-radius:0}
+    .ph-status{font-size:14px;margin-top:12px;min-height:20px;color:var(--muted)}
+    .ph-status.ok{color:var(--success);font-weight:600} .ph-status.err{color:var(--danger);font-weight:600} .ph-status.live{color:var(--accent);font-weight:600}
+    .ph-big{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+    @media (max-width:420px){.ph-big{grid-template-columns:1fr}}
+    .ph-big label{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;margin:0;padding:26px 12px;border-radius:12px;cursor:pointer;font-size:16px;font-weight:700;color:var(--btn-text);background:var(--accent);text-align:center}
+    .ph-big label.alt{background:var(--panel-2);color:var(--text);border:1px solid var(--border)}
+    .ph-big label span{font-size:34px;line-height:1}
+    .ph-big input{display:none}
+    .ph-send[aria-disabled="true"]{opacity:.45;pointer-events:none}
+    .ph-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-top:14px}
+    .ph-card{background:var(--panel-2);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+    .ph-card .thumb{aspect-ratio:1/1;background:var(--panel);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;overflow:hidden}
+    .ph-card .thumb img{width:100%;height:100%;object-fit:cover;cursor:zoom-in}
+    .ph-card .info{padding:8px 10px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+    .ph-card .name{color:var(--text);font-weight:600;word-break:break-all}
+    .ph-card .bar{height:5px;background:var(--panel);border-radius:99px;overflow:hidden}
+    .ph-card .bar > div{height:100%;width:0;background:var(--grad)}
+    .ph-card.done .bar > div{background:var(--success)}
+    .ph-card a.dl{font-size:12px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--panel);color:var(--text);text-align:center;text-decoration:none}
+    .ph-empty{color:var(--muted);font-size:14px;text-align:center;padding:24px 0}
+    .ph-info{background:linear-gradient(135deg,rgba(0,212,170,0.08),rgba(124,92,255,0.08));border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--muted);margin-top:14px}
+    .ph-info b{color:var(--text)}
+    .ph-view{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:1000;cursor:zoom-out}
+    .ph-view[hidden]{display:none}
+    .ph-view img{max-width:96vw;max-height:94vh}
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>Phone to Computer Photo Transfer — Scan QR, No Upload</title>
+  <meta name="description" content="Send photos from your phone to your computer in seconds: scan a QR code, take or pick a photo, and it appears on the computer. Direct encrypted WebRTC, no cloud upload.">
+  <meta name="keywords" content="phone to computer photo transfer, send photo to pc, transfer photos without cable, qr code photo transfer, iphone to pc photos, android to pc photos">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/photo-drop">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="Phone to Computer Photo Transfer — Scan QR, No Upload">
+  <meta property="og:description" content="Send photos from your phone to your computer in seconds: scan a QR code, take or pick a photo, and it appears on the computer. Direct encrypted WebRTC, no cloud upload.">
+  <meta property="og:url" content="https://utilitytools.eu/photo-drop">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Phone to Computer Photo Transfer — Scan QR, No Upload">
+  <meta name="twitter:description" content="Send photos from your phone to your computer in seconds: scan a QR code, take or pick a photo, and it appears on the computer. Direct encrypted WebRTC, no cloud upload.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Phone-to-Computer Photo Drop",
+  "description": "Send photos from your phone to your computer in seconds: scan a QR code, take or pick a photo, and it appears on the computer. Direct encrypted WebRTC, no cloud upload.",
+  "url": "https://utilitytools.eu/photo-drop",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "Any (Web)",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "UtilityTools.eu",
+    "url": "https://utilitytools.eu"
+  }
+}</script>
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Are my photos uploaded to a server?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Photos stream directly from the phone to the computer over an encrypted WebRTC DataChannel."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do both devices need to be on the same Wi-Fi?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No, but it is usually fastest when they are. Very strict networks may block direct connections."
+      }
+    }
+  ]
+}</script>
+  <!-- SEO:END -->
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Phone-to-Computer Photo Drop</h1>
+      <p>Open this page on your computer, scan the QR code with your phone, then take or pick a photo — it lands straight on the computer screen, ready to download. Photos travel directly between your devices over encrypted WebRTC; they are never uploaded to a server.</p>
+    </div>
+
+    <!-- LOBBY -->
+    <div class="panel" id="lobby">
+      <h3 style="margin-top:0">On your computer</h3>
+      <button type="button" id="createBtn">💻 Receive photos on this device</button>
+      <h3>On your phone</h3>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 8px">Scan the QR code shown on your computer. No camera scanner? Enter the room code instead:</p>
+      <form class="row" id="joinForm">
+        <input type="text" id="joinCode" placeholder="Room code" aria-label="Room code" autocomplete="off" maxlength="80" style="flex:1;min-width:160px;font-family:var(--mono);text-transform:uppercase;letter-spacing:2px">
+        <button type="submit" class="secondary">Join as sender</button>
+      </form>
+    </div>
+
+    <!-- RECEIVER (computer) -->
+    <div class="panel" id="receiver" hidden>
+      <div class="ph-pair" id="pairBox">
+        <div class="ph-qr" id="qrBox" title="Scan with your phone camera"></div>
+        <div style="flex:1;min-width:220px">
+          <b style="font-size:17px">📱 Scan with your phone</b>
+          <p style="color:var(--muted);font-size:14px;margin:6px 0">Point your phone camera at the QR code and tap the link. Or open the link below and enter the code:</p>
+          <div class="ph-code" id="codeLabel"></div>
+          <div class="ph-link"><input type="text" id="shareLink" readonly aria-label="Room link"><button type="button" id="copyLink">Copy</button></div>
+        </div>
+      </div>
+      <div class="ph-status" id="rStatus" role="status" aria-live="polite"></div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" id="downloadAll" disabled>⬇ Download all</button>
+        <button type="button" class="secondary" id="rLeave" style="margin-left:auto">End session</button>
+      </div>
+      <div class="ph-gallery" id="gallery"></div>
+      <div class="ph-empty" id="emptyNote">Photos you send from the phone will appear here.</div>
+    </div>
+
+    <!-- SENDER (phone) -->
+    <div class="panel" id="sender" hidden>
+      <div class="ph-status" id="sStatus" role="status" aria-live="polite"></div>
+      <div class="ph-send" id="sendBox" aria-disabled="true">
+        <div class="ph-big">
+          <label>
+            <span>📷</span> Take photo
+            <input type="file" id="cameraInput" accept="image/*" capture="environment">
+          </label>
+          <label class="alt">
+            <span>🖼</span> Choose photos
+            <input type="file" id="galleryInput" accept="image/*" multiple>
+          </label>
+        </div>
+        <label class="checkbox" style="margin-top:12px"><input type="checkbox" id="shrink"> Reduce size before sending (max 2560 px JPEG — faster on slow connections)</label>
+      </div>
+      <div class="ph-gallery" id="sentGallery"></div>
+      <div class="row" style="margin-top:12px"><button type="button" class="secondary" id="sLeave" style="margin-left:auto">Disconnect</button></div>
+    </div>
+
+    <div class="ph-info"><b>🔒 Private by design.</b> Our server only introduces the two devices to each other. Each photo streams directly phone → computer over a DTLS-encrypted WebRTC DataChannel and exists only in the browser's memory until you download it. Close the tab and everything is gone.</div>
+  </main>
+
+  <div class="ph-view" id="viewer" hidden><img alt="Full-size preview" id="viewerImg"></div>
+
+  <script src="/p2p-room.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    const CHUNK = 64 * 1024;
+    const HIGH_WATER = 1024 * 1024;
+    const MAX_BYTES = 200 * 1024 * 1024;
+    let room = null, role = null;
+
+    function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
+    function fmtBytes(b) { return b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : (b / 1048576).toFixed(2) + ' MB'; }
+    function fmtCode(c) { return c.length === 8 ? c.slice(0, 4) + '-' + c.slice(4) : c; }
+    function newId() { const a = new Uint8Array(6); crypto.getRandomValues(a); return [...a].map(b => b.toString(16).padStart(2, '0')).join(''); }
+    function statusFn(el) { return (kind, msg) => { el.className = 'ph-status ' + (kind || ''); el.textContent = msg || ''; }; }
+
+    function makeCard(container, name, size) {
+      const el = document.createElement('div');
+      el.className = 'ph-card';
+      el.innerHTML = `<div class="thumb">…</div><div class="info"><span class="name">${esc(name)}</span><span class="meta">${fmtBytes(size)} · <span class="pct">0%</span></span><div class="bar"><div></div></div></div>`;
+      container.prepend(el);
+      return {
+        el,
+        progress(done) { const p = size ? Math.min(100, done / size * 100) : 100; el.querySelector('.bar > div').style.width = p + '%'; el.querySelector('.pct').textContent = p.toFixed(0) + '%'; },
+        thumb(url) {
+          const t = el.querySelector('.thumb');
+          const img = new Image();
+          img.alt = name;
+          img.onload = () => { t.innerHTML = ''; t.appendChild(img); };
+          img.onerror = () => { t.textContent = 'No preview (format not supported by this browser)'; };
+          img.src = url;
+        },
+        done(label) { el.classList.add('done'); el.querySelector('.pct').textContent = label; }
+      };
+    }
+
+    // ---------------- Receiver (computer) ----------------
+    const received = []; // { url, name }
+    let incoming = null;
+
+    function startReceiver(code) {
+      role = 'receiver';
+      $('lobby').hidden = true; $('receiver').hidden = false;
+      $('codeLabel').textContent = fmtCode(code);
+      $('shareLink').value = location.origin + '/photo-drop#' + code;
+      P2PRoom.renderQr($('qrBox'), $('shareLink').value, 220);
+      const setStatus = statusFn($('rStatus'));
+      setStatus('live', 'Waiting for your phone — scan the QR code.');
+      room = P2PRoom.connect({
+        room: 'ph-' + code,
+        onStatus: (k, m) => setStatus(k, k === 'live' && /Waiting/.test(m) ? 'Waiting for your phone — scan the QR code.' : m),
+        onOpen: () => { $('pairBox').hidden = true; setStatus('ok', '🟢 Phone connected — take or choose a photo on the phone.'); },
+        onPeerLeft: () => { $('pairBox').hidden = false; incoming = null; setStatus('err', 'Phone disconnected. Scan the QR code again to reconnect.'); },
+        onMessage: onReceiverMessage
+      });
+    }
+
+    function onReceiverMessage(data) {
+      if (typeof data === 'string') {
+        let m; try { m = JSON.parse(data); } catch (_) { return; }
+        if (m.k === 'meta') {
+          const size = Number(m.size) || 0;
+          if (size > MAX_BYTES) { incoming = null; return; }
+          const name = String(m.name || 'photo').slice(0, 200);
+          const type = /^image\/[a-z0-9.+-]+$/i.test(m.type || '') ? m.type : 'application/octet-stream';
+          incoming = { id: String(m.id), name, size, type, chunks: [], bytes: 0, card: makeCard($('gallery'), name, size) };
+          $('emptyNote').hidden = true;
+        } else if (m.k === 'end' && incoming && incoming.id === String(m.id)) {
+          const blob = new Blob(incoming.chunks, { type: incoming.type });
+          const url = URL.createObjectURL(blob);
+          const { card, name } = incoming;
+          if (incoming.type.startsWith('image/')) card.thumb(url); else card.el.querySelector('.thumb').textContent = 'File received';
+          const a = document.createElement('a');
+          a.className = 'dl'; a.href = url; a.download = name; a.textContent = '⬇ Download';
+          card.el.querySelector('.info').appendChild(a);
+          card.done('received ✓');
+          received.push({ url, name });
+          $('downloadAll').disabled = false;
+          room.send(JSON.stringify({ k: 'ack', id: incoming.id }));
+          incoming = null;
+        }
+        return;
+      }
+      if (!incoming) return;
+      incoming.bytes += data.byteLength;
+      if (incoming.bytes > incoming.size) { incoming.card.done('failed — size mismatch'); incoming = null; return; }
+      incoming.chunks.push(data);
+      incoming.card.progress(incoming.bytes);
+    }
+
+    $('gallery').addEventListener('click', e => {
+      const img = e.target.closest('.thumb img'); if (!img) return;
+      $('viewerImg').src = img.src; $('viewer').hidden = false;
+    });
+    $('viewer').onclick = () => { $('viewer').hidden = true; $('viewerImg').removeAttribute('src'); };
+    $('downloadAll').onclick = async () => {
+      for (const r of received) {
+        const a = document.createElement('a'); a.href = r.url; a.download = r.name; a.click();
+        await new Promise(res => setTimeout(res, 350));
+      }
+    };
+
+    // ---------------- Sender (phone) ----------------
+    const queue = [];
+    let sending = false;
+    const sentCards = new Map();
+
+    function startSender(code) {
+      role = 'sender';
+      $('lobby').hidden = true; $('sender').hidden = false;
+      const setStatus = statusFn($('sStatus'));
+      setStatus('live', 'Connecting to your computer…');
+      room = P2PRoom.connect({
+        room: 'ph-' + code,
+        onStatus: (k, m) => setStatus(k, k === 'live' && /Waiting/.test(m) ? 'Waiting for the computer… Make sure the Photo Drop page is still open there.' : m),
+        onOpen: ch => {
+          ch.bufferedAmountLowThreshold = HIGH_WATER / 2;
+          $('sendBox').setAttribute('aria-disabled', 'false');
+          setStatus('ok', '🟢 Connected to your computer — take or choose a photo.');
+          pump();
+        },
+        onClose: () => $('sendBox').setAttribute('aria-disabled', 'true'),
+        onPeerLeft: () => { $('sendBox').setAttribute('aria-disabled', 'true'); setStatus('err', 'The computer closed the session. Scan a new QR code to continue.'); },
+        onMessage: data => {
+          if (typeof data !== 'string') return;
+          let m; try { m = JSON.parse(data); } catch (_) { return; }
+          if (m.k === 'ack' && sentCards.has(m.id)) sentCards.get(m.id).done('delivered ✓');
+        }
+      });
+    }
+
+    async function shrink(file) {
+      try {
+        const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+        const scale = Math.min(1, 2560 / Math.max(bmp.width, bmp.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(bmp.width * scale); canvas.height = Math.round(bmp.height * scale);
+        canvas.getContext('2d').drawImage(bmp, 0, 0, canvas.width, canvas.height);
+        if (bmp.close) bmp.close();
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.85));
+        if (!blob || blob.size >= file.size) return file;
+        return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+      } catch (_) { return file; }
+    }
+
+    function enqueue(files) {
+      for (const f of files) {
+        if (f.size > MAX_BYTES) { statusFn($('sStatus'))('err', `${f.name} is larger than 200 MB — use P2P File Transfer for huge files.`); continue; }
+        const id = newId();
+        const card = makeCard($('sentGallery'), f.name, f.size);
+        card.el.querySelector('.pct').textContent = 'queued';
+        const previewUrl = URL.createObjectURL(f);
+        card.thumb(previewUrl);
+        queue.push({ id, file: f, card });
+      }
+      pump();
+    }
+
+    function drained(ch) {
+      if (ch.bufferedAmount <= HIGH_WATER || ch.readyState !== 'open') return Promise.resolve();
+      return new Promise(res => {
+        ch.addEventListener('bufferedamountlow', res, { once: true });
+        ch.addEventListener('close', res, { once: true });
+      });
+    }
+
+    async function pump() {
+      if (sending) return;
+      sending = true;
+      try {
+        while (queue.length && room && room.isOpen) {
+          const item = queue[0];
+          const file = $('shrink').checked ? await shrink(item.file) : item.file;
+          const ch = room.channel;
+          room.send(JSON.stringify({ k: 'meta', id: item.id, name: file.name || 'photo.jpg', size: file.size, type: file.type || 'image/jpeg' }));
+          let off = 0;
+          while (off < file.size) {
+            if (!room.isOpen) throw new Error('disconnected');
+            await drained(ch);
+            const buf = await file.slice(off, off + CHUNK).arrayBuffer();
+            room.send(buf);
+            off += buf.byteLength;
+            item.card.progress(off * item.file.size / file.size);
+          }
+          room.send(JSON.stringify({ k: 'end', id: item.id }));
+          item.card.done('sent — waiting…');
+          sentCards.set(item.id, item.card);
+          queue.shift();
+        }
+      } catch (e) {
+        if (queue[0]) queue[0].card.done('interrupted — will retry when reconnected');
+      } finally { sending = false; }
+    }
+
+    ['cameraInput', 'galleryInput'].forEach(id => $(id).addEventListener('change', e => {
+      enqueue([...(e.target.files || [])]);
+      e.target.value = '';
+    }));
+
+    // ---------------- Entry ----------------
+    function leave() {
+      if (room) room.close();
+      room = null; role = null;
+      location.replace(location.pathname);
+    }
+    $('createBtn').onclick = () => {
+      const code = P2PRoom.genCode(8);
+      history.replaceState(null, '', location.pathname + '?host#' + code);
+      startReceiver(code);
+    };
+    $('joinForm').onsubmit = e => {
+      e.preventDefault();
+      const c = P2PRoom.normalizeCode($('joinCode').value);
+      if (!c) { alert('That does not look like a valid room code.'); return; }
+      history.replaceState(null, '', location.pathname + '#' + c);
+      startSender(c);
+    };
+    $('copyLink').onclick = async () => {
+      try { await navigator.clipboard.writeText($('shareLink').value); $('copyLink').textContent = 'Copied ✓'; }
+      catch (_) { $('shareLink').select(); }
+      setTimeout(() => { $('copyLink').textContent = 'Copy'; }, 1400);
+    };
+    $('rLeave').onclick = () => { if (confirm('End the session? Photos you have not downloaded will be lost.')) leave(); };
+    $('sLeave').onclick = leave;
+    window.addEventListener('beforeunload', e => {
+      if (role === 'receiver' && received.length) { e.preventDefault(); e.returnValue = ''; }
+    });
+    window.addEventListener('pagehide', () => { if (room) room.close(); });
+
+    // A link opened from the QR code joins as the sender; ?host restores the computer view after a reload.
+    const initial = P2PRoom.normalizeCode(location.hash);
+    if (initial) {
+      if (new URLSearchParams(location.search).has('host')) startReceiver(initial); else startSender(initial);
+    }
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>

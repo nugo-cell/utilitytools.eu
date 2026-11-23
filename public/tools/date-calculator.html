@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .dc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+    .dc-result{margin-top:16px;padding:16px;background:var(--panel-2);border:1px solid var(--border);border-radius:10px}
+    .dc-result .big{font-size:22px;font-weight:700}
+    .dc-result .sub{font-size:14px;color:var(--muted);margin-top:6px;line-height:1.6}
+    .dc-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px}
+    .dc-days div{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 4px;text-align:center;font-size:12px;color:var(--muted)}
+    .dc-days b{display:block;font-size:16px;color:var(--text);font-family:var(--mono)}
+    .dc-days .we{opacity:.7}
+    h2.dc-h{font-size:18px;margin:0 0 12px}
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>Date Calculator — Add Days, Days Between Dates, Weekdays</title>
+  <meta name="description" content="Add or subtract days, weeks, months and years from a date, count the days between two dates, and count weekdays or business days with holidays excluded.">
+  <meta name="keywords" content="date calculator, days between dates, add days to date, business days calculator, weekday counter, date difference, working days">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/date-calculator">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="Date Calculator — Add Days, Days Between Dates, Weekdays">
+  <meta property="og:description" content="Add or subtract days, weeks, months and years from a date, count the days between two dates, and count weekdays or business days with holidays excluded.">
+  <meta property="og:url" content="https://utilitytools.eu/date-calculator">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Date Calculator — Add Days, Days Between Dates, Weekdays">
+  <meta name="twitter:description" content="Add or subtract days, weeks, months and years from a date, count the days between two dates, and count weekdays or business days with holidays excluded.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Date Calculator",
+  "description": "Add or subtract days, weeks, months and years from a date, count the days between two dates, and count weekdays or business days with holidays excluded.",
+  "url": "https://utilitytools.eu/date-calculator",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "Any (Web)",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "UtilityTools.eu",
+    "url": "https://utilitytools.eu"
+  }
+}</script>
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is the end date included?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "By default no, which matches the usual \"days between\" meaning. Tick \"Include the end date\" to count both days."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I exclude public holidays?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Paste holiday dates (YYYY-MM-DD) and they are excluded from weekday counts and business-day additions."
+      }
+    }
+  ]
+}</script>
+  <!-- SEO:END -->
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Date Calculator</h1>
+      <p>Add or subtract days, weeks, months and years from a date, find the exact gap between two dates, and count weekdays (Monday–Friday) with optional holidays excluded.</p>
+    </div>
+
+    <section class="panel" aria-labelledby="addHeading">
+      <h2 class="dc-h" id="addHeading">➕ Add or subtract time</h2>
+      <div class="dc-grid">
+        <div><label for="addStart">Start date</label><input type="date" id="addStart"></div>
+        <div><label for="addOp">Operation</label>
+          <select id="addOp"><option value="1">Add (+)</option><option value="-1">Subtract (−)</option></select></div>
+        <div><label for="addYears">Years</label><input type="number" id="addYears" value="0" min="0" step="1"></div>
+        <div><label for="addMonths">Months</label><input type="number" id="addMonths" value="0" min="0" step="1"></div>
+        <div><label for="addWeeks">Weeks</label><input type="number" id="addWeeks" value="0" min="0" step="1"></div>
+        <div><label for="addDays">Days</label><input type="number" id="addDays" value="30" min="0" step="1"></div>
+      </div>
+      <label class="checkbox" style="margin-top:12px"><input type="checkbox" id="addBusiness"> Count days as business days (skip Saturdays, Sundays and holidays below)</label>
+      <div class="dc-result" aria-live="polite"><div class="big" id="addResult">—</div><div class="sub" id="addSub"></div></div>
+    </section>
+
+    <section class="panel" aria-labelledby="diffHeading">
+      <h2 class="dc-h" id="diffHeading">↔ Gap between two dates</h2>
+      <div class="dc-grid">
+        <div><label for="diffStart">Start date</label><input type="date" id="diffStart"></div>
+        <div><label for="diffEnd">End date</label><input type="date" id="diffEnd"></div>
+      </div>
+      <label class="checkbox" style="margin-top:12px"><input type="checkbox" id="diffInclusive"> Include the end date (count both first and last day)</label>
+      <div class="dc-result" aria-live="polite">
+        <div class="big" id="diffResult">—</div>
+        <div class="sub" id="diffSub"></div>
+        <div class="dc-days" id="diffDays"></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="holHeading">
+      <h2 class="dc-h" id="holHeading">📅 Weekday counting &amp; holidays</h2>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 10px">Weekdays in the gap above are counted Monday–Friday. Add public holidays or days off (one date per line, <span class="mono">YYYY-MM-DD</span>) to exclude them from weekday counts and business-day additions.</p>
+      <label for="holidays">Holidays to exclude</label>
+      <textarea id="holidays" placeholder="2026-12-25&#10;2026-12-26&#10;2027-01-01" style="min-height:100px"></textarea>
+      <div id="holStatus" class="status"></div>
+    </section>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const DAY = 86400000;
+    const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    // All dates are handled as UTC midnight to avoid daylight-saving shifts.
+    function parse(s) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '').trim());
+      if (!m) return null;
+      const t = Date.UTC(+m[1], +m[2] - 1, +m[3]);
+      const d = new Date(t);
+      return d.getUTCDate() === +m[3] && d.getUTCMonth() === +m[2] - 1 ? t : null;
+    }
+    function iso(t) { return new Date(t).toISOString().slice(0, 10); }
+    function pretty(t) {
+      return new Date(t).toLocaleDateString(undefined, { timeZone: 'UTC', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+    function daysInMonth(y, m) { return new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); }
+    function addMonths(t, n) {
+      const d = new Date(t);
+      const total = d.getUTCFullYear() * 12 + d.getUTCMonth() + n;
+      const y = Math.floor(total / 12), m = total - y * 12;
+      return Date.UTC(y, m, Math.min(d.getUTCDate(), daysInMonth(y, m)));
+    }
+    function isWeekend(t) { const w = new Date(t).getUTCDay(); return w === 0 || w === 6; }
+    function int(id) { const v = parseInt($(id).value, 10); return isFinite(v) && v > 0 ? v : 0; }
+
+    function holidays() {
+      const set = new Set(), bad = [];
+      $('holidays').value.split(/[\s,;]+/).filter(Boolean).forEach(s => {
+        const t = parse(s); if (t === null) bad.push(s); else set.add(t);
+      });
+      const st = $('holStatus');
+      if (bad.length) { st.textContent = 'Ignored invalid dates: ' + bad.slice(0, 5).join(', ') + (bad.length > 5 ? '…' : ''); st.className = 'status err'; }
+      else { st.textContent = set.size ? `${set.size} holiday${set.size === 1 ? '' : 's'} will be excluded.` : ''; st.className = 'status ok'; }
+      return set;
+    }
+
+    function calcAdd() {
+      const start = parse($('addStart').value);
+      if (start === null) { $('addResult').textContent = '—'; $('addSub').textContent = 'Pick a start date.'; return; }
+      const sign = Number($('addOp').value);
+      const y = int('addYears'), mo = int('addMonths'), w = int('addWeeks'), d = int('addDays');
+      let t = addMonths(start, sign * (y * 12 + mo));
+      let note = '';
+      if ($('addBusiness').checked) {
+        const hol = holidays();
+        t += sign * w * 7 * DAY;
+        let left = d, guard = 0;
+        while (left > 0 && guard++ < 1e6) {
+          t += sign * DAY;
+          if (!isWeekend(t) && !hol.has(t)) left--;
+        }
+        note = `${d} business day${d === 1 ? '' : 's'} ${sign > 0 ? 'added' : 'subtracted'} (weekends${hol.size ? ' and holidays' : ''} skipped). `;
+      } else {
+        t += sign * (w * 7 + d) * DAY;
+      }
+      if (isNaN(new Date(t).getTime())) { $('addResult').textContent = 'Date out of range'; $('addSub').textContent = ''; return; }
+      $('addResult').textContent = pretty(t);
+      const total = Math.round((t - start) / DAY);
+      $('addSub').textContent = `${note}ISO: ${iso(t)} · ${Math.abs(total).toLocaleString()} calendar day${Math.abs(total) === 1 ? '' : 's'} ${total >= 0 ? 'after' : 'before'} ${iso(start)}.`;
+    }
+
+    function ymd(a, b) {
+      const A = new Date(a), B = new Date(b);
+      let years = B.getUTCFullYear() - A.getUTCFullYear();
+      let months = B.getUTCMonth() - A.getUTCMonth();
+      let days = B.getUTCDate() - A.getUTCDate();
+      if (days < 0) {
+        months--;
+        const pm = B.getUTCMonth() - 1;
+        days += daysInMonth(pm < 0 ? B.getUTCFullYear() - 1 : B.getUTCFullYear(), (pm + 12) % 12);
+      }
+      if (months < 0) { years--; months += 12; }
+      return { years, months, days };
+    }
+
+    // Count each weekday in [start, start + n days) without looping day by day.
+    function weekdayCounts(start, n) {
+      const counts = new Array(7).fill(0);
+      const full = Math.floor(n / 7), rem = n % 7, w0 = new Date(start).getUTCDay();
+      for (let k = 0; k < 7; k++) counts[k] = full + (((k - w0 + 7) % 7) < rem ? 1 : 0);
+      return counts;
+    }
+
+    function plural(n, w) { return `${n.toLocaleString()} ${w}${n === 1 ? '' : 's'}`; }
+
+    function calcDiff() {
+      let a = parse($('diffStart').value), b = parse($('diffEnd').value);
+      const out = $('diffResult'), sub = $('diffSub'), grid = $('diffDays');
+      if (a === null || b === null) { out.textContent = '—'; sub.textContent = 'Pick both dates.'; grid.innerHTML = ''; return; }
+      let swapped = false;
+      if (b < a) { [a, b] = [b, a]; swapped = true; }
+      const inclusive = $('diffInclusive').checked;
+      const span = Math.round((b - a) / DAY) + (inclusive ? 1 : 0);
+      const { years, months, days } = ymd(a, inclusive ? b + DAY : b);
+
+      const counts = weekdayCounts(a, span);
+      const hol = holidays();
+      let holOnWeekdays = 0;
+      for (const h of hol) if (h >= a && h < a + span * DAY && !isWeekend(h)) holOnWeekdays++;
+      const weekdays = counts[1] + counts[2] + counts[3] + counts[4] + counts[5];
+      const weekend = counts[0] + counts[6];
+      const working = weekdays - holOnWeekdays;
+
+      out.textContent = plural(span, 'day');
+      const parts = [];
+      if (years) parts.push(plural(years, 'year'));
+      if (months) parts.push(plural(months, 'month'));
+      parts.push(plural(days, 'day'));
+      sub.innerHTML = '';
+      const lines = [
+        `${parts.join(', ')} · ${plural(Math.floor(span / 7), 'week')} and ${plural(span % 7, 'day')}`,
+        `Weekdays (Mon–Fri): <b>${weekdays.toLocaleString()}</b> · Weekend days: <b>${weekend.toLocaleString()}</b>` +
+          (hol.size ? ` · Working days after holidays: <b>${working.toLocaleString()}</b>` : ''),
+        `${(span * 24).toLocaleString()} hours · ${(span * 1440).toLocaleString()} minutes`,
+        inclusive ? 'End date included.' : 'End date not included (standard “days between”).'
+      ];
+      if (swapped) lines.push('Dates were in reverse order, so they were swapped.');
+      sub.innerHTML = lines.join('<br>');
+      const order = [1, 2, 3, 4, 5, 6, 0];
+      grid.innerHTML = order.map(k => `<div class="${k === 0 || k === 6 ? 'we' : ''}"><b>${counts[k].toLocaleString()}</b>${WEEKDAYS[k]}</div>`).join('');
+    }
+
+    function all() { calcAdd(); calcDiff(); }
+
+    const today = new Date();
+    const todayIso = iso(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+    $('addStart').value = todayIso;
+    $('diffStart').value = todayIso;
+    $('diffEnd').value = iso(Date.UTC(today.getFullYear(), 11, 31));
+
+    ['addStart', 'addOp', 'addYears', 'addMonths', 'addWeeks', 'addDays', 'addBusiness'].forEach(id => $(id).addEventListener('input', calcAdd));
+    ['addOp', 'addBusiness'].forEach(id => $(id).addEventListener('change', calcAdd));
+    ['diffStart', 'diffEnd', 'diffInclusive'].forEach(id => { $(id).addEventListener('input', calcDiff); $(id).addEventListener('change', calcDiff); });
+    $('holidays').addEventListener('input', all);
+    all();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>

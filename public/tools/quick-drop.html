@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    .qd-join{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+    .qd-join input{flex:1;min-width:180px;font-family:var(--mono);text-transform:uppercase;letter-spacing:2px}
+    .qd-pair{display:flex;flex-wrap:wrap;gap:18px;align-items:center;background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:12px}
+    .qd-pair[hidden]{display:none}
+    .qd-qr{background:#fff;padding:10px;border-radius:8px;line-height:0;flex-shrink:0}
+    .qd-qr img,.qd-qr canvas{display:block;width:180px;height:180px}
+    .qd-code{font-family:var(--mono);font-size:28px;font-weight:700;letter-spacing:3px;color:var(--accent)}
+    .qd-link{display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:8px}
+    .qd-link input{border:0;border-radius:0;font-family:var(--mono);font-size:12px}
+    .qd-link button{border-radius:0}
+    .qd-status{font-size:14px;margin-top:12px;min-height:20px;color:var(--muted)}
+    .qd-status.ok{color:var(--success);font-weight:600} .qd-status.err{color:var(--danger);font-weight:600} .qd-status.live{color:var(--accent);font-weight:600}
+    .qd-compose[aria-disabled="true"]{opacity:.5;pointer-events:none}
+    .qd-list{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+    .qd-msg{background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+    .qd-msg.in{border-left:3px solid var(--success)} .qd-msg.out{border-left:3px solid var(--accent)}
+    .qd-msg .meta{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700}
+    .qd-msg .body{white-space:pre-wrap;word-break:break-word;margin:6px 0;font-size:15px}
+    .qd-msg .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .qd-msg .actions a,.qd-msg .actions button{font-size:12px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--panel);color:var(--text);text-decoration:none;cursor:pointer}
+    .qd-info{background:linear-gradient(135deg,rgba(0,212,170,0.08),rgba(124,92,255,0.08));border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--muted);margin-top:14px}
+    .qd-info b{color:var(--text)}
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>Quick Drop — Send Text &amp; Links Between Devices via QR</title>
+  <meta name="description" content="Send text, links or a quick note from your phone to your computer (or any two devices). Scan a QR code, paste, done. Direct encrypted WebRTC, nothing stored.">
+  <meta name="keywords" content="send text to computer, phone to pc text, share link between devices, qr code text transfer, clipboard between devices, webrtc text share">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/quick-drop">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="Quick Drop — Send Text &amp; Links Between Devices via QR">
+  <meta property="og:description" content="Send text, links or a quick note from your phone to your computer (or any two devices). Scan a QR code, paste, done. Direct encrypted WebRTC, nothing stored.">
+  <meta property="og:url" content="https://utilitytools.eu/quick-drop">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Quick Drop — Send Text &amp; Links Between Devices via QR">
+  <meta name="twitter:description" content="Send text, links or a quick note from your phone to your computer (or any two devices). Scan a QR code, paste, done. Direct encrypted WebRTC, nothing stored.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Quick Drop",
+  "description": "Send text, links or a quick note from your phone to your computer (or any two devices). Scan a QR code, paste, done. Direct encrypted WebRTC, nothing stored.",
+  "url": "https://utilitytools.eu/quick-drop",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "Any (Web)",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "UtilityTools.eu",
+    "url": "https://utilitytools.eu"
+  }
+}</script>
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is my text stored anywhere?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Messages go directly between the two devices over an encrypted WebRTC DataChannel and disappear when you close the tab."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do I need an account or app?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Both devices only need a modern browser."
+      }
+    }
+  ]
+}</script>
+  <!-- SEO:END -->
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>Quick Drop</h1>
+      <p>Send text, links or a short note between two devices — phone to laptop, work PC to home PC. Open a temporary room, scan the QR code on the other device, and paste. Data goes directly device-to-device over encrypted WebRTC; nothing is stored.</p>
+    </div>
+
+    <div class="panel" id="lobby">
+      <h3 style="margin-top:0">Start or join a drop room</h3>
+      <button type="button" id="createBtn">🆕 Create a drop room</button>
+      <form class="qd-join" id="joinForm">
+        <input type="text" id="joinCode" placeholder="Enter room code" aria-label="Room code" autocomplete="off" maxlength="80">
+        <button type="submit" class="secondary">Join</button>
+      </form>
+      <div class="qd-info"><b>How it works:</b> one device creates a room and shows a QR code. The other device scans it (or types the code). Once both are connected, anything you send appears instantly on the other screen. Close the tab and the room disappears.</div>
+    </div>
+
+    <div class="panel" id="roomPanel" hidden>
+      <div class="qd-pair" id="pairBox">
+        <div class="qd-qr" id="qrBox" title="Scan with the other device"></div>
+        <div style="flex:1;min-width:220px">
+          <div style="font-size:13px;color:var(--muted)">Room code</div>
+          <div class="qd-code" id="codeLabel"></div>
+          <div style="font-size:13px;color:var(--muted);margin-top:6px">Scan the QR code with your other device, or open this link there:</div>
+          <div class="qd-link"><input type="text" id="shareLink" readonly aria-label="Room link"><button type="button" id="copyLink">Copy</button></div>
+        </div>
+      </div>
+      <div class="qd-status" id="status" role="status" aria-live="polite"></div>
+
+      <div class="qd-compose" id="compose" aria-disabled="true" style="margin-top:14px">
+        <label for="text">Text, link or note</label>
+        <textarea id="text" placeholder="Paste a link, a code, an address, a note…" style="min-height:110px;font-family:inherit" maxlength="50000"></textarea>
+        <div class="row" style="margin-top:10px">
+          <button type="button" id="sendBtn">Send ➤</button>
+          <button type="button" class="secondary" id="pasteBtn">📋 Paste clipboard</button>
+          <span style="font-size:12px;color:var(--muted)">Tip: Ctrl/⌘ + Enter sends.</span>
+          <button type="button" class="secondary" id="leaveBtn" style="margin-left:auto">Leave room</button>
+        </div>
+      </div>
+
+      <div class="qd-list" id="list"></div>
+    </div>
+  </main>
+
+  <script src="/p2p-room.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    const MAX_CHARS = 50000;
+    let room = null, code = null;
+
+    function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
+    function setStatus(kind, msg) { $('status').className = 'qd-status ' + (kind || ''); $('status').textContent = msg || ''; }
+    function fmtCode(c) { return c.length === 8 ? c.slice(0, 4) + '-' + c.slice(4) : c; }
+
+    function linkify(text) {
+      const re = /\bhttps?:\/\/[^\s<>"']+[^\s<>"'.,;:!?)\]]/g;
+      let out = '', last = 0;
+      for (const m of text.matchAll(re)) {
+        out += esc(text.slice(last, m.index)) + `<a href="${esc(m[0])}" target="_blank" rel="noopener noreferrer">${esc(m[0])}</a>`;
+        last = m.index + m[0].length;
+      }
+      return out + esc(text.slice(last));
+    }
+    function singleUrl(text) {
+      const t = text.trim();
+      if (/\s/.test(t)) return null;
+      try { const u = new URL(t); return /^https?:$/.test(u.protocol) ? u.href : null; } catch (_) { return null; }
+    }
+
+    function addMessage(dir, text) {
+      const el = document.createElement('div');
+      el.className = 'qd-msg ' + dir;
+      const url = singleUrl(text);
+      el.innerHTML = `<div class="meta">${dir === 'in' ? '↓ Received' : '↑ Sent'} · ${new Date().toLocaleTimeString()}</div>
+        <div class="body">${linkify(text)}</div>
+        <div class="actions"><button type="button" data-act="copy">Copy</button>${url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">Open link ↗</a>` : ''}</div>`;
+      el.querySelector('[data-act=copy]').onclick = async () => {
+        try { await navigator.clipboard.writeText(text); flash(el, 'Copied ✓'); }
+        catch (_) { flash(el, 'Copy failed'); }
+      };
+      $('list').prepend(el);
+    }
+    function flash(el, msg) {
+      const b = el.querySelector('[data-act=copy]'); const old = b.textContent;
+      b.textContent = msg; setTimeout(() => { b.textContent = old; }, 1400);
+    }
+
+    function setConnected(on) {
+      $('compose').setAttribute('aria-disabled', String(!on));
+      $('pairBox').hidden = on;
+    }
+
+    function enter(c) {
+      code = c;
+      history.replaceState(null, '', '#' + c);
+      $('lobby').hidden = true; $('roomPanel').hidden = false;
+      $('codeLabel').textContent = fmtCode(c);
+      $('shareLink').value = location.origin + '/quick-drop#' + c;
+      P2PRoom.renderQr($('qrBox'), $('shareLink').value, 180);
+      setStatus('live', 'Connecting…');
+      room = P2PRoom.connect({
+        room: 'qd-' + c,
+        onStatus: setStatus,
+        onOpen: () => { setConnected(true); $('text').focus(); },
+        onClose: () => setConnected(false),
+        onPeerLeft: () => setConnected(false),
+        onFull: () => setConnected(false),
+        onMessage: data => {
+          if (typeof data !== 'string' || data.length > MAX_CHARS * 2) return;
+          let m; try { m = JSON.parse(data); } catch (_) { return; }
+          if (m && m.k === 'text' && typeof m.text === 'string') addMessage('in', m.text.slice(0, MAX_CHARS));
+        }
+      });
+    }
+
+    function leave() {
+      if (room) room.close();
+      room = null;
+      $('list').innerHTML = ''; $('text').value = '';
+      setConnected(false);
+      $('lobby').hidden = false; $('roomPanel').hidden = true;
+      history.replaceState(null, '', location.pathname);
+    }
+
+    function send() {
+      const text = $('text').value;
+      if (!text.trim()) return;
+      if (text.length > MAX_CHARS) { setStatus('err', `Too long — max ${MAX_CHARS.toLocaleString()} characters. Use P2P File Transfer for bigger content.`); return; }
+      if (!room || !room.send(JSON.stringify({ k: 'text', text }))) { setStatus('err', 'Not connected yet — wait for the other device.'); return; }
+      addMessage('out', text);
+      $('text').value = '';
+    }
+
+    $('createBtn').onclick = () => enter(P2PRoom.genCode(8));
+    $('joinForm').onsubmit = e => {
+      e.preventDefault();
+      const c = P2PRoom.normalizeCode($('joinCode').value);
+      if (!c) { alert('That does not look like a valid room code.'); return; }
+      enter(c);
+    };
+    $('sendBtn').onclick = send;
+    $('text').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); } });
+    $('pasteBtn').onclick = async () => {
+      try { $('text').value = await navigator.clipboard.readText(); $('text').focus(); }
+      catch (_) { setStatus('err', 'Clipboard access was blocked — paste manually with Ctrl/⌘ + V.'); }
+    };
+    $('copyLink').onclick = async () => {
+      try { await navigator.clipboard.writeText($('shareLink').value); $('copyLink').textContent = 'Copied ✓'; }
+      catch (_) { $('shareLink').select(); }
+      setTimeout(() => { $('copyLink').textContent = 'Copy'; }, 1400);
+    };
+    $('leaveBtn').onclick = leave;
+    window.addEventListener('beforeunload', () => { if (room) room.close(); });
+
+    const initial = P2PRoom.normalizeCode(location.hash);
+    if (initial) enter(initial);
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>

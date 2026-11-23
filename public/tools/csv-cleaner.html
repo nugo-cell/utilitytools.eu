@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .cc-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 18px;margin-top:12px}
+    .cc-rule{display:grid;grid-template-columns:1.2fr 1fr 1.2fr auto;gap:8px;margin-top:8px;align-items:center}
+    @media (max-width:640px){.cc-rule{grid-template-columns:1fr 1fr}}
+    .cc-cols{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px}
+    .cc-cols label{display:flex;align-items:center;gap:6px;margin:0;color:var(--text);font-size:13px}
+    .cc-cols input{width:auto}
+    .cc-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px}
+    .cc-wrap{overflow:auto;max-height:460px;border:1px solid var(--border);border-radius:8px}
+    .cc-table{border-collapse:collapse;font-size:13px;min-width:100%}
+    .cc-table th,.cc-table td{padding:6px 10px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);text-align:left;white-space:pre;max-width:320px;overflow:hidden;text-overflow:ellipsis}
+    .cc-table th{position:sticky;top:0;background:var(--panel-2);font-weight:600}
+    .cc-table td.n{color:var(--muted);font-family:var(--mono);font-size:12px}
+    h3.cc-h{margin:18px 0 6px;font-size:15px}
+  </style>
+  <!-- SEO:BEGIN (managed by scripts/apply-seo.js) -->
+  <title>CSV Cleaner — Remove Duplicates, Trim, Filter &amp; Sort CSV</title>
+  <meta name="description" content="Clean CSV files in your browser: remove duplicate rows, trim spaces, drop empty lines, filter and sort rows, choose columns and export a clean CSV. No upload.">
+  <meta name="keywords" content="csv cleaner, remove duplicates csv, csv deduplicate, trim csv, filter csv online, sort csv, clean csv data">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://utilitytools.eu/csv-cleaner">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="UtilityTools.eu">
+  <meta property="og:title" content="CSV Cleaner — Remove Duplicates, Trim, Filter &amp; Sort CSV">
+  <meta property="og:description" content="Clean CSV files in your browser: remove duplicate rows, trim spaces, drop empty lines, filter and sort rows, choose columns and export a clean CSV. No upload.">
+  <meta property="og:url" content="https://utilitytools.eu/csv-cleaner">
+  <meta property="og:image" content="https://utilitytools.eu/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="CSV Cleaner — Remove Duplicates, Trim, Filter &amp; Sort CSV">
+  <meta name="twitter:description" content="Clean CSV files in your browser: remove duplicate rows, trim spaces, drop empty lines, filter and sort rows, choose columns and export a clean CSV. No upload.">
+  <meta name="twitter:image" content="https://utilitytools.eu/og-image.svg">
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "CSV Cleaner",
+  "description": "Clean CSV files in your browser: remove duplicate rows, trim spaces, drop empty lines, filter and sort rows, choose columns and export a clean CSV. No upload.",
+  "url": "https://utilitytools.eu/csv-cleaner",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "Any (Web)",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "UtilityTools.eu",
+    "url": "https://utilitytools.eu"
+  }
+}</script>
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is my CSV uploaded?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Parsing, cleaning and export all happen locally in your browser."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I remove duplicates by one column only?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Choose a column under \"Duplicates are judged by\" to keep the first row for each value."
+      }
+    }
+  ]
+}</script>
+  <!-- SEO:END -->
+</head>
+<body>
+  <header class="topnav">
+    <a href="/" class="brand">Utility<span>Tools</span></a>
+    <nav><a href="/">Tools</a><a href="/blog">Blog</a><a href="/about">About</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="tool-header">
+      <h1>CSV Cleaner</h1>
+      <p>Remove duplicate rows, trim stray spaces, drop empty lines, filter and sort CSV data, pick columns, then export a clean CSV. Everything runs in your browser — your data is never uploaded.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="justify-content:space-between">
+        <label for="input" style="margin:0">CSV input</label>
+        <div class="row">
+          <label class="btn-secondary" style="margin:0;cursor:pointer;font-size:14px;color:var(--text)">📂 Open CSV file<input type="file" id="fileInput" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden></label>
+          <button type="button" class="secondary small" id="sampleBtn">Load sample</button>
+        </div>
+      </div>
+      <textarea id="input" style="margin-top:8px;min-height:160px" placeholder="name,email,city&#10;Alice , alice@example.com,Berlin&#10;Bob,bob@example.com,Paris"></textarea>
+
+      <div class="cc-opts">
+        <div><label for="delim">Input delimiter</label>
+          <select id="delim"><option value="auto">Auto-detect</option><option value=",">Comma ,</option><option value=";">Semicolon ;</option><option value="&#9;">Tab</option><option value="|">Pipe |</option></select></div>
+        <div style="align-self:end"><label class="checkbox"><input type="checkbox" id="header" checked> First row is a header</label></div>
+      </div>
+
+      <h3 class="cc-h">Clean</h3>
+      <div class="cc-opts">
+        <label class="checkbox"><input type="checkbox" id="trim" checked> Trim spaces around values</label>
+        <label class="checkbox"><input type="checkbox" id="collapse"> Collapse repeated inner spaces</label>
+        <label class="checkbox"><input type="checkbox" id="dropEmpty" checked> Remove empty rows</label>
+        <label class="checkbox"><input type="checkbox" id="dedupe" checked> Remove duplicate rows</label>
+        <div><label for="dedupeBy">Duplicates are judged by</label><select id="dedupeBy"></select></div>
+        <label class="checkbox"><input type="checkbox" id="dedupeCase"> Ignore case when finding duplicates</label>
+      </div>
+
+      <h3 class="cc-h">Filter rows <span style="font-weight:400;color:var(--muted);font-size:13px">(all rules must match)</span></h3>
+      <div id="rules"></div>
+      <button type="button" class="secondary small" id="addRule" style="margin-top:8px">+ Add filter rule</button>
+
+      <h3 class="cc-h">Sort</h3>
+      <div class="cc-opts">
+        <div><label for="sortCol">Sort by</label><select id="sortCol"></select></div>
+        <div><label for="sortDir">Direction</label><select id="sortDir"><option value="asc">Ascending (A→Z, 0→9)</option><option value="desc">Descending (Z→A, 9→0)</option></select></div>
+      </div>
+
+      <h3 class="cc-h">Columns to keep</h3>
+      <div class="cc-cols" id="cols"></div>
+    </div>
+
+    <div class="panel">
+      <div class="cc-stats" id="stats"></div>
+      <div class="row" style="margin-bottom:12px">
+        <div style="min-width:160px"><label for="outDelim">Export delimiter</label>
+          <select id="outDelim"><option value=",">Comma ,</option><option value=";">Semicolon ;</option><option value="&#9;">Tab</option><option value="|">Pipe |</option></select></div>
+        <label class="checkbox" style="align-self:end"><input type="checkbox" id="bom"> Add UTF-8 BOM (helps Excel open accents correctly)</label>
+        <div class="row" style="margin-left:auto;align-self:end">
+          <button type="button" id="downloadBtn">⬇ Download CSV</button>
+          <button type="button" class="secondary" id="copyBtn">Copy</button>
+        </div>
+      </div>
+      <div id="status" class="status"></div>
+      <div class="cc-wrap"><table class="cc-table" id="preview"></table></div>
+      <p style="font-size:12px;color:var(--muted)" id="previewNote"></p>
+    </div>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const PREVIEW_ROWS = 200;
+    let parsed = { header: [], rows: [] };
+    let output = { header: [], rows: [] };
+    let keep = [];
+    let rules = [];
+
+    function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
+    function setStatus(msg, ok) { $('status').textContent = msg; $('status').className = 'status ' + (ok ? 'ok' : 'err'); }
+
+    function detectDelimiter(text) {
+      const lines = text.split(/\r?\n/).filter(l => l.trim()).slice(0, 10);
+      let best = ',', bestScore = -1;
+      for (const d of [',', ';', '\t', '|']) {
+        const counts = lines.map(l => l.split(d).length - 1);
+        const min = Math.min(...counts);
+        const score = min > 0 && counts.every(c => c === counts[0]) ? min * 10 : min;
+        if (score > bestScore) { best = d; bestScore = score; }
+      }
+      return best;
+    }
+
+    // RFC 4180 parser: quoted fields, escaped quotes, newlines inside quotes.
+    function parseCsv(text, d) {
+      const rows = [];
+      let row = [], field = '', i = 0, q = false;
+      const n = text.length;
+      if (text.charCodeAt(0) === 0xFEFF) i = 1;
+      while (i < n) {
+        const c = text[i];
+        if (q) {
+          if (c === '"') {
+            if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+            q = false; i++; continue;
+          }
+          field += c; i++; continue;
+        }
+        if (c === '"' && field.trim() === '') { q = true; field = ''; i++; continue; }
+        if (c === d) { row.push(field); field = ''; i++; continue; }
+        if (c === '\r' || c === '\n') {
+          row.push(field); rows.push(row); row = []; field = '';
+          if (c === '\r' && text[i + 1] === '\n') i++;
+          i++; continue;
+        }
+        field += c; i++;
+      }
+      if (field !== '' || row.length) { row.push(field); rows.push(row); }
+      return rows;
+    }
+
+    function toCsv(header, rows, d) {
+      const cell = v => {
+        v = v == null ? '' : String(v);
+        return /["\r\n]/.test(v) || v.includes(d) || /^\s|\s$/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+      };
+      const lines = [];
+      if (header) lines.push(header.map(cell).join(d));
+      for (const r of rows) lines.push(r.map(cell).join(d));
+      return lines.join('\r\n');
+    }
+
+    function colOptions(withNone, noneLabel) {
+      const opts = withNone ? [`<option value="">${noneLabel}</option>`] : [];
+      parsed.header.forEach((h, i) => opts.push(`<option value="${i}">${esc(h || 'Column ' + (i + 1))}</option>`));
+      return opts.join('');
+    }
+
+    function rebuildColumnControls() {
+      const prevDedupe = $('dedupeBy').value, prevSort = $('sortCol').value;
+      $('dedupeBy').innerHTML = colOptions(true, 'All columns (entire row)');
+      $('sortCol').innerHTML = colOptions(true, '— Keep original order —');
+      if ([...$('dedupeBy').options].some(o => o.value === prevDedupe)) $('dedupeBy').value = prevDedupe;
+      if ([...$('sortCol').options].some(o => o.value === prevSort)) $('sortCol').value = prevSort;
+      if (keep.length !== parsed.header.length) keep = parsed.header.map(() => true);
+      $('cols').innerHTML = parsed.header.map((h, i) =>
+        `<label><input type="checkbox" data-col="${i}" ${keep[i] ? 'checked' : ''}> ${esc(h || 'Column ' + (i + 1))}</label>`).join('') || '<span style="color:var(--muted);font-size:13px">Paste CSV to see columns.</span>';
+      renderRules();
+    }
+
+    const OPS = [
+      ['contains', 'contains'], ['ncontains', 'does not contain'], ['eq', 'equals'], ['neq', 'does not equal'],
+      ['starts', 'starts with'], ['ends', 'ends with'], ['gt', '> (number)'], ['lt', '< (number)'],
+      ['gte', '≥ (number)'], ['lte', '≤ (number)'], ['empty', 'is empty'], ['nempty', 'is not empty'], ['regex', 'matches regex']
+    ];
+
+    function renderRules() {
+      $('rules').innerHTML = rules.map((r, idx) => `
+        <div class="cc-rule" data-idx="${idx}">
+          <select data-k="col" aria-label="Column">${colOptions(false)}</select>
+          <select data-k="op" aria-label="Operator">${OPS.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')}</select>
+          <input type="text" data-k="val" aria-label="Value" placeholder="value" value="${esc(r.val)}" ${r.op === 'empty' || r.op === 'nempty' ? 'disabled' : ''}>
+          <button type="button" class="secondary small" data-k="del" aria-label="Remove rule">✕</button>
+        </div>`).join('');
+      [...$('rules').children].forEach((el, idx) => {
+        const r = rules[idx];
+        if (r.col >= parsed.header.length) r.col = 0;
+        el.querySelector('[data-k=col]').value = String(r.col);
+        el.querySelector('[data-k=op]').value = r.op;
+      });
+    }
+
+    function num(v) {
+      const s = String(v).trim().replace(/\s/g, '');
+      if (!s) return NaN;
+      // Accept 1,234.5 and 1.234,5 style numbers.
+      const euro = /^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s) || (parsed.delimiter !== ',' && /^-?\d+,\d+$/.test(s));
+      const norm = euro ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+      return Number(norm);
+    }
+
+    function testRule(r, row) {
+      const v = row[r.col] == null ? '' : String(row[r.col]);
+      const lv = v.toLowerCase(), q = String(r.val).toLowerCase();
+      switch (r.op) {
+        case 'contains': return lv.includes(q);
+        case 'ncontains': return !lv.includes(q);
+        case 'eq': return lv === q;
+        case 'neq': return lv !== q;
+        case 'starts': return lv.startsWith(q);
+        case 'ends': return lv.endsWith(q);
+        case 'gt': return num(v) > num(r.val);
+        case 'lt': return num(v) < num(r.val);
+        case 'gte': return num(v) >= num(r.val);
+        case 'lte': return num(v) <= num(r.val);
+        case 'empty': return v.trim() === '';
+        case 'nempty': return v.trim() !== '';
+        case 'regex': try { return new RegExp(r.val, 'i').test(v); } catch (_) { return true; }
+      }
+      return true;
+    }
+
+    function parseInput() {
+      const text = $('input').value;
+      const d = $('delim').value === 'auto' ? detectDelimiter(text) : $('delim').value;
+      const all = text.trim() === '' ? [] : parseCsv(text, d);
+      const width = all.reduce((m, r) => Math.max(m, r.length), 0);
+      all.forEach(r => { while (r.length < width) r.push(''); });
+      let header;
+      if ($('header').checked && all.length) header = all.shift().map(h => h.trim());
+      else header = Array.from({ length: width }, (_, i) => 'Column ' + (i + 1));
+      parsed = { header, rows: all, delimiter: d };
+      if ($('delim').value === 'auto' && text.trim()) $('outDelim').value = d;
+      rebuildColumnControls();
+      process();
+    }
+
+    function process() {
+      const stats = { input: parsed.rows.length, empty: 0, dupes: 0, filtered: 0 };
+      const trim = $('trim').checked, collapse = $('collapse').checked;
+      let rows = parsed.rows.map(r => r.map(v => {
+        if (trim) v = v.trim();
+        if (collapse) v = v.replace(/[ \t]{2,}/g, ' ');
+        return v;
+      }));
+      if ($('dropEmpty').checked) {
+        const before = rows.length;
+        rows = rows.filter(r => r.some(v => String(v).trim() !== ''));
+        stats.empty = before - rows.length;
+      }
+      if ($('dedupe').checked) {
+        const by = $('dedupeBy').value, ci = $('dedupeCase').checked, seen = new Set();
+        const before = rows.length;
+        rows = rows.filter(r => {
+          let key = by === '' ? JSON.stringify(r) : String(r[+by]);
+          if (ci) key = key.toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key); return true;
+        });
+        stats.dupes = before - rows.length;
+      }
+      if (rules.length) {
+        const before = rows.length;
+        rows = rows.filter(row => rules.every(r => testRule(r, row)));
+        stats.filtered = before - rows.length;
+      }
+      const sc = $('sortCol').value;
+      if (sc !== '') {
+        const c = +sc, dir = $('sortDir').value === 'desc' ? -1 : 1;
+        const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+        rows = rows.map((r, i) => [r, i]).sort((a, b) => {
+          const x = a[0][c], y = b[0][c];
+          if (x === '' && y !== '') return 1;
+          if (y === '' && x !== '') return -1;
+          const nx = num(x), ny = num(y);
+          const cmp = !isNaN(nx) && !isNaN(ny) ? nx - ny : collator.compare(x, y);
+          return cmp * dir || a[1] - b[1];
+        }).map(p => p[0]);
+      }
+      const idx = parsed.header.map((_, i) => i).filter(i => keep[i] !== false);
+      output = { header: idx.map(i => parsed.header[i]), rows: rows.map(r => idx.map(i => r[i])) };
+      renderStats(stats);
+      renderPreview();
+    }
+
+    function stat(v, l) { return `<div class="stat"><div class="value">${Number(v).toLocaleString()}</div><div class="label">${l}</div></div>`; }
+    function renderStats(s) {
+      $('stats').innerHTML = stat(s.input, 'Rows in') + stat(s.dupes, 'Duplicates removed') + stat(s.empty, 'Empty rows removed') +
+        stat(s.filtered, 'Filtered out') + stat(output.rows.length, 'Rows out') + stat(output.header.length, 'Columns out');
+    }
+    function renderPreview() {
+      const { header, rows } = output;
+      if (!header.length) { $('preview').innerHTML = ''; $('previewNote').textContent = ''; return; }
+      const head = `<thead><tr><th>#</th>${header.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead>`;
+      const body = rows.slice(0, PREVIEW_ROWS).map((r, i) => `<tr><td class="n">${i + 1}</td>${r.map(v => `<td title="${esc(v)}">${esc(v)}</td>`).join('')}</tr>`).join('');
+      $('preview').innerHTML = head + `<tbody>${body}</tbody>`;
+      $('previewNote').textContent = rows.length > PREVIEW_ROWS ? `Preview shows the first ${PREVIEW_ROWS} of ${rows.length.toLocaleString()} rows. The export contains every row.` : '';
+    }
+
+    function exportText() {
+      const d = $('outDelim').value;
+      return toCsv($('header').checked ? output.header : null, output.rows, d);
+    }
+
+    let timer = null;
+    function debounced(fn) { clearTimeout(timer); timer = setTimeout(fn, 200); }
+
+    $('input').addEventListener('input', () => debounced(parseInput));
+    $('delim').addEventListener('change', parseInput);
+    $('header').addEventListener('change', parseInput);
+    ['trim', 'collapse', 'dropEmpty', 'dedupe', 'dedupeBy', 'dedupeCase', 'sortCol', 'sortDir'].forEach(id => $(id).addEventListener('change', process));
+    $('cols').addEventListener('change', e => { const c = e.target.dataset.col; if (c != null) { keep[+c] = e.target.checked; process(); } });
+    $('addRule').onclick = () => { rules.push({ col: 0, op: 'contains', val: '' }); renderRules(); process(); };
+    $('rules').addEventListener('input', e => {
+      const row = e.target.closest('.cc-rule'); if (!row) return;
+      const r = rules[+row.dataset.idx], k = e.target.dataset.k;
+      if (k === 'col') r.col = +e.target.value;
+      if (k === 'op') { r.op = e.target.value; row.querySelector('[data-k=val]').disabled = r.op === 'empty' || r.op === 'nempty'; }
+      if (k === 'val') r.val = e.target.value;
+      debounced(process);
+    });
+    $('rules').addEventListener('click', e => {
+      if (e.target.dataset.k !== 'del') return;
+      rules.splice(+e.target.closest('.cc-rule').dataset.idx, 1);
+      renderRules(); process();
+    });
+    $('fileInput').onchange = async e => {
+      const f = e.target.files && e.target.files[0]; e.target.value = '';
+      if (!f) return;
+      if (f.size > 50 * 1048576) { setStatus('That file is over 50 MB — too large to clean comfortably in the browser.', false); return; }
+      $('input').value = await f.text();
+      parseInput();
+      setStatus(`Loaded ${f.name}`, true);
+    };
+    $('sampleBtn').onclick = () => {
+      $('input').value = 'name,email,city,orders\n  Alice  ,alice@example.com,Berlin,12\nBob,bob@example.com,  Paris ,3\n,,,\nalice,ALICE@example.com,Berlin,12\nCarla,carla@example.com,Madrid,27\nBob,bob@example.com,  Paris ,3\nDavid,david@example.com,Rome,8';
+      parseInput();
+    };
+    $('downloadBtn').onclick = () => {
+      if (!output.header.length) { setStatus('Nothing to export yet.', false); return; }
+      const text = ($('bom').checked ? '\uFEFF' : '') + exportText();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
+      a.download = 'cleaned.csv';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      setStatus('Downloaded cleaned.csv ✓', true);
+    };
+    $('copyBtn').onclick = async () => {
+      if (!output.header.length) { setStatus('Nothing to copy yet.', false); return; }
+      try { await navigator.clipboard.writeText(exportText()); setStatus('Copied ✓', true); } catch (_) { setStatus('Copy failed', false); }
+    };
+
+    parseInput();
+  </script>
+  <script src="/site.js"></script>
+</body>
+</html>
