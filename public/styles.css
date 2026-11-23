@@ -347,6 +347,31 @@ button.link-btn:hover { background: none; color: var(--accent-2); text-decoratio
 @media (min-width: 760px) { .search-bar .kbd-hint { display: inline-block; } }
 .search-bar input:not(:placeholder-shown) + .kbd-hint { display: none; }
 
+.search-suggest {
+  position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 50;
+  margin: 0; padding: 6px; list-style: none; text-align: left;
+  max-height: min(420px, 60vh); overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--border-strong);
+  border-radius: 14px; box-shadow: var(--shadow-soft), 0 12px 32px rgba(0,0,0,.28);
+}
+.search-suggest[hidden] { display: none; }
+.search-suggest li {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 12px; border-radius: 10px; cursor: pointer; color: var(--text);
+}
+.search-suggest li[aria-selected="true"],
+.search-suggest li[role="option"]:hover { background: var(--panel-2); }
+.search-suggest li[aria-selected="true"] { box-shadow: inset 3px 0 0 var(--accent); }
+.search-suggest .sugg-icon { flex: 0 0 auto; width: 28px; text-align: center; font-size: 18px; }
+.search-suggest .sugg-text { display: flex; flex-direction: column; min-width: 0; }
+.search-suggest .sugg-text strong { font-weight: 600; }
+.search-suggest .sugg-text small {
+  color: var(--muted); font-size: 13px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.search-suggest .sugg-all { justify-content: center; color: var(--accent); font-weight: 600; }
+.search-suggest .sugg-empty { color: var(--muted); cursor: default; justify-content: center; }
+
 /* Favorites + recently used quick-access rows */
 .quick-row {
   display: flex;

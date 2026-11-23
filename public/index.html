@@ -68,8 +68,9 @@
 
       <form class="search-bar" role="search" action="/" method="get" id="searchForm">
         <label for="search" class="visually-hidden">Search tools</label>
-        <input id="search" name="q" type="search" placeholder="Search {{TOOL_COUNT}} tools — e.g. json, password, pdf" autocomplete="off" spellcheck="false" aria-describedby="resultStatus">
+        <input id="search" name="q" type="search" placeholder="Search {{TOOL_COUNT}} tools — e.g. json, password, pdf" autocomplete="off" spellcheck="false" aria-describedby="resultStatus" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="searchSuggest">
         <kbd class="kbd-hint" aria-hidden="true">/</kbd>
+        <ul id="searchSuggest" class="search-suggest" role="listbox" aria-label="Tool suggestions" hidden></ul>
       </form>
 
       <ul class="hero-stats" aria-label="Site facts">
@@ -406,15 +407,85 @@
         if (btn) { searchInput.value = state.q = ''; setCat(btn.dataset.showCat, true); }
       });
 
+      // ---------- Search suggestions dropdown ----------
+      const suggest = $('searchSuggest');
+      let suggestIdx = -1;
+      function suggestions() {
+        const q = state.q.trim().toLowerCase();
+        const terms = q.split(/\s+/).filter(Boolean);
+        if (!terms.length) return [];
+        const score = t => {
+          const n = t.name.toLowerCase();
+          return n.startsWith(q) ? 0 : n.split(/\W+/).some(w => w.startsWith(terms[0])) ? 1 : n.includes(q) ? 2 : 3;
+        };
+        return TOOLS.filter(t => matches(t, terms))
+          .map(t => [score(t), t])
+          .sort((a, b) => a[0] - b[0] || (b[1].views || 0) - (a[1].views || 0) || a[1].name.localeCompare(b[1].name))
+          .map(x => x[1]);
+      }
+      function closeSuggest() {
+        suggest.hidden = true;
+        suggestIdx = -1;
+        searchInput.setAttribute('aria-expanded', 'false');
+        searchInput.removeAttribute('aria-activedescendant');
+      }
+      function setSuggestIdx(i) {
+        const opts = suggest.querySelectorAll('[role="option"]');
+        if (!opts.length) return;
+        suggestIdx = (i + opts.length) % opts.length;
+        opts.forEach((o, k) => o.setAttribute('aria-selected', k === suggestIdx));
+        searchInput.setAttribute('aria-activedescendant', opts[suggestIdx].id);
+        opts[suggestIdx].scrollIntoView({ block: 'nearest' });
+      }
+      function renderSuggest() {
+        const all = suggestions();
+        if (!state.q.trim() || document.activeElement !== searchInput) return closeSuggest();
+        const shown = all.slice(0, 8);
+        suggest.innerHTML = shown.length
+          ? shown.map((t, i) => `<li role="option" id="sugg-${i}" aria-selected="false" data-href="/${esc(t.slug)}"><span class="sugg-icon" aria-hidden="true">${esc(t.icon)}</span><span class="sugg-text"><strong>${esc(t.name)}</strong><small>${esc(t.desc)}</small></span></li>`).join('')
+            + (all.length > shown.length ? `<li role="option" id="sugg-${shown.length}" aria-selected="false" class="sugg-all" data-all="1">See all ${all.length} results ↓</li>` : '')
+          : `<li class="sugg-empty">No tools match “${esc(state.q.trim())}”</li>`;
+        suggest.hidden = false;
+        suggestIdx = -1;
+        searchInput.setAttribute('aria-expanded', 'true');
+        searchInput.removeAttribute('aria-activedescendant');
+      }
+      function chooseSuggestion(li) {
+        if (!li) return;
+        if (li.dataset.href) { location.href = li.dataset.href; return; }
+        if (li.dataset.all) {
+          closeSuggest();
+          grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+      suggest.addEventListener('mousedown', e => e.preventDefault());
+      suggest.addEventListener('click', e => chooseSuggestion(e.target.closest('[role="option"]')));
+      searchInput.addEventListener('keydown', e => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          if (suggest.hidden) renderSuggest();
+          if (suggest.hidden) return;
+          e.preventDefault();
+          setSuggestIdx(suggestIdx + (e.key === 'ArrowDown' ? 1 : (suggestIdx < 0 ? 0 : -1)));
+        }
+      });
+      searchInput.addEventListener('focus', renderSuggest);
+      searchInput.addEventListener('blur', closeSuggest);
+
       let debounce;
       searchInput.addEventListener('input', () => {
         state.q = searchInput.value;
         render();
+        renderSuggest();
         clearTimeout(debounce);
         debounce = setTimeout(syncUrl, 300);
       });
       $('searchForm').addEventListener('submit', e => {
         e.preventDefault();
+        if (!suggest.hidden) {
+          const opts = suggest.querySelectorAll('[role="option"]');
+          const pick = opts[suggestIdx >= 0 ? suggestIdx : 0];
+          if (pick && (suggestIdx >= 0 || pick.dataset.href)) return chooseSuggestion(pick);
+        }
         const first = grid.querySelector('.tool-title a');
         if (first && state.q.trim()) first.focus();
       });
@@ -466,7 +537,8 @@
           searchInput.select();
         }
         if (e.key === 'Escape' && document.activeElement === searchInput) {
-          if (searchInput.value) { searchInput.value = state.q = ''; syncUrl(); render(); }
+          if (!suggest.hidden) closeSuggest();
+          else if (searchInput.value) { searchInput.value = state.q = ''; syncUrl(); render(); }
           else searchInput.blur();
         }
       });
