@@ -815,6 +815,227 @@ const TOOL_GUIDES = {
       ['Is pasted business data sent anywhere?', 'No. It remains in the browser while you use the page.']
     ],
     related: ['excel-table', 'json-csv', 'budget', 'invoice', 'count']
+  },
+  'unit-converter': {
+    title: 'Unit Converter guide',
+    intro: [
+      'The Unit Converter switches values between metric, imperial and US customary units for length, weight, temperature, volume, speed and cooking measurements. Pick a category, type a value, and every unit in that category is shown at once.',
+      'The cooking mode also converts between volume and weight (for example cups of flour to grams) using typical ingredient densities, which is handy when following recipes from another country.'
+    ],
+    useCases: [
+      'Converting a recipe from cups and tablespoons to grams and millilitres.',
+      'Checking a temperature in Celsius, Fahrenheit or Kelvin.',
+      'Turning miles per hour into km/h, or feet and inches into centimetres.',
+      'Comparing litres with US or UK gallons when buying fuel, paint or liquids.'
+    ],
+    steps: [
+      'Choose a category tab such as Length or Cooking.',
+      'Type the value and pick the "from" and "to" units.',
+      'For cooking volume↔weight, pick the ingredient so the right density is used.',
+      'Use the swap button to reverse the direction.',
+      'Click any row in the "all units" table to copy that value.'
+    ],
+    example: {
+      input: '1 US cup of all-purpose flour',
+      output: '≈ 125 g',
+      note: 'Sugar is much denser — 1 US cup of granulated sugar is about 200 g.'
+    },
+    privacy: 'All conversions are calculated locally in your browser. Nothing you type is sent to UtilityTools.eu.',
+    limitations: [
+      'Cooking weight conversions use average densities; sifted or packed ingredients can differ noticeably.',
+      'US and UK (imperial) gallons, pints and fluid ounces are different sizes — check which one your source uses.',
+      'Results are rounded to the selected number of significant digits.'
+    ],
+    faq: [
+      ['Why is a UK pint bigger than a US pint?', 'The imperial pint is 568 mL while the US liquid pint is 473 mL; both systems kept the name but defined it differently.'],
+      ['How do I convert temperature correctly?', 'Temperature scales have different zero points, so they use a formula rather than a simple factor. The converter handles this for you.'],
+      ['Is a tablespoon the same everywhere?', 'Not quite. A US tablespoon is about 14.8 mL (used by this converter), a metric tablespoon is 15 mL and an Australian tablespoon is 20 mL.']
+    ],
+    related: ['currency', 'fuel', 'bmi', 'calories', 'date-calculator']
+  },
+  'date-calculator': {
+    title: 'Date Calculator guide',
+    intro: [
+      'The Date Calculator adds or subtracts days, weeks, months and years from a date, and measures the gap between two dates in days, weeks and years/months/days.',
+      'It also counts weekdays and weekend days, and can skip public holidays you list so you get real working days — useful for deadlines, notice periods and project plans.'
+    ],
+    useCases: [
+      'Finding the date 90 days after a contract start.',
+      'Counting working days between two dates for a project or invoice.',
+      'Working out a deadline of "10 business days" that skips weekends and holidays.',
+      'Checking how many years, months and days have passed since an event.'
+    ],
+    steps: [
+      'In "Add or subtract", choose a start date and enter years, months, weeks or days.',
+      'Tick "business days" if days should skip weekends and listed holidays.',
+      'In "Days between", pick a start and end date to see the full breakdown.',
+      'Optionally paste holidays (one YYYY-MM-DD per line) to exclude them from working days.'
+    ],
+    example: {
+      input: '2025-01-31 + 1 month',
+      output: '2025-02-28',
+      note: 'When the target month is shorter, the date is clamped to the last day of that month.'
+    },
+    privacy: 'All date calculations run locally in your browser. Dates and holiday lists are not sent to UtilityTools.eu.',
+    limitations: [
+      'Weekends are Saturday and Sunday; other weekend patterns are not supported.',
+      'Public holidays are not built in — paste the ones that apply to your country or company.',
+      'Calculations use calendar dates only and ignore time of day and time zones.'
+    ],
+    faq: [
+      ['Is the end date counted?', 'Not by default. Tick "Include the end date" if you need both the first and last day counted.'],
+      ['How are months added to the 31st?', 'If the target month has fewer days, the result is the last day of that month (e.g. Jan 31 + 1 month = Feb 28 or 29).'],
+      ['Does it handle leap years?', 'Yes. Leap days are included in all calculations.']
+    ],
+    related: ['age', 'timezones', 'timestamp', 'pomodoro', 'unit-converter']
+  },
+  'file-checksum': {
+    title: 'File Checksum (SHA-256) guide',
+    intro: [
+      'The File Checksum tool calculates the SHA-256 hash of local files so you can confirm that a download, backup or copied file is exactly what it should be.',
+      'You can drop several files at once, paste an expected hash or a SHA256SUMS file to verify them automatically, and export the results in the standard sha256sum format. For hashing text, use the Hash Generator.'
+    ],
+    useCases: [
+      'Verifying a downloaded ISO, installer or firmware against the publisher\'s SHA-256.',
+      'Checking that a file copied to a USB drive or NAS is identical to the original.',
+      'Creating a SHA256SUMS file for a set of files you are distributing.',
+      'Comparing two files to see whether they are byte-for-byte identical.'
+    ],
+    steps: [
+      'Drop one or more files onto the page, or click to choose them.',
+      'Wait for the hash to finish — large files show progress and can be cancelled.',
+      'Paste the expected hash or load a SHA256SUMS file to verify.',
+      'Check the green "match" or red "mismatch" badge for each file.',
+      'Copy the hashes or download a SHA256SUMS file.'
+    ],
+    example: {
+      input: 'An empty file',
+      output: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      note: 'Any change to a file, even one byte, produces a completely different hash.'
+    },
+    privacy: 'Files are read and hashed locally by your browser in chunks. They are never uploaded to UtilityTools.eu.',
+    limitations: [
+      'Only SHA-256 is calculated; use the Hash Generator for other algorithms on text.',
+      'Very large files can take a while depending on your device speed.',
+      'A matching checksum proves the file is unchanged, not that it is safe to run.'
+    ],
+    faq: [
+      ['Is my file uploaded?', 'No. The browser reads the file locally and computes the hash on your device.'],
+      ['Which checksum file formats are supported?', 'Bare hashes, GNU sha256sum lines ("hash  filename") and BSD style ("SHA256 (filename) = hash").'],
+      ['Is upper- or lowercase important?', 'No. Hex hashes are compared case-insensitively.']
+    ],
+    related: ['hash', 'hmac', 'encrypt', 'file-encoding', 'base64']
+  },
+  'csv-cleaner': {
+    title: 'CSV Cleaner guide',
+    intro: [
+      'The CSV Cleaner tidies up CSV data before you import it somewhere else. It removes duplicate rows, trims stray spaces, drops empty lines, filters rows by rules, sorts by a column and lets you choose which columns to keep.',
+      'It auto-detects comma, semicolon, tab and pipe delimiters, handles quoted fields correctly, and exports a clean CSV with the delimiter and encoding you need.'
+    ],
+    useCases: [
+      'De-duplicating a mailing list exported from several sources.',
+      'Removing spaces and blank lines before importing into a CRM or database.',
+      'Filtering an export down to rows matching a status, country or value range.',
+      'Re-saving a semicolon CSV as comma-separated (or the other way round) for Excel.'
+    ],
+    steps: [
+      'Paste CSV text, open a .csv file or load the sample.',
+      'Check the detected delimiter and whether the first row is a header.',
+      'Pick cleaning options: trim, remove empty rows and remove duplicates.',
+      'Add filter rules and choose a sort column if needed.',
+      'Untick columns you do not need, then download or copy the cleaned CSV.'
+    ],
+    example: {
+      input: '5 rows with 2 exact duplicates and extra spaces',
+      output: '3 clean rows with trimmed values',
+      note: 'Duplicates are compared after trimming, so " Anna" and "Anna" count as the same.'
+    },
+    privacy: 'Your CSV is parsed and cleaned entirely in your browser. The data is not uploaded to UtilityTools.eu.',
+    limitations: [
+      'Files up to about 50 MB are supported; very large files depend on your device memory.',
+      'The preview shows the first 200 rows, but the export always contains all rows.',
+      'Formulas and formatting from spreadsheet apps are not preserved — CSV is plain text.'
+    ],
+    faq: [
+      ['Which duplicate is kept?', 'The first occurrence is kept and later duplicates are removed.'],
+      ['Will Excel open the file with accents correctly?', 'Tick "Add UTF-8 BOM" on export so Excel detects the encoding.'],
+      ['Are numbers sorted correctly?', 'Yes. Sorting is numeric-aware, so 10 comes after 9, and empty values go last.']
+    ],
+    related: ['json-csv', 'excel-table', 'text-to-excel', 'csv-xml', 'string-utils']
+  },
+  'quick-drop': {
+    title: 'Quick Drop guide',
+    intro: [
+      'Quick Drop sends text, links or a short note between two devices — for example from your phone to your laptop — without email, messengers or accounts.',
+      'One device creates a temporary room and shows a QR code. The other scans it (or types the code) and both are connected directly over an encrypted WebRTC channel. Messages disappear when you close the tab.'
+    ],
+    useCases: [
+      'Moving a link from your phone browser to your computer.',
+      'Sending a Wi-Fi password, address or code to a device you do not want to log in on.',
+      'Passing a note to a colleague\'s laptop in the same room.',
+      'Copying text from a work computer to your phone without using personal accounts.'
+    ],
+    steps: [
+      'On the first device, click "Create a drop room".',
+      'Scan the QR code with the second device, or open the link and enter the code.',
+      'Wait until the status shows "Connected".',
+      'Type or paste text and press Send (Ctrl/⌘+Enter also works).',
+      'On the other device, click Copy or Open link.'
+    ],
+    example: {
+      input: 'https://example.com/long/article (sent from a phone)',
+      output: 'Arrives on the laptop with an "Open link" button.',
+      note: 'Anything with http(s) links is made clickable automatically.'
+    },
+    privacy: 'The server only relays short connection messages. Your text travels directly between the two browsers over an encrypted WebRTC DataChannel and is never stored.',
+    limitations: [
+      'Only two devices can join a room at a time.',
+      'Both pages must stay open; closing a tab ends the room.',
+      'Some strict corporate or mobile networks block direct WebRTC connections.'
+    ],
+    faq: [
+      ['Is it secure?', 'WebRTC DataChannels are encrypted with DTLS. Only someone with your room code can join, and the room holds a maximum of two devices.'],
+      ['Do I need an app?', 'No. Any modern browser on phone, tablet or computer works.'],
+      ['How long is the message limit?', 'Up to 50,000 characters per message.']
+    ],
+    related: ['photo-drop', 'p2p-file', 'temp-chat', 'qr', 'encrypt']
+  },
+  'photo-drop': {
+    title: 'Phone-to-Computer Photo Drop guide',
+    intro: [
+      'Photo Drop moves photos from your phone to your computer by scanning a QR code — no cable, cloud account or messaging app needed.',
+      'The computer shows a QR code, the phone opens it and takes or picks photos, and they stream straight to the computer over an encrypted WebRTC connection. You can then download them one by one or all at once.'
+    ],
+    useCases: [
+      'Getting a photo of a document or receipt onto your computer quickly.',
+      'Moving a screenshot or picture without emailing it to yourself.',
+      'Taking product or damage photos and adding them to a report on the PC.',
+      'Transferring photos from a borrowed or work phone without signing in.'
+    ],
+    steps: [
+      'On the computer, click "Receive photos on this device".',
+      'Scan the QR code with the phone camera and open the link.',
+      'On the phone, tap "Take photo" or "Choose photos".',
+      'Optionally enable "Reduce size" for faster transfers.',
+      'On the computer, download individual photos or use "Download all".'
+    ],
+    example: {
+      input: 'A 4 MB photo taken on the phone',
+      output: 'Appears in the computer gallery a few seconds later, ready to download.',
+      note: 'The phone shows "delivered ✓" once the computer has received the full file.'
+    },
+    privacy: 'The server only relays short connection messages. Photos travel directly from the phone to the computer over an encrypted WebRTC DataChannel and are never uploaded or stored.',
+    limitations: [
+      'Each photo can be up to 200 MB.',
+      'Both pages must stay open during the transfer.',
+      'Some strict networks block direct WebRTC connections; try the same Wi-Fi if it fails.'
+    ],
+    faq: [
+      ['Are photos uploaded to a server?', 'No. They go straight from the phone to the computer.'],
+      ['Does it work with iPhone and Android?', 'Yes, in any modern mobile browser such as Safari or Chrome.'],
+      ['Is photo quality reduced?', 'Only if you turn on "Reduce size". Otherwise the original file is sent unchanged.']
+    ],
+    related: ['quick-drop', 'p2p-file', 'img-compress', 'qr', 'img-exif']
   }
 };
 
@@ -846,7 +1067,7 @@ function privacyFor(tool) {
   if (tool.slug === 'ftp-explorer') return 'FTP Explorer needs server-side help because browsers cannot connect directly to FTP/FTPS servers. Credentials are sent over HTTPS to UtilityTools.eu only to perform the requested FTP operation for that session; they are not stored.';
   if (tool.slug === 'ip-lookup') return 'IP lookup needs a network request to retrieve public IP and location data. The lookup result depends on external IP data providers and should be treated as approximate.';
   if (tool.slug === 'currency') return 'Currency conversion may request public exchange-rate data, but your selected amount and page interaction are not stored in a UtilityTools.eu account or database.';
-  if (['p2p-call', 'p2p-voice', 'p2p-file', 'temp-chat'].includes(tool.slug)) return 'This communication tool uses the server only for small connection/signaling messages. The actual media, files or chat data are designed to flow browser-to-browser where supported by WebRTC.';
+  if (['p2p-call', 'p2p-voice', 'p2p-file', 'temp-chat', 'quick-drop', 'photo-drop'].includes(tool.slug)) return 'This communication tool uses the server only for small connection/signaling messages. The actual media, files or chat data are designed to flow browser-to-browser where supported by WebRTC.';
   return `The ${tool.name} tool is designed to run in your browser. Your input is processed locally by the page unless the interface explicitly says that a network request is needed for that specific feature.`;
 }
 

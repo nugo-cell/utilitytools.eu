@@ -11,7 +11,9 @@ A Node.js + Express project that serves a suite of free, privacy-friendly web-ba
 | `/base64` | Base64 encode/decode |
 | `/url` | URL encode/decode |
 | `/uuid` | UUID v4 generator |
-| `/hash` | SHA-1/256/384/512 generator |
+| `/hash` | SHA-1/256/384/512 text hash generator |
+| `/file-checksum` | SHA-256 checksums for local files, with SHA256SUMS verify/export |
+| `/csv-cleaner` | CSV cleaner — dedupe, trim, filter, sort, pick columns, export |
 | `/regex` | Regex tester with live matches |
 | `/timestamp` | Unix timestamp converter |
 | `/json-csv` | JSON ↔ CSV converter |
@@ -48,6 +50,8 @@ A Node.js + Express project that serves a suite of free, privacy-friendly web-ba
 | `/tip` | Tip & bill splitter |
 | `/bmi` | BMI calculator (metric + imperial) |
 | `/age` | Age & date difference calculator |
+| `/unit-converter` | Unit converter — length, weight, temperature, volume, speed, cooking |
+| `/date-calculator` | Add/subtract dates, days between dates, weekday & business-day counts |
 
 ### Kids & learning
 | Route | Tool |
@@ -63,6 +67,14 @@ A Node.js + Express project that serves a suite of free, privacy-friendly web-ba
 | Route | Tool |
 |-------|------|
 | `/pomodoro` | Pomodoro focus timer |
+
+### Device to device (WebRTC)
+| Route | Tool |
+|-------|------|
+| `/quick-drop` | Send text, links or notes between two devices via a temporary room + QR code |
+| `/photo-drop` | Phone-to-computer photo drop — scan a QR, take/pick a photo, it appears on the PC |
+
+Both use the shared `public/p2p-room.js` helper and the existing `/ws/p2p` signaling relay; data flows peer-to-peer.
 
 ### Documents
 | Route | Tool |
@@ -140,6 +152,10 @@ utility-tools/
    - A `<main class="container">` with your tool UI
    - `<script src="/site.js"></script>` before `</body>`
 2. Add the tool to the `TOOLS` array in `server.js`. It will automatically appear on the dashboard, be routed at `/<slug>`, and be included in the sitemap.
+
+## Posting news
+
+Add an entry at the top of the `NEWS` array in `news.js` (`date`, `title`, `body`, optional `tag`, `link`, `linkText`). The server renders the newest `HOME_NEWS_LIMIT` items into the homepage "News" section (in place of `<!-- HOME_NEWS -->` in `public/index.html`), and older items go under a collapsible "Older news" list. Restart the server to see the change.
 
 ## Adding a new blog post
 

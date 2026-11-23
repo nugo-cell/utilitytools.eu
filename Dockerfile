@@ -37,6 +37,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package*.json ./
 COPY server.js ./
 COPY tool-guides.js ./
+COPY news.js ./
 COPY support ./support
 COPY public ./public
 

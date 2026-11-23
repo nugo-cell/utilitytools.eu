@@ -8,6 +8,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const { TOOL_GUIDES, createDefaultToolGuide } = require('./tool-guides');
+const { NEWS, HOME_NEWS_LIMIT } = require('./news');
 const remoteSupport = require('./support/remote-support');
 
 const app = express();
@@ -261,7 +262,15 @@ const TOOLS = [
   { slug: 'encrypt',          name: 'File Encryption (AES-256)',file: 'tools/encrypt.html',          icon: '🔐',  tags: ['security','privacy','developer'], desc: 'Encrypt any file with a generated AES-256 key. The encrypted file can only be opened by that key.' },
   { slug: 'persona',          name: 'Random Persona Generator', file: 'tools/persona.html',          icon: '🧙',  tags: ['fun','generator','developer','writing'], desc: 'Generate a fictional person from medieval, modern, biblical or galaxy-far-away eras. Names, address, coordinates, family, contact details. Great for test data, RPG NPCs and stories.' },
   { slug: 'ftp-explorer',     name: 'FTP Explorer',             file: 'tools/ftp-explorer.html',     icon: '📡',  tags: ['developer','network','documents'], desc: 'Connect to any FTP / FTPS server with your credentials, browse folders and files, and download. Credentials are sent over HTTPS to our server only to perform the FTP operation; nothing is stored.' },
-  { slug: 'remote-support',   name: 'Remote Support',           file: 'tools/remote-support.html',   icon: '🖥',  tags: ['communication','privacy','support'], desc: 'Start a temporary support session and share a one-time code. A support agent can only join after you approve. You always see the connection, control screen sharing and remote control, and can stop everything instantly. No unattended access.' }
+  { slug: 'remote-support',   name: 'Remote Support',           file: 'tools/remote-support.html',   icon: '🖥',  tags: ['communication','privacy','support'], desc: 'Start a temporary support session and share a one-time code. A support agent can only join after you approve. You always see the connection, control screen sharing and remote control, and can stop everything instantly. No unattended access.' },
+
+  // -------- Everyday utilities --------
+  { slug: 'unit-converter',   name: 'Unit Converter',           file: 'tools/unit-converter.html',   icon: '📏',  tags: ['converter','home','math'],     desc: 'Convert length, weight, temperature, volume, speed and cooking measurements — including cups and spoons to grams.' },
+  { slug: 'date-calculator',  name: 'Date Calculator',          file: 'tools/date-calculator.html',  icon: '📅',  tags: ['time','home','productivity'], desc: 'Add or subtract days, weeks, months and years, find the gap between two dates, and count weekdays with holidays excluded.' },
+  { slug: 'file-checksum',    name: 'File Checksum (SHA-256)',  file: 'tools/file-checksum.html',    icon: '🧮',  tags: ['developer','security'],       desc: 'Calculate SHA-256 checksums of local files and verify them against a published hash or SHA256SUMS file. No upload.' },
+  { slug: 'csv-cleaner',      name: 'CSV Cleaner',              file: 'tools/csv-cleaner.html',      icon: '🧹',  tags: ['developer','documents','text'], desc: 'Remove duplicate rows, trim spaces, drop empty lines, filter and sort CSV data, pick columns, then export a clean CSV.' },
+  { slug: 'quick-drop',       name: 'Quick Drop (device to device)', file: 'tools/quick-drop.html',  icon: '⚡',  tags: ['communication','privacy'],    desc: 'Send text, links or a short note between two devices using a temporary encrypted WebRTC room and a QR code.' },
+  { slug: 'photo-drop',       name: 'Phone-to-Computer Photo Drop', file: 'tools/photo-drop.html',   icon: '📲',  tags: ['communication','privacy','image'], desc: 'Scan a QR code with your phone, take or pick a photo, and it appears straight on your computer. Direct, encrypted, no upload.' }
 ];
 
 const ALL_TAGS = [...new Set(TOOLS.flatMap(t => t.tags))].sort();
@@ -305,6 +314,46 @@ function renderHomeToolCards() {
           <button type="button" class="fav-btn" data-slug="${slug}" aria-pressed="false" aria-label="Add ${name} to favorites" title="Add to favorites"><span aria-hidden="true">☆</span></button>
         </article>`;
   }).join('');
+}
+
+function formatNewsDate(iso) {
+  const d = new Date(iso + 'T00:00:00Z');
+  if (isNaN(d)) return escapeHtml(iso);
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+}
+
+function renderNewsItem(n) {
+  const link = n.link ? `<a class="news-link" href="${escapeHtml(n.link)}">${escapeHtml(n.linkText || 'Read more')} →</a>` : '';
+  return `
+          <li class="news-item">
+            <div class="news-meta"><time datetime="${escapeHtml(n.date)}">${formatNewsDate(n.date)}</time>${n.tag ? `<span class="news-tag">${escapeHtml(n.tag)}</span>` : ''}</div>
+            <h3>${escapeHtml(n.title)}</h3>
+            <p>${escapeHtml(n.body)}</p>
+            ${link}
+          </li>`;
+}
+
+function renderHomeNews() {
+  const items = [...NEWS].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  if (!items.length) return '';
+  const latest = items.slice(0, HOME_NEWS_LIMIT);
+  const older = items.slice(HOME_NEWS_LIMIT);
+  return `
+    <section class="news-section" id="news" aria-labelledby="newsHeading">
+      <div class="section-head">
+        <div>
+          <h2 id="newsHeading">📰 News</h2>
+          <p>New tools and improvements on UtilityTools.eu.</p>
+        </div>
+      </div>
+      <ul class="news-list">${latest.map(renderNewsItem).join('')}
+      </ul>${older.length ? `
+      <details class="news-older">
+        <summary>Older news (${older.length})</summary>
+        <ul class="news-list">${older.map(renderNewsItem).join('')}
+        </ul>
+      </details>` : ''}
+    </section>`;
 }
 
 function renderGuide(slug) {
@@ -389,6 +438,7 @@ app.get('/', (req, res) => {
     '<div class="tool-grid" id="toolGrid"></div>',
     `<div class="tool-grid" id="toolGrid">${renderHomeToolCards()}\n      </div>`
   );
+  html = html.replace('<!-- HOME_NEWS -->', renderHomeNews());
   res.type('html').send(injectToolCount(html));
 });
 

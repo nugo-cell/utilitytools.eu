@@ -810,6 +810,72 @@ const SEO = {
       ['Is my invoice data uploaded?', 'No — everything stays in your browser. The PDF is created by your browser print dialog.'],
       ['Can I save and reuse an invoice?', 'Yes — click "Save as JSON" to download the data, then "Load JSON" later to restore it. The latest invoice is also auto-saved in your browser.']
     ]
+  },
+  'unit-converter': {
+    file: 'tools/unit-converter.html',
+    title: 'Unit Converter — Length, Weight, Temperature, Cooking',
+    desc:  'Convert length, weight, temperature, volume, speed and cooking measurements instantly. Cups and spoons to grams for common ingredients. Free, in-browser.',
+    kw:    'unit converter, metric to imperial, cm to inches, kg to lbs, celsius to fahrenheit, cups to grams, mph to km/h, liters to gallons',
+    name:  'Unit Converter',
+    faq: [
+      ['How are cups converted to grams?', 'Using typical densities for each ingredient (for example about 125 g per US cup of flour). Results are approximate because packing varies.'],
+      ['Which cup size is used?', 'The US cup (236.6 mL) and a metric cup (250 mL) are both available.']
+    ]
+  },
+  'date-calculator': {
+    file: 'tools/date-calculator.html',
+    title: 'Date Calculator — Add Days, Days Between Dates, Weekdays',
+    desc:  'Add or subtract days, weeks, months and years from a date, count the days between two dates, and count weekdays or business days with holidays excluded.',
+    kw:    'date calculator, days between dates, add days to date, business days calculator, weekday counter, date difference, working days',
+    name:  'Date Calculator',
+    faq: [
+      ['Is the end date included?', 'By default no, which matches the usual "days between" meaning. Tick "Include the end date" to count both days.'],
+      ['Can I exclude public holidays?', 'Yes. Paste holiday dates (YYYY-MM-DD) and they are excluded from weekday counts and business-day additions.']
+    ]
+  },
+  'file-checksum': {
+    file: 'tools/file-checksum.html',
+    title: 'File Checksum Calculator — SHA-256 Online, No Upload',
+    desc:  'Calculate the SHA-256 checksum of any local file and verify it against a published hash or SHA256SUMS file. Large files are streamed in your browser — never uploaded.',
+    kw:    'sha256 checksum, file checksum, verify sha256, sha256sum online, file hash, checksum calculator, verify download',
+    name:  'File Checksum (SHA-256)',
+    faq: [
+      ['Is my file uploaded?', 'No. The file is read in chunks by your browser and hashed locally.'],
+      ['Can I verify against a SHA256SUMS file?', 'Yes. Paste or load the checksum file and each file is matched by name.']
+    ]
+  },
+  'csv-cleaner': {
+    file: 'tools/csv-cleaner.html',
+    title: 'CSV Cleaner — Remove Duplicates, Trim, Filter & Sort CSV',
+    desc:  'Clean CSV files in your browser: remove duplicate rows, trim spaces, drop empty lines, filter and sort rows, choose columns and export a clean CSV. No upload.',
+    kw:    'csv cleaner, remove duplicates csv, csv deduplicate, trim csv, filter csv online, sort csv, clean csv data',
+    name:  'CSV Cleaner',
+    faq: [
+      ['Is my CSV uploaded?', 'No. Parsing, cleaning and export all happen locally in your browser.'],
+      ['Can I remove duplicates by one column only?', 'Yes. Choose a column under "Duplicates are judged by" to keep the first row for each value.']
+    ]
+  },
+  'quick-drop': {
+    file: 'tools/quick-drop.html',
+    title: 'Quick Drop — Send Text & Links Between Devices via QR',
+    desc:  'Send text, links or a quick note from your phone to your computer (or any two devices). Scan a QR code, paste, done. Direct encrypted WebRTC, nothing stored.',
+    kw:    'send text to computer, phone to pc text, share link between devices, qr code text transfer, clipboard between devices, webrtc text share',
+    name:  'Quick Drop',
+    faq: [
+      ['Is my text stored anywhere?', 'No. Messages go directly between the two devices over an encrypted WebRTC DataChannel and disappear when you close the tab.'],
+      ['Do I need an account or app?', 'No. Both devices only need a modern browser.']
+    ]
+  },
+  'photo-drop': {
+    file: 'tools/photo-drop.html',
+    title: 'Phone to Computer Photo Transfer — Scan QR, No Upload',
+    desc:  'Send photos from your phone to your computer in seconds: scan a QR code, take or pick a photo, and it appears on the computer. Direct encrypted WebRTC, no cloud upload.',
+    kw:    'phone to computer photo transfer, send photo to pc, transfer photos without cable, qr code photo transfer, iphone to pc photos, android to pc photos',
+    name:  'Phone-to-Computer Photo Drop',
+    faq: [
+      ['Are my photos uploaded to a server?', 'No. Photos stream directly from the phone to the computer over an encrypted WebRTC DataChannel.'],
+      ['Do both devices need to be on the same Wi-Fi?', 'No, but it is usually fastest when they are. Very strict networks may block direct connections.']
+    ]
   }
 };
 
